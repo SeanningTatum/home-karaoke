@@ -263,6 +263,14 @@ function RoomHostView({
     partySoundsRef.current = createPartySounds(() => soundsMutedRef.current);
   }
 
+  // Close the lazily-created `AudioContext` (if any) on unmount — browsers
+  // cap concurrent instances (Chrome: 6), and without this, navigating to
+  // this screen repeatedly in one session (re-opening a room, testing) would
+  // leak contexts. Ref access only, so this never re-runs.
+  useEffect(() => {
+    return () => partySoundsRef.current?.dispose();
+  }, []);
+
   // Join pop — fires once per guest who joins the roster AFTER this screen
   // is already mounted. Seeded from whatever's already in the roster on the
   // first run (initial connect / reconnect snapshot) so existing guests

@@ -34,6 +34,7 @@ function createFakeContext(state: AudioContextLike["state"] = "running") {
     destination: {} as AudioContextLike["destination"],
     state,
     resume: vi.fn(() => Promise.resolve()),
+    close: vi.fn(() => Promise.resolve()),
   };
   return { context, oscillator, gainNode, gainParam };
 }
@@ -144,5 +145,32 @@ describe("createPartySounds", () => {
   it("no-ops silently when the environment provides no AudioContext", () => {
     const sounds = createPartySounds(() => false, () => null);
     expect(() => sounds.playAdd()).not.toThrow();
+  });
+});
+
+describe("dispose", () => {
+  it("closes the context if one was ever created", () => {
+    const { context } = createFakeContext();
+    const createAudioContext = vi.fn(() => context);
+    const sounds = createPartySounds(() => false, createAudioContext);
+    sounds.playJoin();
+    sounds.dispose();
+    expect(context.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("no-ops when no context was ever created (never unmuted, or no AudioContext support)", () => {
+    const createAudioContext = vi.fn();
+    const sounds = createPartySounds(() => true, createAudioContext);
+    expect(() => sounds.dispose()).not.toThrow();
+    expect(createAudioContext).not.toHaveBeenCalled();
+  });
+
+  it("is safe to call more than once", () => {
+    const { context } = createFakeContext();
+    const sounds = createPartySounds(() => false, () => context);
+    sounds.playJoin();
+    sounds.dispose();
+    expect(() => sounds.dispose()).not.toThrow();
+    expect(context.close).toHaveBeenCalledTimes(1);
   });
 });

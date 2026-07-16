@@ -89,16 +89,35 @@ export function QueueRail({
   // Entrance animation (TV screen only, see `isTv` gate in `QueueRow`) for
   // genuinely NEW rows — a song just added to the queue — as opposed to the
   // initial mount (every id is "new" to the DOM on first render, but that's
-  // not a delight moment) or a reorder (same ids, different order). Seeded
-  // with the mount-time queue so those rows never animate. The effect is
-  // keyed on `displayQueue` (what actually renders), NOT the `queue` prop:
-  // effects flush after the commit, so on the first render where a new row
-  // appears the ref still lacks its id (`isNew` true), and only then does
-  // the ref catch up. Keying on `queue` would add the id one render early —
-  // before `setDisplayQueue` applies — and the animation would never fire.
-  const knownQueueIdsRef = useRef<Set<string>>(new Set(queue.map((item) => item.id)));
+  // not a delight moment) or a reorder (same ids, different order).
+  //
+  // Can't seed `knownQueueIdsRef` from the mount-time `queue` prop: this
+  // component mounts before the room socket delivers its first `room.state`
+  // snapshot, so `queue` at mount is always the empty initial socket state
+  // — seeding from it is a no-op, and every pre-lobby song would incorrectly
+  // animate in the moment the party starts (the playing-state grid flips
+  // from `hidden` to visible). Instead, `hasSeededRef` gates `isNew` itself:
+  // false for every row until the first commit where `displayQueue` is
+  // non-empty (the room's actual initial load, whatever it contains), so
+  // that whole batch renders as already-known. Only rows that appear in a
+  // LATER commit — genuinely added while this screen is already showing
+  // data — read as new. The effect is keyed on `displayQueue` (what actually
+  // renders), NOT the `queue` prop: effects flush after the commit, so on
+  // the first render where a new row appears the ref still lacks its id
+  // (`isNew` true), and only then does the ref catch up. Keying on `queue`
+  // would add the id one render early — before `setDisplayQueue` applies —
+  // and the animation would never fire.
+  const knownQueueIdsRef = useRef<Set<string>>(new Set());
+  const hasSeededRef = useRef(false);
   useEffect(() => {
-    knownQueueIdsRef.current = new Set(displayQueue.map((item) => item.id));
+    const ids = displayQueue.map((item) => item.id);
+    if (!hasSeededRef.current) {
+      // Still on the empty pre-connect placeholder — nothing real to seed
+      // against yet, so don't flip the gate until real data shows up.
+      if (ids.length === 0) return;
+      hasSeededRef.current = true;
+    }
+    knownQueueIdsRef.current = new Set(ids);
   }, [displayQueue]);
 
   const sensors = useSensors(
@@ -226,7 +245,7 @@ export function QueueRail({
                     onMoveUp={handleMoveUp}
                     onMoveToTop={handleMoveToTop}
                     isTv={isTv}
-                    isNew={!knownQueueIdsRef.current.has(item.id)}
+                    isNew={hasSeededRef.current && !knownQueueIdsRef.current.has(item.id)}
                   />
                 );
               })}

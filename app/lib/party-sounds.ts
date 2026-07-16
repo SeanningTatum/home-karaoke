@@ -19,7 +19,13 @@
 
 export type AudioContextLike = Pick<
   AudioContext,
-  "createOscillator" | "createGain" | "currentTime" | "destination" | "state" | "resume"
+  | "createOscillator"
+  | "createGain"
+  | "currentTime"
+  | "destination"
+  | "state"
+  | "resume"
+  | "close"
 >;
 
 export interface BlipSpec {
@@ -43,6 +49,16 @@ export const POP_ATTACK_MS = 8;
 export interface PartySounds {
   readonly playJoin: () => void;
   readonly playAdd: () => void;
+  /**
+   * Closes the lazily-created `AudioContext`, if one was ever created — call
+   * from the host screen's unmount cleanup. Browsers cap concurrent
+   * `AudioContext` instances (Chrome: 6), so without this a host who
+   * navigates to the room screen repeatedly in one session (re-opening a
+   * room, testing) would leak contexts until GC catches up or the cap hits.
+   * Safe to call even if no context was ever created (muted the whole time)
+   * or `dispose` is called more than once.
+   */
+  readonly dispose: () => void;
 }
 
 /**
@@ -112,5 +128,9 @@ export function createPartySounds(
   return {
     playJoin: () => play(JOIN_SOUND),
     playAdd: () => play(ADD_SOUND),
+    dispose: () => {
+      context?.close();
+      context = null;
+    },
   };
 }

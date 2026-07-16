@@ -21,6 +21,21 @@
 
 ---
 
+## 2026-07-16 — feat-008 SHIPPED + PR #3 opened (feat/ui-overhaul → main): 9 commits f44c013..HEAD. Pre-PR Greptile: 1 P1 a11y (persistent sr-only live region, user-approved fix) + 1 P2 (onDone ref) — both fixed, 401 tests green. verify-done all gates PASS after brain-coherence cleanup (harness 11/11). Verification 11/11 + 16 screenshots. PR: https://github.com/SeanningTatum/home-karaoke/pull/3
+- branch: `feat/ui-overhaul`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #3; then: pick fun app name (one-file common.json swap), fix room.close→DO broadcast gap, prod deploy path
+
+---
+
+## 2026-07-16 — PR opened for ui-overhaul: https://github.com/SeanningTatum/home-karaoke/pull/3
+- branch: `feat/ui-overhaul`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-16 — shipped ui-overhaul: Shipped 2026-07-16. Phases 1-6a complete (7 commits f44c013..915e2fd + this ship). Plan plans/karaoke-ui-overhaul.html (
 - branch: `beaver/6f474634`
 - in-progress feature: none
