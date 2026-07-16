@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — Repo published + PR opened: github.com/SeanningTatum/home-karaoke (private). 3 commits: 005640f boilerplate baseline, fb24f09 group-karaoke feature (101 files), efd877d Greptile fixes + controls verification. Greptile pre-PR review: 3 P2 (history pollution on errored videos, queue cap 200, WS reconnect race) all fixed, 402 tests. Supplementary controls walk PASS (10/10, screenshots 09-14+E2). PR #1: https://github.com/SeanningTatum/home-karaoke/pull/1
+- branch: `feat/group-karaoke`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #1; add YOUTUBE_API_KEY secret; run remote/preview migrations; deploy
+
+---
+
 ## 2026-07-16 — shipped group-karaoke: Phases 1-6 complete 2026-07-16. Plan plans/group-karaoke.html (reviewed, 4 decisions). Verification .brain/features/grou
 - branch: `unknown`
 - in-progress feature: none
