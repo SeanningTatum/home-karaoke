@@ -369,3 +369,60 @@ Touched only feat-008's own Phase-5 surface: `app/components/join/*` (nickname-f
 
 _Status: Phase 5 complete — guest phone reskin (nickname/search/queue tabs) + quick wins (random-name spinner, tap-reorder via the existing single-writer WS message, position bar, queue-almost-full warning, host Controls tab light retheme) shipped; all three verify-done gates green; smoke-tested against a live dev server including a real open room's SSR._
 
+
+## Step: Phase 6a — delight pass (Sonnet builder)
+
+### What changed
+
+**"You're up!" name card** (new `app/components/room/now-up-overlay.tsx`, wired into `app/routes/room/$code.tsx`) — full-screen `aria-live="polite"` overlay (gradient-tinted dark scrim, `InitialsAvatar` `lg` + `shadow-glow-accent`, `tv-headline` "You're up, {{name}}!") shown on the host TV screen whenever `playback.currentItem` advances to a genuinely NEW item. Trigger logic in `$code.tsx` mirrors `CelebrationBurst`'s latching discipline: `prevNowUpItemIdRef` is seeded from whatever's current at mount (so a page reload mid-song never fires it), and a `hasSeenFirstItemRef` flag suppresses exactly the first `null -> item` edge (CelebrationBurst's own "room goes live" moment) while letting every later item-change — including a mid-party idle-then-resume — show the card. Auto-dismisses after 2.5s via a ref-tracked `setTimeout`; skips firing entirely under `prefers-reduced-motion` (JS `matchMedia` check, same as the celebration burst). New keyframe `room-now-up-in`/`animate-now-up` in `app.css` (fade+scale, 0.3s).
+
+**Queue-row entrance animation (TV only)** (`app/components/room/queue-rail.tsx`) — new keyframe `room-queue-row-in`/`animate-queue-row-in` (slide-up + fade, 0.25s) in `app.css`. `QueueRail` tracks known item ids in a `knownQueueIdsRef` (`Set<string>`), seeded lazily from whatever's in `queue` the first time the component runs, then grown (without re-rendering) in a `useEffect([queue])` — so a `QueueRow` only gets `isNew` (and therefore the animation, gated additionally by `isTv`) the render *before* its id is added to the known set: genuinely new songs animate, the initial mount and pure reorders (same ids) never do.
+
+**Party pop sounds** (new `app/lib/party-sounds.ts` + `app/lib/__tests__/party-sounds.test.ts`, wired into `$code.tsx`) — `createPartySounds(getMuted, createAudioContext?)` returns `{ playJoin, playAdd }`. No audio asset files: each call schedules one WebAudio oscillator (`JOIN_SOUND` = 660Hz sine/90ms, `ADD_SOUND` = 880Hz triangle/130ms) through a zero→`POP_GAIN_PEAK` (0.12)→near-zero gain envelope (linear 8ms attack, exponential decay). The `AudioContext` is a lazy singleton, created on the first *unmuted* play only (never eagerly); if it comes back `"suspended"`, `playBlip` calls `context.resume().catch(() => {})` — a rejected-promise handler, not try/catch syntax, per the non-negotiables. `createAudioContext` is injectable so 13 new unit tests exercise the envelope math and mute/lazy-init branching against a minimal `AudioContextLike` fake, without deep-mocking the whole WebAudio API.
+
+Host header (`$code.tsx`) gets a new icon `Button` (`data-testid="room-sounds-toggle"`, `IconVolume`/`IconVolumeOff`, i18n'd `aria-label`/`title`) next to the `ConnectionStatusPill`, default unmuted, persisted to `localStorage["hk-party-sounds"]` (`"off"` = muted; absent/anything else = unmuted). Two new seed-then-diff effects (`knownGuestIdsRef`, `knownQueueSoundIdsRef`) fire `playJoin`/`playAdd` for genuinely new roster entries / queue items — gated behind a new `hasReceivedSnapshot` flag (`state.settings !== null`) so the very first live snapshot from `useRoomSocket` (which replaces the hook's empty `INITIAL_STATE` placeholder) seeds the known-id sets silently instead of misfiring a sound for every guest/song already in the room on connect. TV-only by construction — the sound engine only exists in this route, never `/join/:code`.
+
+**Landing polish** (`app/routes/home.tsx`) — hero `<h1>` gets `animate-hero-in motion-reduce:animate-none`, a new CSS-only keyframe (`room-hero-in`, fade-up, 0.5s) in `app.css`; also rides the existing global `prefers-reduced-motion` net as a second line of defense.
+
+**i18n** (`app/locales/{en,zh}/room.json`) — new `now_up.headline`, `sounds.mute_label`/`unmute_label`, kept in lockstep.
+
+### Verify (paste tails)
+
+```
+$ bun run typecheck
+✨ Types written to worker-configuration.d.ts
+Exit: 0
+
+$ bun run test
+ Test Files  31 passed (31)
+      Tests  401 passed (401)
+(388 Phase-5 baseline + 13 new: party-sounds.test.ts)
+
+$ bun run build
+✓ 10639 modules transformed.
+✓ built in 6.68s
+Exit: 0
+```
+
+Smoke (manual `bun run dev`, killed after):
+```
+$ bun run db:seed → admin@preview.local / Password123!
+$ curl -X POST /api/auth/sign-in/email → 200, session cookie
+$ curl -X POST /api/trpc/room.create → 200, code "AR4-AD3"
+$ curl /room/AR4-AD3 → 200, SSR contains data-testid="room-sounds-toggle", aria-label="Mute party sounds", room-host-view, room-lobby
+$ curl / → 200, SSR contains "animate-hero-in motion-reduce:animate-none" on the hero <h1>
+$ curl -X POST /api/trpc/room.close → 200 (cleanup)
+```
+
+### Scope notes
+
+Touched only feat-008's own Phase-6a surface: `app/routes/room/$code.tsx`, `app/components/room/now-up-overlay.tsx` (new), `app/components/room/queue-rail.tsx` (extended additively, TV-only gate), `app/lib/party-sounds.ts` (new) + `app/lib/__tests__/party-sounds.test.ts` (new, 13 tests), `app/routes/home.tsx`, `app/app.css` (3 new keyframes/utilities), `app/locales/{en,zh}/room.json`. No new persistence, no new wire-protocol message, no new tagged errors, no `throw`/`try-catch` outside Effect (the one promise-rejection handler is `.catch(() => {})`, not try/catch syntax, per the task's explicit callout), no Zod, no `process.env`, no hardcoded hex/rgb/oklch in JSX, `cn()` used for every conditional class, `data-testid` on the new interactive element, every JS-driven animation gated by a `prefers-reduced-motion` `matchMedia` check and every CSS-only one motion-reduce-gated or riding the global net. Unit tests added for the one new pure-ish helper module per non-negotiable #4. i18n kept en/zh in lockstep. Left uncommitted in the working tree per instruction — nothing staged or committed.
+
+_Status: Phase 6a complete — host TV delight pass ("you're up" name card, queue-row entrance animation, WebAudio party pop sounds behind a persisted mute toggle) + landing hero fade-up; all three verify-done gates green; smoke-tested against a live dev server with a real authenticated session and a real room._
+
+## Step 1 — Phase 6a — delight pass (host TV screen focus)
+
+```
+Shipped: (1) "You're up, {nickname}!" full-screen name card (new now-up-overlay.tsx) triggered on playback.currentItem advancing to a genuinely new item, latched like CelebrationBurst so only the first lobby->playing edge is suppressed; (2) TV-only queue-row slide-up+fade entrance animation in queue-rail.tsx via a known-ids ref (new songs only, not initial mount/reorders); (3) WebAudio-synthesized join/add pop sounds (new app/lib/party-sounds.ts, no audio assets, lazy AudioContext singleton, resume().catch(() => {})) behind a new room-sounds-toggle icon button in the host header, default unmuted, persisted to localStorage["hk-party-sounds"], 13 new unit tests; (4) landing hero fade-up entrance (animate-hero-in, CSS-only). 3 new app.css keyframes, en/zh room.json kept in lockstep.
+Verify: typecheck exit 0; test 31 files / 401 passed (388 baseline + 13 new); build exit 0 (10639 modules). Live smoke: bun run dev, signed in as admin@preview.local via /api/auth/sign-in/email, created room via room.create (code AR4-AD3), curl /room/AR4-AD3 SSR contains data-testid="room-sounds-toggle" + aria-label="Mute party sounds", curl / SSR contains animate-hero-in on the hero h1, room.close cleanup, server killed.
+```

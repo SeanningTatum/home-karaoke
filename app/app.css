@@ -295,3 +295,62 @@ body {
 @utility animate-chip-in {
   animation: room-chip-in 0.4s ease-out;
 }
+
+/* Host TV "You're up, {name}!" name card (Phase 6a) — brief fade+scale-in
+   for the full-screen overlay. Reduced-motion is primarily handled by the
+   JS trigger in app/routes/room/$code.tsx (it never sets the singer at all
+   for a reduced-motion viewer, same discipline as CelebrationBurst); this
+   keyframe's duration also collapses under the global net above as a
+   second line of defense. */
+@keyframes room-now-up-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-now-up {
+  animation: room-now-up-in 0.3s ease-out;
+}
+
+/* Host TV queue-row entrance (Phase 6a) — new rows slide up + fade in when
+   a song is genuinely added to the queue. app/components/room/queue-rail.tsx
+   tracks known item ids in a ref and only applies this class to ids it has
+   never seen before, so reorders and the initial mount never replay it. */
+@keyframes room-queue-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-queue-row-in {
+  animation: room-queue-row-in 0.25s ease-out;
+}
+
+/* Landing hero headline entrance (Phase 6a) — subtle fade-up on mount,
+   CSS-only (no JS state to gate reduced motion with), so it rides the
+   global prefers-reduced-motion net above; `motion-reduce:animate-none` at
+   the render site is belt-and-suspenders. */
+@keyframes room-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-hero-in {
+  animation: room-hero-in 0.5s ease-out;
+}

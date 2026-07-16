@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — feat-008 Phase 6a COMPLETE (sonnet builder): delight pass — 'You're up, {name}!' TV overlay (ref-latched, skips first-play edge + reload), TV queue-row entrance anim, WebAudio join/add pops (synth, no assets, 13 tests, injectable ctx) behind persisted host mute toggle, hero fade-up. Builder caught INITIAL_STATE seeding bug (sounds gated on settings!==null). typecheck 0 / 401 tests / build PASS / live smoke (room-sounds-toggle SSR verified).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer 6a → commit → feature-verifier walks (TV+phone) → verify-done → ship → /create-pr-with-review
+
+---
+
 ## 2026-07-16 — feat-008 Phase 5 COMPLETE (sonnet builder): guest phone reskin — nickname step w/ live avatar + random party-name spinner (24x24 combos, seedable helper +5 tests), gradient + add button w/ position toast + queue-almost-full warning (reuses MAX_QUEUE_SIZE), queue tab added-by chips + tap move-up/move-to-top via existing queue.reorder message (moveUpIndex/moveToTopIndex/ownQueueStanding +10 tests), sticky position bar. typecheck 0 / 388 tests / build PASS / live-room smoke.
 - branch: `beaver/6f474634`
 - in-progress feature: none

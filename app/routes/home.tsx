@@ -64,7 +64,7 @@ export default function Home() {
         />
 
         <div className="flex max-w-2xl flex-col items-center gap-5">
-          <h1 className="text-balance font-display text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="animate-hero-in motion-reduce:animate-none text-balance font-display text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
             {t("hero.headline")}
           </h1>
           <p className="max-w-md text-balance text-base text-muted-foreground sm:text-lg">

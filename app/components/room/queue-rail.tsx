@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   IconArrowBarUp,
@@ -85,6 +85,21 @@ export function QueueRail({
   useEffect(() => {
     setDisplayQueue(queue);
   }, [queue]);
+
+  // Entrance animation (TV screen only, see `isTv` gate in `QueueRow`) for
+  // genuinely NEW rows — a song just added to the queue — as opposed to the
+  // initial mount (every id is "new" to the DOM on first render, but that's
+  // not a delight moment) or a reorder (same ids, different order). Seeded
+  // with the mount-time queue so those rows never animate. The effect is
+  // keyed on `displayQueue` (what actually renders), NOT the `queue` prop:
+  // effects flush after the commit, so on the first render where a new row
+  // appears the ref still lacks its id (`isNew` true), and only then does
+  // the ref catch up. Keying on `queue` would add the id one render early —
+  // before `setDisplayQueue` applies — and the animation would never fire.
+  const knownQueueIdsRef = useRef<Set<string>>(new Set(queue.map((item) => item.id)));
+  useEffect(() => {
+    knownQueueIdsRef.current = new Set(displayQueue.map((item) => item.id));
+  }, [displayQueue]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -211,6 +226,7 @@ export function QueueRail({
                     onMoveUp={handleMoveUp}
                     onMoveToTop={handleMoveToTop}
                     isTv={isTv}
+                    isNew={!knownQueueIdsRef.current.has(item.id)}
                   />
                 );
               })}
@@ -237,6 +253,10 @@ interface QueueRowProps {
   readonly onMoveToTop?: (queueItemId: string) => void;
   /** TV type scale + added-by chip (see `QueueRailProps.size`). */
   readonly isTv?: boolean;
+  /** True for a row whose id `QueueRail` has never seen before — plays the
+   * slide-up + fade entrance. Only applied on the TV screen (`isTv`); the
+   * guest/host phone tabs don't get this delight-pass animation. */
+  readonly isNew?: boolean;
 }
 
 function QueueRow({
@@ -249,8 +269,14 @@ function QueueRow({
   onMoveUp,
   onMoveToTop,
   isTv = false,
+  isNew = false,
 }: QueueRowProps) {
   const { t } = useTranslation("room");
+  // Latch the mount-time value: `isNew` flips false one render after the
+  // row appears (once QueueRail's known-ids ref catches up), and dropping
+  // the class mid-flight would cancel the ~250ms CSS animation. Rows are
+  // keyed by item id, so this state lives exactly as long as the row.
+  const [entered] = useState(isNew);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: !reorderable });
 
@@ -276,7 +302,8 @@ function QueueRow({
         "flex items-center rounded-md border border-border bg-card",
         isTv ? "gap-4 rounded-xl p-4" : "gap-2 p-2",
         isOwn && "border-primary/50 bg-primary/5",
-        isDragging && "z-10 opacity-70 shadow-md"
+        isDragging && "z-10 opacity-70 shadow-md",
+        isTv && entered && "animate-queue-row-in"
       )}
     >
       {reorderable && (

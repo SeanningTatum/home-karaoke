@@ -3,13 +3,19 @@ import { redirect, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
 import { toast } from "sonner";
-import { IconArrowLeft, IconDoorExit } from "@tabler/icons-react";
+import {
+  IconArrowLeft,
+  IconDoorExit,
+  IconVolume,
+  IconVolumeOff,
+} from "@tabler/icons-react";
 
 import { requireSession } from "@/lib/session";
 import { RoomCode } from "@/lib/schemas/room";
 import { RoomRepository } from "@/repositories/room";
 import { buildJoinUrl } from "@/lib/room-urls";
 import { useRoomSocket } from "@/hooks/use-room-socket";
+import { createPartySounds, type PartySounds } from "@/lib/party-sounds";
 import { api } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,7 +38,12 @@ import { JoinPanel } from "@/components/room/join-panel";
 import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
 import { RosterStrip } from "@/components/room/roster-strip";
 import { CelebrationBurst } from "@/components/room/celebration-burst";
+import { NowUpOverlay } from "@/components/room/now-up-overlay";
 import type { Route } from "./+types/$code";
+
+/** localStorage key for the host's party-sounds mute toggle. Absent (or any
+ * value other than `"off"`) means unmuted/audible — the documented default. */
+const PARTY_SOUNDS_STORAGE_KEY = "hk-party-sounds";
 
 export const handle = { i18n: ["room"] };
 
@@ -137,6 +148,12 @@ function RoomHostView({
   const navigate = useNavigate();
   const { state, send, connectionStatus } = useRoomSocket({ code });
   const { queue, playback, roster } = state;
+  // `state.settings` is `null` until the room DO's first `room.state`
+  // snapshot arrives (see `INITIAL_STATE` in `use-room-socket.ts`) — used
+  // below to tell "the real initial roster/queue" apart from that empty
+  // pre-connect placeholder, so the join/add pop sounds seed against actual
+  // data instead of firing for everyone already in the room on connect.
+  const hasReceivedSnapshot = state.settings !== null;
 
   // "Room goes live" is the lobby -> playing transition: the moment a
   // `currentItem` first appears this session. Playback status can bounce
@@ -161,6 +178,119 @@ function RoomHostView({
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!prefersReducedMotion) setShowCelebration(true);
   }, [hasCurrentItem]);
+
+  // "You're up, {nickname}!" name card — every subsequent singer change,
+  // as opposed to CelebrationBurst's one-time "room goes live" moment
+  // above. Tracks the previous item id in a ref (same latching discipline):
+  // seeded from whatever's current at mount so a page reload mid-song never
+  // fires it, then a `null -> item` edge is suppressed exactly once (the
+  // lobby -> playing transition CelebrationBurst already owns) via
+  // `hasSeenFirstItemRef`, but every `item -> different item` edge — and any
+  // LATER `null -> item` edge (queue idled out mid-party, then resumed) —
+  // shows the card. Pause/resume never changes `currentItem.id`, so it never
+  // re-triggers this.
+  const [nowUpSinger, setNowUpSinger] = useState<{ nickname: string } | null>(null);
+  const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
+  const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
+  const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const currentItem = playback?.currentItem ?? null;
+    const currentId = currentItem?.id ?? null;
+    const previousId = prevNowUpItemIdRef.current;
+    prevNowUpItemIdRef.current = currentId;
+
+    if (currentId === null || currentId === previousId) return;
+
+    if (previousId === null) {
+      if (!hasSeenFirstItemRef.current) {
+        hasSeenFirstItemRef.current = true;
+        return;
+      }
+    }
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+    setNowUpSinger({ nickname: currentItem!.singerNickname });
+    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 2500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback?.currentItem?.id]);
+
+  useEffect(
+    () => () => {
+      if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+    },
+    []
+  );
+
+  // Host mute toggle for the tiny WebAudio pop sounds below — default
+  // unmuted, persisted so it survives a page reload. Starts `false` (SSR
+  // and first client paint agree) and only flips after mount reading
+  // localStorage, same pattern as `NicknameForm`'s stored-nickname prefill.
+  const [soundsMuted, setSoundsMuted] = useState(false);
+  const soundsMutedRef = useRef(soundsMuted);
+  useEffect(() => {
+    soundsMutedRef.current = soundsMuted;
+  }, [soundsMuted]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PARTY_SOUNDS_STORAGE_KEY);
+    if (stored === "off") setSoundsMuted(true);
+  }, []);
+
+  const toggleSounds = () => {
+    setSoundsMuted((prev) => {
+      const next = !prev;
+      window.localStorage.setItem(PARTY_SOUNDS_STORAGE_KEY, next ? "off" : "on");
+      return next;
+    });
+  };
+
+  // Lazily-created once per mount — `createPartySounds` itself never touches
+  // `AudioContext` until the first non-muted play, so it's cheap to build
+  // eagerly here. Reads the mute flag through a ref (not the `soundsMuted`
+  // closure) so a toggle takes effect immediately without recreating this.
+  const partySoundsRef = useRef<PartySounds | null>(null);
+  if (partySoundsRef.current === null) {
+    partySoundsRef.current = createPartySounds(() => soundsMutedRef.current);
+  }
+
+  // Join pop — fires once per guest who joins the roster AFTER this screen
+  // is already mounted. Seeded from whatever's already in the roster on the
+  // first run (initial connect / reconnect snapshot) so existing guests
+  // never trigger it retroactively.
+  const knownGuestIdsRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    // Still on the empty pre-connect placeholder — nothing real to seed
+    // against yet, so don't seed OR fire.
+    if (!hasReceivedSnapshot) return;
+    const guestIds = roster.filter((r) => r.role === "guest").map((r) => r.userId);
+    if (knownGuestIdsRef.current === null) {
+      knownGuestIdsRef.current = new Set(guestIds);
+      return;
+    }
+    const hasNewGuest = guestIds.some((id) => !knownGuestIdsRef.current!.has(id));
+    guestIds.forEach((id) => knownGuestIdsRef.current!.add(id));
+    if (hasNewGuest) partySoundsRef.current?.playJoin();
+  }, [roster, hasReceivedSnapshot]);
+
+  // Add pop — same seed-then-diff pattern, for songs added to the queue.
+  const knownQueueSoundIdsRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!hasReceivedSnapshot) return;
+    const ids = queue.map((item) => item.id);
+    if (knownQueueSoundIdsRef.current === null) {
+      knownQueueSoundIdsRef.current = new Set(ids);
+      return;
+    }
+    const hasNewItem = ids.some((id) => !knownQueueSoundIdsRef.current!.has(id));
+    ids.forEach((id) => knownQueueSoundIdsRef.current!.add(id));
+    if (hasNewItem) partySoundsRef.current?.playAdd();
+  }, [queue, hasReceivedSnapshot]);
 
   const recordPlayed = api.room.recordPlayed.useMutation({
     onError: (error) => {
@@ -227,6 +357,23 @@ function RoomHostView({
           <NowSingingBanner currentItem={playback?.currentItem ?? null} size="tv" />
         )}
         <div className="flex shrink-0 items-center gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            data-testid="room-sounds-toggle"
+            aria-label={
+              soundsMuted ? t("sounds.unmute_label") : t("sounds.mute_label")
+            }
+            title={soundsMuted ? t("sounds.unmute_label") : t("sounds.mute_label")}
+            onClick={toggleSounds}
+          >
+            {soundsMuted ? (
+              <IconVolumeOff className="size-5" />
+            ) : (
+              <IconVolume className="size-5" />
+            )}
+          </Button>
           <ConnectionStatusPill status={connectionStatus} />
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -347,6 +494,7 @@ function RoomHostView({
         show={showCelebration}
         onDone={() => setShowCelebration(false)}
       />
+      <NowUpOverlay singer={nowUpSinger} />
     </div>
   );
 }

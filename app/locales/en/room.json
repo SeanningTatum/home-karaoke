@@ -89,6 +89,13 @@
     "connecting": "Connecting…",
     "reconnecting": "Reconnecting…"
   },
+  "now_up": {
+    "headline": "You're up, {{name}}!"
+  },
+  "sounds": {
+    "mute_label": "Mute party sounds",
+    "unmute_label": "Unmute party sounds"
+  },
   "state": {
     "closed_title": "This room has closed",
     "closed_description": "The host ended this karaoke session. Start a new one from the dashboard.",

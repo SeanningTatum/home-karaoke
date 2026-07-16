@@ -85,6 +85,13 @@
     "connecting": "连接中…",
     "reconnecting": "重新连接中…"
   },
+  "now_up": {
+    "headline": "该你上场了，{{name}}！"
+  },
+  "sounds": {
+    "mute_label": "静音派对音效",
+    "unmute_label": "取消静音"
+  },
   "state": {
     "closed_title": "房间已关闭",
     "closed_description": "主持人已结束此次卡拉OK。从仪表盘开启一个新房间。",
