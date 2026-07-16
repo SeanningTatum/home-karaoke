@@ -13,3 +13,6 @@ Resolve 4 open Greptile P2 threads (1 already fixed in 7c88866). User-approved o
 - **T5** (controls-tab.tsx:74 — silent setGuestReorder rollback when WS closed): `send()` returns boolean (was socket OPEN); on failed revert show distinct "not saved / reconnecting" toast.
 
 ## Status: in progress
+
+## Status: DONE (79060c5)
+All 5 threads resolved on GitHub. Greptile re-review triggered. typecheck 0 / 406 tests / build ok.
