@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karaoke UI/UX Overhaul — Plan</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 72ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-draft { background: var(--surface); color: var(--muted); }
+  .chip-status-in-review { background: var(--highlight); color: var(--fg);
+    border-color: var(--highlight); }
+  .chip-high { color: var(--accent); border-color: var(--accent); }
+  .chip-med { color: var(--fg-secondary); }
+  .chip-low { color: var(--muted); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue, .btn-approve, .btn-request-changes {
+    border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em;
+  }
+  .btn-queue, .btn-approve { background: var(--fg); color: #fff; }
+  .btn-request-changes { background: transparent; color: var(--fg);
+    border: 1px solid var(--border); }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  pre.mermaid { text-align: center; }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px;
+    border: 1px solid var(--border); vertical-align: -2px; margin-right: 6px; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Karaoke UI/UX Overhaul — strip the boilerplate, make it fun</h1>
+  <div>
+    <span>2026-07-16</span> ·
+    <span>feature: ui-overhaul (to be registered as feat-008)</span> ·
+    <span class="chip chip-status-draft">draft</span> ·
+    <span>round 0</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>Group karaoke (feat-007) shipped, but the app still looks and reads like the
+  Cloudflare SaaS starter it was built on — a marketing landing page for a
+  boilerplate, monochrome ShadCN everywhere, "Acme Inc." in the sidebar. This plan
+  removes every boilerplate surface, replaces the landing/dashboard/auth pages with
+  karaoke-first content, and reskins the host TV screen and guest phone flow with a
+  research-backed "night-club stage" visual identity plus a set of quick UX wins
+  (Jackbox-style join, 10-foot type scale, tap-based reorder, celebration moments).</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>Per plan <strong>2026-07-16-group-karaoke</strong> (reviewed, 1 round), feat-007
+  shipped through PR&nbsp;#1 and merged to main on 2026-07-16 (last checkpoint: "PR #1
+  merged… next: prod deploy path"). No feature is currently in-progress, so the
+  one-in-progress policy is clear for this work.</p>
+  <p>Three research passes feed this plan: a full codebase inventory (boilerplate vs
+  karaoke classification), a Refero visual-reference sweep (Suno, Deezer, Partiful,
+  YouTube Music, Verse, Sora, Stryds), and a web UX sweep (KaraFun/Smule/Singa
+  teardowns, Jackbox/Kahoot join flows, Google TV / tvOS 10-foot guidelines, shared-queue
+  fairness research).</p>
+  <p><mark>Known conflict:</mark> <code>.brain/codebase/design-system.md</code> is titled
+  "Boilerplate Surface" and explicitly forbids gradients, new palette colors, and emoji —
+  the exact opposite of this redesign. It gets rewritten in Phase 1; the old doc described
+  surfaces this plan deletes.</p>
+  <details>
+    <summary>Research digest — what the three passes found (condensed)</summary>
+    <h3>Codebase inventory</h3>
+    <ul>
+      <li><strong>Pure boilerplate:</strong> `/` landing (SaaS hero, "what's wired" cards,
+        harness section, quickstart terminal), `/admin/kitchen-sink`, admin analytics demo,
+        file-upload feature, `home.json` + `upload.json` namespaces, "Acme Inc." /
+        "CloudFlare SaaS Starter" brand strings, placeholder <code>github.com/</code> links.</li>
+      <li><strong>Mixed:</strong> dashboard (one karaoke "Host a room" card inside a
+        boilerplate educational grid), auth pages (AuthShell split-pane with
+        "Production-grade auth, batteries included" copy).</li>
+      <li><strong>Karaoke, no personality:</strong> `/room/:code` and `/join/:code` are pure
+        monochrome ShadCN — visually identical to the admin pages. Copy in
+        <code>room.json</code> is already fun ("Start the party"); the visual layer is not.</li>
+    </ul>
+    <h3>Refero visual research</h3>
+    <ul>
+      <li><strong>Suno:</strong> near-black canvas, warm grainy gradient, pink→yellow gradient
+        pill as the single brightest element. <strong>Deezer:</strong> single-accent-on-black
+        discipline, oversized display type. <strong>Partiful:</strong> color as gradient washes,
+        tilted card scatter. <strong>Stryds:</strong> neon-ring motif — literal "room" framing
+        for the lobby.</li>
+      <li><strong>Player/queue:</strong> Deezer's lyric player (one bold active line, rest dimmed)
+        is the closest existing karaoke pattern; YouTube Music's queue rows (thumbnail + meta +
+        drag handle, Up Next as first-class surface) port directly.</li>
+      <li><strong>Join:</strong> Sora's dark code-entry modal; nickname editors = one field, live
+        avatar preview, one button. Verse's "Add a song" modal is a near-verbatim template for
+        guest search-and-add.</li>
+      <li><strong>Gap none of the references solve:</strong> "added by" attribution on queue
+        rows — home-karaoke originates this (avatar/nickname chip per row).</li>
+    </ul>
+    <h3>Web UX research</h3>
+    <ul>
+      <li><strong>Jackbox:</strong> join = ROOM CODE + NAME, nothing else; "illusion of
+        awareness" — the app responds to <em>you</em>. <strong>Kahoot:</strong> QR joining +
+        random-nickname spinner; too-small TV QR codes are a documented failure mode.</li>
+      <li><strong>KaraFun:</strong> users hate fiddly drag-reorder, ask for "move to top" /
+        "move up one" buttons; just shipped Singer Rotation (fairness = people who haven't
+        sung yet, not vote counts).</li>
+      <li><strong>10-foot UI:</strong> nothing under ~24px, bold weights only, 5%+ safe margins
+        (≈48–90px sides), unmistakable focus states.</li>
+      <li><strong>Celebrations:</strong> confetti only at rare, earned moments (room live,
+        guest's first song plays) or it numbs fast. State caps explicitly ("2/3 songs queued") —
+        invisible limits read as unfair (Yokee complaint).</li>
+      <li><strong>YouTube-karaoke pain:</strong> volume inconsistency between videos + ad gaps —
+        candidate future work, out of scope here except where noted.</li>
+    </ul>
+  </details>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture — page map after the overhaul</h2>
+  <pre class="mermaid">
+flowchart TD
+  L["/ — karaoke landing<br/>(hero + enter-code + host CTA)"] -->|"host CTA"| A["/login · /sign-up<br/>(reskinned, karaoke copy)"]
+  L -->|"enter room code"| J["/join/:code — guest phone<br/>(nickname → search → queue)"]
+  A --> D["/dashboard — host hub<br/>(Host a room, slim)"]
+  D -->|"create room"| R["/room/:code — host TV screen<br/>(player + queue rail + QR, 10-foot scale)"]
+  R -.->|"QR scan"| J
+  X["deleted: kitchen-sink,<br/>file-upload UI, admin analytics demo,<br/>SaaS marketing sections"]:::gone
+  classDef gone stroke-dasharray: 5 5,color:#73726c;
+  </pre>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-visual-direction" data-brain-action>
+    <p><strong>1. Visual direction for the whole app?</strong></p>
+    <p>All three options come from the Refero pass; sample palettes below are starting
+    tokens, tuned during Phase 1.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-visual-direction" id="opt-nightclub"
+            value="Dark night-club stage (Suno/Deezer lineage)" checked data-brain-action></td>
+          <td><label for="opt-nightclub">Dark "night-club stage"
+            <span class="tag-recommended">(recommended)</span><br>
+            <span class="swatch" style="background:#0d0b12"></span>bg #0d0b12 ·
+            <span class="swatch" style="background:linear-gradient(90deg,#ff3d9a,#ffd23d)"></span>pink→gold accent ·
+            <span class="swatch" style="background:#a238ff"></span>violet secondary</label></td>
+          <td>Reads great in a dark living room; video/thumbnails get the spotlight; matches karaoke-night mood</td>
+          <td>Dark-first means the light theme becomes secondary/deprioritized</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-visual-direction" id="opt-loud"
+            value="Bright and loud (Honk-style electric blue/yellow)" data-brain-action></td>
+          <td><label for="opt-loud">Bright &amp; loud (Honk-style)<br>
+            <span class="swatch" style="background:#008fff"></span>#008fff ·
+            <span class="swatch" style="background:#ffe400"></span>#ffe400</label></td>
+          <td>Maximum party energy, very distinctive</td>
+          <td>Harsh on a TV in a dark room; harder to keep video legible</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-visual-direction" id="opt-invite"
+            value="Light party-invite (Partiful-style gradient washes)" data-brain-action></td>
+          <td><label for="opt-invite">Light party-invite (Partiful-style)<br>
+            <span class="swatch" style="background:#ffffff"></span>white ·
+            <span class="swatch" style="background:#f8c4ff"></span>gradient washes</label></td>
+          <td>Fresh, social-invite feel; great for landing page</td>
+          <td>Light UI glare on a TV at night is actively bad for the core use case</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-visual-direction', 'Visual direction for the whole app')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-visual-direction"></span>
+  </div>
+
+  <div class="decision-card" id="decision-boilerplate-depth" data-brain-action>
+    <p><strong>2. How deep does boilerplate removal go?</strong></p>
+    <p>Everything agrees the marketing landing, kitchen-sink, and SaaS copy go. The
+    question is the admin area and file-upload feature (both shipped features in
+    <code>feature_list.json</code>).</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-boilerplate-depth" id="opt-keep-users"
+            value="Remove demo surfaces (kitchen-sink, file-upload UI, admin analytics); keep /admin/users minimal" checked data-brain-action></td>
+          <td><label for="opt-keep-users">Remove demo surfaces; keep <code>/admin/users</code>
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>User management (ban/roles) stays useful for a real deployment; demo noise gone; feature_list rows flipped to <em>cut</em> honestly</td>
+          <td>Admin area needs a light reskin so it doesn't clash</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-boilerplate-depth" id="opt-remove-admin"
+            value="Remove the entire /admin area + file upload" data-brain-action></td>
+          <td><label for="opt-remove-admin">Remove all of <code>/admin</code> + upload</label></td>
+          <td>Smallest surface, purest karaoke app</td>
+          <td>Loses ban/user tooling you may want when rooms go public; more deletion churn</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-boilerplate-depth" id="opt-reskin-only"
+            value="Keep everything, reskin only" data-brain-action></td>
+          <td><label for="opt-reskin-only">Keep everything, reskin only</label></td>
+          <td>No deletion risk</td>
+          <td>Boilerplate demos remain user-visible; contradicts the ask</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-boilerplate-depth', 'How deep does boilerplate removal go')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-boilerplate-depth"></span>
+  </div>
+
+  <div class="decision-card" id="decision-landing" data-brain-action>
+    <p><strong>3. What does the landing page (`/`) become?</strong></p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-landing" id="opt-landing-full"
+            value="Playful karaoke landing: hero + enter-room-code field + host CTA" checked data-brain-action></td>
+          <td><label for="opt-landing-full">Playful landing: hero + <mark>enter-code field</mark> + "Host a party" CTA
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Guests who type the URL manually still get a Jackbox-style two-field join; sells the app to visitors; SEO keeps working (locale routes)</td>
+          <td>Most build effort of the three</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-landing" id="opt-landing-splash"
+            value="Minimal splash: logo + Join a room + Host a room buttons" data-brain-action></td>
+          <td><label for="opt-landing-splash">Minimal splash (logo + two buttons)</label></td>
+          <td>Fast to build, zero fluff</td>
+          <td>Wastes the first impression; no explanation for new visitors</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-landing" id="opt-landing-join"
+            value="Home IS the join screen (code entry front and center, host link secondary)" data-brain-action></td>
+          <td><label for="opt-landing-join">Home <em>is</em> the join screen</label></td>
+          <td>Fewest hops for the dominant user (guests)</td>
+          <td>Confusing for first-time hosts; no room to explain the product</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-landing', 'What does the landing page become')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-landing"></span>
+  </div>
+
+  <div class="decision-card" id="decision-ux-scope" data-brain-action>
+    <p><strong>4. UX scope: reskin only, or include the research quick wins?</strong></p>
+    <p>Quick wins = nickname random-spinner, tap-based "move up / move to top" reorder
+    buttons (alongside existing drag), lobby "everybody's in" joined-guest moments on the
+    TV, "added by" avatar chips on queue rows, per-guest "you're up in ~N songs" indicator,
+    celebration moments (room live, guest's first song). Heavy items = KaraFun-style singer
+    rotation algorithm, audio volume normalization.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-ux-scope" id="opt-quick-wins"
+            value="Reskin + quick wins (no rotation algorithm, no audio normalization)" checked data-brain-action></td>
+          <td><label for="opt-quick-wins">Reskin + quick wins
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Delivers the "fun" ask, all client/DO-light changes, no queue-ordering semantics change</td>
+          <td>Fairness rotation deferred to a future feature</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-ux-scope" id="opt-reskin-pure"
+            value="Pure reskin, zero behavior changes" data-brain-action></td>
+          <td><label for="opt-reskin-pure">Pure reskin only</label></td>
+          <td>Lowest risk, fastest</td>
+          <td>App looks fun but joins/queueing still feel utilitarian</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-ux-scope" id="opt-full-ux"
+            value="Reskin + quick wins + singer rotation + audio normalization" data-brain-action></td>
+          <td><label for="opt-full-ux">Everything incl. singer rotation + audio normalization</label></td>
+          <td>Fixes the top complaints in the category in one pass</td>
+          <td>Rotation changes DO queue semantics (needs its own design + tests); audio normalization is hard against YouTube embeds — high risk of scope blowup</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-ux-scope', 'UX scope tier')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-ux-scope"></span>
+  </div>
+
+  <div class="decision-card" id="decision-font" data-brain-action>
+    <p><strong>5. Typography: bring in a display font?</strong></p>
+    <p>Research direction: one flashy display face for hero moments only (room title,
+    "Now Singing", big numbers), Inter stays the workhorse. Fonts must be self-hosted
+    (Workers, no runtime Google Fonts dependency).</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-font" id="opt-display-font"
+            value="Self-host one free display font (e.g. Clash Display or Cabinet Grotesk) for hero moments" checked data-brain-action></td>
+          <td><label for="opt-display-font">Self-host one display font
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Instant personality where it counts; small woff2 subset (~30-60KB)</td>
+          <td>License check + font files in repo; tiny page-weight cost</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-font" id="opt-inter-heavy"
+            value="Inter only, pushed to 800-900 weights with tight tracking" data-brain-action></td>
+          <td><label for="opt-inter-heavy">Inter-only, heavier weights</label></td>
+          <td>Zero new assets</td>
+          <td>Still reads "SaaS"; hero moments stay generic</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-font', 'Typography: display font or not')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-font"></span>
+  </div>
+</section>
+
+<section id="plan-of-record" data-brain-section="plan-of-record">
+  <h2>Plan of record</h2>
+  <p>Registered as <strong>feat-008 ui-overhaul</strong> (one in-progress feature; phases
+  land as separate commits on one branch, enforcer-reviewed per phase like feat-007).
+  Chinese locale files updated in lockstep with every copy change — i18n is a rule, not
+  an afterthought.</p>
+  <ol>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 — Theme foundation.</strong>
+      <span data-item-text data-brain-action>New design tokens in app.css (dark-first palette per decision 1: bg #0d0b12, surface #18151f, pink→gold accent gradient, violet secondary, mint success), display font wiring (per decision 5), TV type-scale utilities (nothing under 24px on /room, 5% safe margins), rewrite .brain/codebase/design-system.md as the karaoke design system. Acceptance: tokens render on a spike page in both host-TV and phone contexts; design-system.md rewritten; typecheck + tests green.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1"><strong>Phase 2 — Strip boilerplate.</strong>
+      <span data-item-text data-brain-action>Delete/replace per decision 2: kitchen-sink route, file-upload UI + upload.json, admin analytics demo, home marketing sections, harness/quickstart pre blocks, StackBadge/FeatureCard usages, "Acme Inc."/"CloudFlare SaaS Starter"/placeholder github.com links; flip cut features in feature_list.json with evidence; prune home.json/dashboard.json/auth.json/admin.json (en + zh). Acceptance: zero boilerplate strings greppable (rg "Acme|SaaS Starter|shadcn.png|github.com/\"" clean), typecheck + tests green.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="2"><strong>Phase 3 — Landing + auth + dashboard rebuild.</strong>
+      <span data-item-text data-brain-action>New "/" per decision 3 (hero, enter-code join field, Host a party CTA, new meta/OG tags, en+zh copy); AuthShell reskinned with karaoke copy ("Hosts sign in — guests never need an account"); dashboard becomes a slim host hub (Host a room primary, account footer). Acceptance: feature-verifier walk of landing → join-code redirect and landing → login → dashboard → create room, screenshots archived.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="3"><strong>Phase 4 — Host TV screen reskin.</strong>
+      <span data-item-text data-brain-action>/room/:code on the new theme: 10-foot type scale, lobby state (big code + prominent QR + neon-ring idle animation + live joined-guest chips ticking in), persistent corner QR while playing, queue rail with added-by avatar chips (YouTube Music row pattern), now-singing banner in display font, gradient-shimmer progress, celebration moment when the room goes live. QR stays on forced-white tile for scanability. Acceptance: feature-verifier walk incl. lobby + playing states, screenshots at TV viewport (1920x1080).</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="4"><strong>Phase 5 — Guest phone reskin + quick wins.</strong>
+      <span data-item-text data-brain-action>/join/:code on the new theme: nickname step with random-name spinner + live initials-gradient avatar preview; Verse-style search/add (gradient + button, "Added by you" toast); queue tab with added-by chips, per-guest "you're up in ~N songs" bar, tap-based move-up/move-to-top buttons next to drag handles (host + guests-when-allowed); explicit limits surfaced if any. Acceptance: feature-verifier golden path on phone viewport (390x844), reducers for move-up/move-to-top unit-tested.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="5"><strong>Phase 6 — Delight pass + verification + ship.</strong>
+      <span data-item-text data-brain-action>Motion polish (queue-row slide-in pop, "you're up!" full-screen name card, confetti at room-live and first-song-played only), prefers-reduced-motion respected everywhere; full /verify-done (typecheck, 401+ tests, e2e smoke, prod+preview builds, harness-check); verification docs + screenshots for host and guest flows; brain updates (design-system.md final, frontend.md rules, feature MD, CHANGELOG); ship feat-008.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or step..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="files-changed">
+  <h2>Files that change</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>app/app.css</td><td>edit</td><td>new dark-first token set, TV type scale, motion utilities</td></tr>
+      <tr><td>app/routes/home.tsx</td><td>rewrite</td><td>karaoke landing replaces SaaS marketing page</td></tr>
+      <tr><td>app/routes/dashboard/_index.tsx</td><td>rewrite</td><td>slim host hub; educational grid removed</td></tr>
+      <tr><td>app/routes/authentication/* (AuthShell, forms)</td><td>edit</td><td>karaoke copy + theme; split-pane simplified</td></tr>
+      <tr><td>app/routes/room/$code.tsx + app/components/room/*</td><td>edit</td><td>TV reskin: lobby state, 10-foot scale, QR persistence, queue attribution</td></tr>
+      <tr><td>app/routes/join/$code.tsx + app/components/join/*</td><td>edit</td><td>phone reskin: nickname spinner, search/add, tap reorder, position bar</td></tr>
+      <tr><td>app/routes/admin/kitchen-sink.tsx</td><td>delete</td><td>ShadCN demo playground (per decision 2)</td></tr>
+      <tr><td>app/components/file-upload.tsx, /api/upload-file, upload.json</td><td>delete</td><td>boilerplate feature (per decision 2)</td></tr>
+      <tr><td>app/routes/admin/_index.tsx + components</td><td>delete or slim</td><td>SaaS analytics demo (per decision 2)</td></tr>
+      <tr><td>app/components/{stack-badge,feature-card}.tsx</td><td>delete</td><td>boilerplate-only components</td></tr>
+      <tr><td>app/locales/en/* + app/locales/zh/*</td><td>edit</td><td>prune boilerplate namespaces, add landing/room/join copy — lockstep</td></tr>
+      <tr><td>app/models/schemas or room-state reducers</td><td>edit</td><td>move-up/move-to-top reorder ops (quick wins, decision 4)</td></tr>
+      <tr><td>.brain/codebase/design-system.md</td><td>rewrite</td><td>karaoke design system replaces "Boilerplate Surface" doc</td></tr>
+      <tr><td>.brain/features/feature_list.json + rules/frontend.md + CHANGELOG.md</td><td>edit</td><td>feat-008 registration, cut features flipped, new UI rules</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="golden-path">
+  <h2>Golden path — a guest's first 60 seconds</h2>
+  <pre class="mermaid">
+sequenceDiagram
+  participant TV as Host TV (/room/ABCD)
+  participant P as Guest phone
+  participant DO as KaraokeRoom DO
+  TV->>TV: lobby state — big code, QR, neon ring idle
+  P->>P: scan QR → /join/ABCD
+  P->>P: nickname (or spin a random one) → avatar preview
+  P->>DO: join (anon session, WS)
+  DO-->>TV: guest chip pops in — "Sam joined 🎤"
+  P->>P: search song → tap gradient +
+  P->>DO: add to queue
+  DO-->>TV: queue row slides in, "Added by Sam" chip
+  DO-->>P: position bar — "You're up in ~2 songs"
+  TV->>TV: song ends → "You're up, Sam!" name card → next video
+  </pre>
+</section>
+
+<section id="error-paths">
+  <h2>Error paths</h2>
+  <table>
+    <thead><tr><th>Failure</th><th>Detected by</th><th>Handled by</th><th>User sees</th></tr></thead>
+    <tbody data-brain-section="error-paths">
+      <template>
+        <tr data-brain-item>
+          <td colspan="4"><span data-item-text data-brain-action></span>
+            <span class="item-controls">
+              <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+              <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+            </span></td>
+        </tr>
+      </template>
+      <tr data-brain-item="0">
+        <td><span data-item-text data-brain-action>QR unscannable on dark theme</span>
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td>
+        <td>design review + real-device scan test</td>
+        <td>QR kept on forced-white tile with quiet-zone padding (existing pattern preserved)</td>
+        <td>scannable code from across the room</td>
+      </tr>
+      <tr data-brain-item="1">
+        <td><span data-item-text data-brain-action>zh locale drifts from en during copy rewrite</span>
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td>
+        <td>typecheck (i18n key types) + phase checklists</td>
+        <td>every namespace edit lands en+zh in the same commit</td>
+        <td>no raw key strings in either language</td>
+      </tr>
+      <tr data-brain-item="2">
+        <td><span data-item-text data-brain-action>TV overscan clips edge content</span>
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td>
+        <td>1920x1080 screenshot review at 5% margin overlay</td>
+        <td>safe-margin container on /room (≈48-90px sides)</td>
+        <td>nothing important near screen edges</td>
+      </tr>
+      <tr data-brain-item="3">
+        <td><span data-item-text data-brain-action>Motion overload / accessibility</span>
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td>
+        <td>prefers-reduced-motion audit in Phase 6</td>
+        <td>all celebration/shimmer animations gated behind the media query</td>
+        <td>calm UI when reduced motion is set</td>
+      </tr>
+      <tr data-brain-item="4">
+        <td><span data-item-text data-brain-action>Deleted boilerplate breaks a hidden import (e.g. FeatureCard used by a kept page)</span>
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td>
+        <td>typecheck + full test suite per phase</td>
+        <td>deletions land in Phase 2 as one reviewed commit; enforcer pass after</td>
+        <td>nothing — caught pre-merge</td>
+      </tr>
+      <tr data-brain-item="5">
+        <td><span data-item-text data-brain-action>Reorder buttons race with drag-reorder over WS</span>
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td>
+        <td>reducer unit tests + live two-client walk</td>
+        <td>move-up/move-to-top reuse the existing single-writer DO reorder op (same path as drag)</td>
+        <td>queue settles to one consistent order</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="list-add-row" data-brain-section-add="error-paths">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a failure mode..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="testing-plan" data-brain-section="testing-plan">
+  <h2>Testing plan</h2>
+  <ul class="checklist">
+    <template>
+      <li data-brain-item>
+        <label><input type="checkbox"> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <!-- Note: double-click on a label toggles the checkbox twice en route to edit mode;
+         it nets out — do not preventDefault, that would break click-to-check. -->
+    <li data-brain-item="0"><label><input type="checkbox"> <span data-item-text data-brain-action>Golden path (feature-verifier): landing → host login → create room → TV lobby → guest QR join → nickname spin → search → add → play → "you're up" card; screenshots at 1920x1080 and 390x844</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+    <li data-brain-item="1"><label><input type="checkbox"> <span data-item-text data-brain-action>Error path: invalid room code on landing join field → friendly inline error, no crash</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+    <li data-brain-item="2"><label><input type="checkbox"> <span data-item-text data-brain-action>Unit: move-up / move-to-top reducer ops (order, bounds, no-op at top) + any new helpers — non-negotiable #4</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+    <li data-brain-item="3"><label><input type="checkbox"> <span data-item-text data-brain-action>Regression: existing 401 unit tests + e2e auth smoke stay green after deletions</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+    <li data-brain-item="4"><label><input type="checkbox"> <span data-item-text data-brain-action>Boilerplate purge grep: no "Acme", "SaaS Starter", placeholder github.com links, kitchen-sink references anywhere in app/</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+    <li data-brain-item="5"><label><input type="checkbox"> <span data-item-text data-brain-action>Build: prod + preview builds pass; bundle diff reviewed (display font subset < 100KB)</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+    <li data-brain-item="6"><label><input type="checkbox"> <span data-item-text data-brain-action>Real-device sanity: scan QR from ~3m off an actual TV/monitor; phone flow on a real handset</span></label>
+      <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+      <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing-plan">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0">
+      <span data-item-text data-brain-action>App name/brand: keep "home-karaoke" as the public name, or pick a fun product name (affects logo, landing hero, meta tags)?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1">
+      <span data-item-text data-brain-action>Sound design: tiny join/add "pop" sounds on the TV — fun or annoying? (Easy to add behind a host mute toggle later.)</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="2">
+      <span data-item-text data-brain-action>Does light theme survive at all (e.g. landing only), or is the app dark-only after this?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="3">
+      <span data-item-text data-brain-action>Singer rotation (KaraFun-style people-fairness) as the next feature after this ships — worth pre-registering as feat-009 planned?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="verdict">
+  <h2>Verdict</h2>
+  <div>
+    <button type="button" class="btn-approve" data-brain-action
+      onclick="queueVerdict('approve')">Approve plan</button>
+    <button type="button" class="btn-request-changes" data-brain-action
+      onclick="queueVerdict('request-changes')">Request changes</button>
+    <span class="queue-ack" id="ack-verdict"></span>
+  </div>
+</section>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+
+  function queueVerdict(verdict) {
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "message",
+        queueKey: "verdict",
+        prompt: verdict === "approve"
+          ? "Plan approved as written."
+          : "Requesting changes — see annotations."
+      });
+    }
+    var ack = document.getElementById("ack-verdict");
+    if (ack) ack.textContent = "Queued: " + verdict;
+  }
+
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+
+</body>
+</html>

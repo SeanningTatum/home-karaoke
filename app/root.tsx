@@ -20,18 +20,10 @@ import { Toaster } from "@/components/ui/sonner";
 
 export const handle = { i18n: ["common"] };
 
-export const links: Route.LinksFunction = () => [
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
-  },
-];
+// Fonts (Inter + Bricolage Grotesque) are self-hosted via @fontsource and
+// bundled through app.css — no runtime Google Fonts CDN dependency (this is
+// a Cloudflare Workers app). See design.md §Typography.
+export const links: Route.LinksFunction = () => [];
 
 export async function loader({ request }: Route.LoaderArgs) {
   const locale = await i18nServer.getLocale(request);
@@ -65,7 +57,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
   useChangeLanguage(loaderData.locale);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <TRPCProvider>
         <Outlet />
         <Toaster />
