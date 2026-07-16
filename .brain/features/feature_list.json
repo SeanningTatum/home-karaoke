@@ -115,8 +115,8 @@
       "dependencies": [
         "feat-007"
       ],
-      "status": "in-progress",
-      "evidence": "",
+      "status": "shipped",
+      "evidence": "Shipped 2026-07-16. Phases 1-6a complete (7 commits f44c013..915e2fd + this ship). Plan plans/karaoke-ui-overhaul.html (reviewed round 1, 5 decisions). Verification .brain/features/ui-overhaul/verifications/2026-07-16.md PASS (11/11 golden TV+phone, 2 error paths, 16 screenshots, 0 app-origin console errors; verifier-found lobby regression fixed same day 915e2fd). verify-done: typecheck 0, 401 unit tests, e2e smoke 2/2, prod+preview builds PASS, harness-check 11/11 after brain-coherence cleanup. Enforcer-reviewed all phases (1 major + 4 minors, all fixed). Known follow-up: tRPC room.close doesn't broadcast to DO guests (pre-existing feat-007 gap, logged in ui-overhaul.md).",
       "owners": [
         "sean"
       ]

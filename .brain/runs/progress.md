@@ -21,6 +21,13 @@
 
 ---
 
+## 2026-07-16 — shipped ui-overhaul: Shipped 2026-07-16. Phases 1-6a complete (7 commits f44c013..915e2fd + this ship). Plan plans/karaoke-ui-overhaul.html (
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-16 — feat-008 verification: feature-verifier PASS 11/11 golden (TV+phone contexts, tap-reorder cross-device confirmed) + 2 error paths, 15 screenshots, 0 app-origin console errors. Found 1 regression (TV lobby hides play button+queue → can't cold-start party from TV; fixer agent running) + pre-existing feat-007 gap (tRPC room.close doesn't notify DO — guests see stale room until reload; follow-up, not blocking).
 - branch: `beaver/6f474634`
 - in-progress feature: none

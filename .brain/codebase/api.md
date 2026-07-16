@@ -8,7 +8,6 @@ Mounted at `/api/trpc/*`. The top-level router (`app/trpc/router.ts`) composes t
 |--------|------|------------|
 | `user` | `app/trpc/router.ts` | `getUsers` (protected, safe projection), `deleteUser`, `createWorkflow` |
 | `admin` | `app/trpc/routes/admin.ts` | `getUsers`, `getUser`, `updateUser`, `banUser`, `unbanUser`, `deleteUser`, `bulkBanUsers`, `bulkDeleteUsers`, `bulkUpdateUserRoles` |
-| `analytics` | `app/trpc/routes/analytics.ts` | `getUserStats`, `getUserGrowth`, `getRoleDistribution`, `getVerificationDistribution`, `getRecentSignupsCount` |
 | `room` | `app/trpc/routes/room.ts` | `create` (protected), `get` (public — guests resolve a room by code before authenticating), `close` (protected, host-only), `setGuestReorder` (protected, host-only — persists the `allowGuestReorder` toggle to D1), `recordPlayed` (protected, host-only — writes `room_song` history via `SongRepository.recordRoomSong` + `markPlayed`) |
 | `youtube` | `app/trpc/routes/youtube.ts` | `search` (protected mutation — D1 7-day cache check before calling the YouTube Data API; "karaoke"-biased; anonymous sessions satisfy `protectedProcedure`), `resolveVideo` (protected mutation — parses a `videoId` or pasted `url`, upserts `song`, marks `search_log.pickedVideoId`) |
 
@@ -100,12 +99,11 @@ From [`app/routes.ts`](../../app/routes.ts):
 |------|------|-------|
 | `/api/trpc/*` | `routes/api/trpc.$.ts` | tRPC HTTP handler |
 | `/api/auth/*` | `routes/api/auth.$.ts` | Better Auth handler |
-| `/api/upload-file` | `routes/api/upload-file.ts` | R2 upload — auth + size/type validated |
 | `/` | `routes/home.tsx` | Public marketing page |
 | `/:lng` | same | Locale-prefixed variant |
 | `/login`, `/sign-up` | `routes/authentication/{login,sign-up}.tsx` | Redirect to `/dashboard` if session present. `:lng` variants exist. |
 | `/dashboard`, `/dashboard/_index` | `routes/dashboard/{_layout,_index}.tsx` | Layout loader gates: redirects to `/login` if no session |
-| `/admin` | `routes/admin/_layout.tsx` + `_index.tsx` | ⚠ **Layout has no auth gate today.** Index is the analytics dashboard |
+| `/admin` | `routes/admin/_layout.tsx` + `_index.tsx` | ⚠ **Layout has no auth gate today.** Index redirects to `/admin/users` (analytics dashboard cut 2026-07-16 by feat-008) |
 | `/admin/users` | `routes/admin/users.tsx` | User management |
 | `/admin/kitchen-sink` | `routes/admin/kitchen-sink.tsx` | Component showcase |
 | `/room/:code` | `routes/room/$code.tsx` | Host big-screen room view (feat-007) — player, queue rail, QR join panel, controls |
@@ -134,38 +132,6 @@ await authClient.signUp.email({ email, password, name });
 await authClient.signIn.email({ email, password });
 await authClient.signOut();
 const { data: session } = authClient.useSession();
-```
-
----
-
-## File upload
-
-```
-POST /api/upload-file
-Content-Type: multipart/form-data
-Body: FormData with 'file' field
-
-Requires an authenticated session (cookie) — no session → 401 before the body is even read.
-
-Success → 200 { success: true, key: string }    // key = "uploads/<timestamp>-<uuid>"
-Failure → 401 { success: false, error: "Unauthorized" }                      // no session
-        | 400 { success: false, error: "No file provided" }                 // missing file field
-        | 400 { success: false, error: "File must be one of [...] and at most 10MB" } // size/type
-        | 500 { success: false, error: "Internal Server Error" }            // unrecoverable
-```
-
-Implemented at [`app/routes/api/upload-file.ts`](../../app/routes/api/upload-file.ts). Backed by `BucketRepository.upload` over the `BUCKET` (R2) binding. The response returns the **R2 object key** — there is no signed-URL or public-URL construction today.
-
-Every branch — success and failure alike — now returns a consistent JSON envelope `{ success: boolean, key?: string, error?: string }`, so client code (`app/components/file-upload.tsx`) narrows on `"success" in data` rather than juggling different shapes per status code. The action:
-1. Resolves the session via `context.auth.api.getSession(...)` first — `401` if absent, before `request.formData()` is even read.
-2. Validates `{ size, type }` against `MAX_UPLOAD_SIZE_BYTES` (10MB) + `ALLOWED_UPLOAD_CONTENT_TYPES` from [`app/lib/constants/upload.ts`](../../app/lib/constants/upload.ts) via an Effect Schema struct — `400` with a descriptive message on failure.
-3. Uploads via `BucketRepository.upload` — unrecoverable failures degrade to a generic `500` (never leak `Cause.pretty(...)` to the client; see [`rules/routes.md`](../rules/routes.md) HTTP boundary pattern).
-
-```typescript
-const formData = new FormData();
-formData.append("file", file);
-const res = await fetch("/api/upload-file", { method: "POST", body: formData });
-const { success, key, error } = await res.json();
 ```
 
 ---
