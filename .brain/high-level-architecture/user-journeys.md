@@ -73,36 +73,9 @@ Key files:
 - [`app/trpc/routes/admin.ts`](../../app/trpc/routes/admin.ts) — full procedure surface (`getUsers`, `getUser`, `updateUser`, `banUser`, `unbanUser`, `deleteUser`, `bulkBanUsers`, `bulkDeleteUsers`, `bulkUpdateUserRoles`)
 - [`app/repositories/user.ts`](../../app/repositories/user.ts)
 
-### Admin dashboard (analytics)
+### Admin dashboard
 
-```
-Admin → /admin (index)
-      → loader: Promise.all of analytics.* tRPC calls (90-day window)
-      → Stats cards (total users, verified, banned, admins, verification rate)
-      → Time-series chart (signups over time)
-      → Distribution charts (role, verification)
-```
-
-Key files:
-- [`app/routes/admin/_index.tsx`](../../app/routes/admin/_index.tsx)
-- [`app/repositories/analytics.ts`](../../app/repositories/analytics.ts)
-- [`app/components/analytics/`](../../app/components/analytics/)
-
-## File upload journey
-
-```
-User → File-upload component → POST /api/upload-file (multipart/form-data, field "file")
-     → action handler: BucketRepository.upload(file)
-     → R2 put under uploads/${Date.now()}-${crypto.randomUUID()}
-     → Response: { success: true, key }
-```
-
-⚠ See `security.md` gaps #2–#4: no auth gate on this route, no file-type/size validation, no public-URL construction in the response.
-
-Key files:
-- [`app/components/file-upload.tsx`](../../app/components/file-upload.tsx)
-- [`app/routes/api/upload-file.ts`](../../app/routes/api/upload-file.ts)
-- [`app/repositories/bucket.ts`](../../app/repositories/bucket.ts)
+`/admin` (index) now redirects to `/admin/users` — the analytics dashboard that used to live here was cut 2026-07-16 by feat-008 (ui-overhaul Phase 2). See `.brain/features/analytics/analytics.md` (tombstone) for what it was.
 
 ## Group karaoke journeys (feat-007)
 
@@ -166,8 +139,8 @@ Public                Protected (session)         Admin (role="admin")
 /login                /room/:code (host)            data-level enforcement via adminProcedure
 /sign-up
 /join/:code           (nickname step gets an anonymous session if none exists)
-/api/auth/*           /api/upload-file ⚠ no auth check
-/api/room/:code/ws    (session required; host vs guest role resolved per-connection)
+/api/auth/*           /api/room/:code/ws
+                        (session required; host vs guest role resolved per-connection)
 /api/trpc/*  (mixed — per procedure; room.get + youtube.* accept anonymous sessions)
 ```
 

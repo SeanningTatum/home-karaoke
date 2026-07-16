@@ -3,43 +3,110 @@ import { QRCodeSVG } from "qrcode.react";
 import { IconDeviceMobile } from "@tabler/icons-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export interface JoinPanelProps {
   /** Absolute join URL — built server-side from the request origin, never `window.location`. */
   readonly joinUrl: string;
   /** Display code, e.g. "KQ7-3FP". */
   readonly code: string;
+  /**
+   * "lg" — the lobby hero panel: big display-font code, large QR, idle
+   * glow ring, friendly prompt line. "sm" (default) — the persistent
+   * corner panel shown while a song is playing, so guests can always join
+   * without the host having to leave the singing view.
+   */
+  readonly size?: "lg" | "sm";
+  readonly className?: string;
 }
 
-/** Bottom-left panel: QR code + room code for guests to scan and join. */
-export function JoinPanel({ joinUrl, code }: JoinPanelProps) {
+/** QR code + room code for guests to scan and join — sized for the lobby hero or the always-visible corner affordance. */
+export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelProps) {
   const { t } = useTranslation("room");
+  const isLarge = size === "lg";
+
+  const card = (
+      <Card
+        className={cn(
+          "w-fit",
+          isLarge
+            ? "border-primary/30 bg-card/80 shadow-glow-accent"
+            : className
+        )}
+      >
+        <CardContent
+          className={cn(
+            "flex items-center gap-4 p-4",
+            isLarge && "flex-col gap-6 p-10"
+          )}
+        >
+          {/* Literal white, not a theme token: QR scanners need a light quiet
+              zone with dark modules in every theme, so this surface must not
+              follow dark mode. */}
+          <div
+            data-testid="room-join-qr"
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-md bg-white p-2",
+              isLarge && "rounded-2xl p-6"
+            )}
+          >
+            <QRCodeSVG value={joinUrl} size={isLarge ? 240 : 96} />
+          </div>
+          <div
+            className={cn(
+              "flex flex-col gap-1",
+              isLarge && "items-center gap-3"
+            )}
+          >
+            <span
+              className={cn(
+                "flex items-center text-muted-foreground",
+                isLarge
+                  ? "tv-label gap-2"
+                  : "gap-1.5 text-xs uppercase tracking-wider"
+              )}
+            >
+              <IconDeviceMobile className={isLarge ? "size-6" : "size-3.5"} />
+              {t("join.hint")}
+            </span>
+            <span
+              data-testid="room-code-text"
+              className={cn(
+                "font-bold text-foreground",
+                isLarge
+                  ? "tv-display tracking-[0.12em]"
+                  : "font-mono text-2xl tracking-wider"
+              )}
+            >
+              {code}
+            </span>
+          </div>
+          {isLarge && (
+            <p
+              data-testid="room-lobby-prompt"
+              className="tv-body text-center text-muted-foreground"
+            >
+              {t("lobby.prompt")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+  );
+
+  // "sm" keeps the Card as the component root (pre-phase-4 DOM shape for the
+  // corner panel); only the lobby hero needs the relative wrapper for its glow.
+  if (!isLarge) return card;
 
   return (
-    <Card className="w-fit">
-      <CardContent className="flex items-center gap-4 p-4">
-        {/* Literal white, not a theme token: QR scanners need a light quiet
-            zone with dark modules in every theme, so this surface must not
-            follow dark mode. */}
-        <div
-          data-testid="room-join-qr"
-          className="flex shrink-0 items-center justify-center rounded-md bg-white p-2"
-        >
-          <QRCodeSVG value={joinUrl} size={96} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-            <IconDeviceMobile className="size-3.5" />
-            {t("join.hint")}
-          </span>
-          <span
-            data-testid="room-code-text"
-            className="font-mono text-2xl font-bold tracking-wider text-foreground"
-          >
-            {code}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={cn("relative flex flex-col items-center", className)}>
+      {/* Subtle idle glow behind the hero panel — CSS-only (Tailwind's
+          built-in `animate-pulse`), gated by `motion-reduce:animate-none`
+          in addition to the app-wide reduced-motion duration collapse. */}
+      <div
+        aria-hidden
+        className="animate-pulse motion-reduce:animate-none absolute -inset-8 -z-10 rounded-[2.5rem] bg-gradient-accent opacity-25 blur-3xl"
+      />
+      {card}
+    </div>
   );
 }

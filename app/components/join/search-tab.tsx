@@ -1,17 +1,28 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { IconLoader2, IconMusic, IconSearch } from "@tabler/icons-react";
+import { IconLoader2, IconMusic, IconPlus, IconSearch } from "@tabler/icons-react";
 
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/client";
 import { VIDEO_NOT_EMBEDDABLE_MESSAGE_PREFIX } from "@/models/errors/youtube";
+import { MAX_QUEUE_SIZE } from "@/lib/room-state";
 import type { ClientMessage } from "@/lib/schemas/room-ws";
+
+/** Surface "queue almost full" once fewer than this many slots remain,
+ * rather than only failing silently at the hard `MAX_QUEUE_SIZE` cap. */
+const QUEUE_NEARLY_FULL_THRESHOLD = 20;
 
 export interface SearchTabProps {
   readonly roomId: string;
   readonly send: (message: ClientMessage) => void;
+  /** Current live queue length — used to (a) compute the "Added! You're #N"
+   * toast position (the DO always appends to the tail, so `queueLength + 1`
+   * at send-time is the guest's expected position) and (b) surface a
+   * near-cap warning next to the add button. */
+  readonly queueLength: number;
   /** Called after a song is successfully queued — switches to the Queue tab. */
   readonly onQueued: () => void;
 }
@@ -22,13 +33,17 @@ export interface SearchTabProps {
  * before sending `queue.add`, and an always-available paste-a-link
  * fallback (auto-opened when the API reports quota exhaustion).
  */
-export function SearchTab({ roomId, send, onQueued }: SearchTabProps) {
+export function SearchTab({ roomId, send, queueLength, onQueued }: SearchTabProps) {
   const { t } = useTranslation("room");
   const [query, setQuery] = useState("");
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteUrl, setPasteUrl] = useState("");
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const remainingSlots = MAX_QUEUE_SIZE - queueLength;
+  const queueNearlyFull =
+    remainingSlots > 0 && remainingSlots <= QUEUE_NEARLY_FULL_THRESHOLD;
 
   const search = api.youtube.search.useMutation({
     onError: (error) => {
@@ -50,7 +65,12 @@ export function SearchTab({ roomId, send, onQueued }: SearchTabProps) {
         channel: metadata.channel,
         thumbnailUrl: metadata.thumbnailUrl,
       });
-      toast.success(t("join.search.added"));
+      // `addToQueue` always appends to the tail (see `app/lib/room-state.ts`),
+      // so the guest's position is deterministically `queueLength + 1` at
+      // the moment this send fires — a best-effort estimate if another
+      // guest adds in the same instant, but accurate for the common case
+      // and far more useful than a generic "added" toast.
+      toast.success(t("join.search.added_position", { count: queueLength + 1 }));
       setPasteUrl("");
       setPendingId(null);
       onQueued();
@@ -116,19 +136,31 @@ export function SearchTab({ roomId, send, onQueued }: SearchTabProps) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("join.search.placeholder")}
           data-testid="join-search-input"
+          className="h-11 flex-1 text-base"
         />
         <Button
           type="submit"
+          size="icon-lg"
           disabled={search.isPending}
           data-testid="join-search-submit"
+          className="shrink-0 rounded-full"
         >
           {search.isPending ? (
-            <IconLoader2 className="size-4 animate-spin" />
+            <IconLoader2 className="size-5 animate-spin" />
           ) : (
-            <IconSearch className="size-4" />
+            <IconSearch className="size-5" />
           )}
         </Button>
       </form>
+
+      {queueNearlyFull && (
+        <p
+          data-testid="join-search-queue-warning"
+          className="text-xs font-medium text-muted-foreground"
+        >
+          {t("join.search.queue_almost_full", { count: remainingSlots })}
+        </p>
+      )}
 
       {quotaExceeded && (
         <div
@@ -192,17 +224,17 @@ export function SearchTab({ roomId, send, onQueued }: SearchTabProps) {
           <li
             key={result.videoId}
             data-testid="join-search-result"
-            className="flex items-center gap-3 rounded-md border border-border bg-card p-2"
+            className="flex items-center gap-3 rounded-lg border border-border bg-card p-2"
           >
             {result.thumbnailUrl ? (
               <img
                 src={result.thumbnailUrl}
                 alt=""
-                className="size-12 shrink-0 rounded object-cover"
+                className="size-14 shrink-0 rounded-md object-cover"
               />
             ) : (
-              <span className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
-                <IconMusic className="size-5 text-muted-foreground" />
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-md bg-muted">
+                <IconMusic className="size-6 text-muted-foreground" />
               </span>
             )}
             <div className="min-w-0 flex-1">
@@ -213,17 +245,25 @@ export function SearchTab({ roomId, send, onQueued }: SearchTabProps) {
                 {result.channel}
               </p>
             </div>
+            {/* Add-song "+" — per design.md §3, one of the three places the
+             * gradient accent is deliberately used. */}
             <Button
-              size="sm"
               type="button"
+              size="icon-lg"
+              variant="default"
               onClick={() => handleAdd(result)}
               disabled={resolveVideo.isPending}
+              aria-label={t("join.search.add")}
+              title={t("join.search.add")}
               data-testid="join-search-add"
+              className={cn(
+                "shrink-0 rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
+              )}
             >
               {resolveVideo.isPending && pendingId === result.videoId ? (
-                <IconLoader2 className="size-4 animate-spin" />
+                <IconLoader2 className="size-5 animate-spin" />
               ) : (
-                t("join.search.add")
+                <IconPlus className="size-5" />
               )}
             </Button>
           </li>

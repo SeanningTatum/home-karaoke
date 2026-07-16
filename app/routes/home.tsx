@@ -1,54 +1,36 @@
+import { useState } from "react";
 import type { Route } from "./+types/home";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
-  IconBrandGithub,
-  IconShieldLock,
-  IconLayoutDashboard,
-  IconCloudUpload,
-  IconChartBar,
-  IconLanguage,
-  IconAtom,
   IconArrowRight,
-  IconBook,
-  IconBrain,
-  IconChecklist,
-  IconRoute,
+  IconMicrophone2,
+  IconDeviceTv,
+  IconQrcode,
+  IconPlaylistAdd,
 } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { StackBadge } from "@/components/stack-badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { FeatureCard } from "@/components/feature-card";
 import { redirectIfAuthenticated } from "@/lib/session";
+import { cn } from "@/lib/utils";
+import { normalizeRoomCodeInput, isCompleteRoomCode } from "@/lib/room-code";
 
 export const handle = { i18n: ["home"] };
 
-const STACK = [
-  "Workers",
-  "React Router",
-  "tRPC",
-  "Better Auth",
-  "Drizzle",
-  "Effect TS",
-] as const;
-
 export function meta(_: Route.MetaArgs) {
+  const title = "Home Karaoke — sing together";
+  const description =
+    "Start a karaoke room, share the code, and sing together — no app to install, just open the link on your phone.";
   return [
-    { title: "Cloudflare SaaS Starter" },
-    {
-      name: "description",
-      content:
-        "Production-ready full-stack TypeScript starter — Cloudflare Workers, React Router v7, tRPC, Better Auth, Drizzle, and Effect TS.",
-    },
+    { title },
+    { name: "description", content: description },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:type", content: "website" },
   ];
 }
 
@@ -59,316 +41,162 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function Home() {
   const { t } = useTranslation("home");
+  const { t: tc } = useTranslation("common");
 
   return (
-    <div className="min-h-svh bg-background">
-      <TopBar />
-
-      <main className="mx-auto max-w-6xl px-6 pb-24">
-        {/* Hero */}
-        <section className="flex flex-col items-start gap-8 pt-20 pb-16 md:items-center md:text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-primary" />
-            {t("hero.eyebrow")}
-          </span>
-
-          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
-            {t("hero.title_lead")}{" "}
-            <span className="text-primary">{t("hero.title_accent")}</span>
-            {t("hero.title_trail")}
-          </h1>
-
-          <p className="max-w-2xl text-balance text-base text-muted-foreground sm:text-lg">
-            {t("hero.description")}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button asChild size="lg" data-testid="hero-sign-up">
-              <Link to="/sign-up">
-                {t("hero.cta_primary")}
-                <IconArrowRight className="ml-1 size-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" data-testid="hero-sign-in">
-              <Link to="/login">{t("hero.cta_secondary")}</Link>
-            </Button>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-2 md:justify-center">
-            {STACK.map((label) => (
-              <StackBadge key={label}>{label}</StackBadge>
-            ))}
-          </div>
-        </section>
-
-        {/* What's wired */}
-        <section className="border-t border-border pt-16">
-          <div className="mb-8 flex flex-col gap-2">
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {t("wired.title")}
-            </h2>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              {t("wired.subtitle")}
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <FeatureCard
-              icon={<IconShieldLock className="size-5" />}
-              title={t("wired.cards.auth.title")}
-              description={t("wired.cards.auth.description")}
-              badges={["Better Auth", "D1"]}
-              to="/login"
-              cta={t("wired.cards.auth.cta")}
-              testId="card-auth"
-            />
-            <FeatureCard
-              icon={<IconLayoutDashboard className="size-5" />}
-              title={t("wired.cards.admin.title")}
-              description={t("wired.cards.admin.description")}
-              badges={["tRPC", "Drizzle"]}
-              to="/admin"
-              cta={t("wired.cards.admin.cta")}
-              testId="card-admin"
-            />
-            <FeatureCard
-              icon={<IconCloudUpload className="size-5" />}
-              title={t("wired.cards.upload.title")}
-              description={t("wired.cards.upload.description")}
-              badges={["R2", "Workers"]}
-              to="/dashboard"
-              cta={t("wired.cards.upload.cta")}
-              testId="card-upload"
-            />
-            <FeatureCard
-              icon={<IconChartBar className="size-5" />}
-              title={t("wired.cards.analytics.title")}
-              description={t("wired.cards.analytics.description")}
-              badges={["tRPC", "Drizzle"]}
-              to="/admin"
-              cta={t("wired.cards.analytics.cta")}
-              testId="card-analytics"
-            />
-            <FeatureCard
-              icon={<IconAtom className="size-5" />}
-              title={t("wired.cards.effect.title")}
-              description={t("wired.cards.effect.description")}
-              badges={["Effect TS", "Schema"]}
-              to="/admin/kitchen-sink"
-              cta={t("wired.cards.effect.cta")}
-              testId="card-effect"
-            />
-            <FeatureCard
-              icon={<IconLanguage className="size-5" />}
-              title={t("wired.cards.i18n.title")}
-              description={t("wired.cards.i18n.description")}
-              badges={["remix-i18next"]}
-              to="/dashboard"
-              cta={t("wired.cards.i18n.cta")}
-              testId="card-i18n"
-            />
-          </div>
-        </section>
-
-        {/* Harness */}
-        <section className="mt-20 border-t border-border pt-16">
-          <div className="mb-8 flex flex-col gap-3">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-primary" />
-              {t("harness.eyebrow")}
-            </span>
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {t("harness.title")}
-            </h2>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              {t("harness.subtitle")}
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <HarnessPillar
-              icon={<IconBrain className="size-5" />}
-              title={t("harness.pillars.brain.title")}
-              description={t("harness.pillars.brain.description")}
-              path=".brain/"
-            />
-            <HarnessPillar
-              icon={<IconRoute className="size-5" />}
-              title={t("harness.pillars.recipes.title")}
-              description={t("harness.pillars.recipes.description")}
-              path=".brain/recipes/"
-            />
-            <HarnessPillar
-              icon={<IconChecklist className="size-5" />}
-              title={t("harness.pillars.gates.title")}
-              description={t("harness.pillars.gates.description")}
-              path="/verify-done"
-            />
-          </div>
-
-          <div className="mt-6 overflow-hidden rounded-md border border-border bg-card">
-            <div className="border-b border-border bg-muted/40 px-4 py-2">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                {t("harness.commands_label")}
-              </span>
-            </div>
-            <pre className="overflow-x-auto px-4 py-4 font-mono text-sm leading-relaxed text-foreground">
-              <code>{`# kickoff a task — runs baseline, reads brain, opens run note
-/start-task "add billing endpoint"
-
-# verify before declaring done — typecheck, test, e2e, brain coherence
-/verify-done
-
-# close out a feature — flips feature_list.json + harness-check
-/ship-feature`}</code>
-            </pre>
-          </div>
-        </section>
-
-        {/* Quickstart */}
-        <section className="mt-20 border-t border-border pt-16">
-          <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div className="flex flex-col gap-3">
-              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-                {t("quickstart.title")}
-              </h2>
-              <p className="max-w-xl text-sm text-muted-foreground">
-                {t("quickstart.subtitle")}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline" data-testid="quickstart-github">
-                <a
-                  href="https://github.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <IconBrandGithub className="size-4" />
-                  {t("quickstart.repo")}
-                </a>
-              </Button>
-              <Button asChild variant="outline" data-testid="quickstart-docs">
-                <a href="/admin/kitchen-sink">
-                  <IconBook className="size-4" />
-                  {t("quickstart.docs")}
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-8 overflow-hidden rounded-md border border-border bg-card">
-            <div className="border-b border-border bg-muted/40 px-4 py-2">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                {t("quickstart.terminal")}
-              </span>
-            </div>
-            <pre className="overflow-x-auto px-4 py-4 font-mono text-sm leading-relaxed text-foreground">
-              <code>{`# 1. install
-bun install
-
-# 2. apply local D1 migrations
-bun run db:migrate:local
-
-# 3. run dev server
-bun run dev`}</code>
-            </pre>
-          </div>
-        </section>
-      </main>
-
-      <Footer />
-    </div>
-  );
-}
-
-function TopBar() {
-  const { t } = useTranslation("home");
-
-  return (
-    <header className="border-b border-border">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <Link
-          to="/"
-          className="flex items-center gap-2 font-medium"
-          data-testid="brand-link"
-        >
-          <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground font-mono text-[10px] font-bold">
-            CF
-          </span>
-          <span className="text-sm">{t("brand")}</span>
-        </Link>
+    <div className="flex min-h-svh flex-col bg-background">
+      <div className="flex items-center justify-between gap-1 p-4">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <IconMicrophone2 className="size-3.5 text-primary" />
+          {tc("app_name")}
+        </span>
         <div className="flex items-center gap-1">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden sm:inline-flex"
-          >
-            <a
-              href="https://github.com/"
-              target="_blank"
-              rel="noreferrer"
-              data-testid="topbar-github"
-            >
-              <IconBrandGithub className="size-4" />
-              GitHub
-            </a>
-          </Button>
-          <Button asChild variant="ghost" size="sm" data-testid="topbar-sign-in">
-            <Link to="/login">{t("topbar.sign_in")}</Link>
-          </Button>
-          <Button asChild size="sm" data-testid="topbar-sign-up">
-            <Link to="/sign-up">{t("topbar.sign_up")}</Link>
-          </Button>
           <LanguageSwitcher compact />
           <ThemeToggle />
         </div>
       </div>
-    </header>
+
+      <main className="relative isolate flex flex-1 flex-col items-center justify-center gap-10 px-6 py-16 text-center">
+        {/* Soft gradient glow behind the hero wordmark — decorative only. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/4 left-1/2 -z-10 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-accent opacity-15 blur-3xl"
+        />
+
+        <div className="flex max-w-2xl flex-col items-center gap-5">
+          <h1 className="animate-hero-in motion-reduce:animate-none text-balance font-display text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+            {t("hero.headline")}
+          </h1>
+          <p className="max-w-md text-balance text-base text-muted-foreground sm:text-lg">
+            {t("hero.subline")}
+          </p>
+        </div>
+
+        <JoinRoomCard />
+
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
+          data-testid="hero-host-cta"
+        >
+          <Link to="/login">
+            <IconDeviceTv className="size-4" />
+            {t("host_cta")}
+          </Link>
+        </Button>
+
+        <HowItWorks />
+      </main>
+    </div>
   );
 }
 
-interface HarnessPillarProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  path: string;
-}
+function JoinRoomCard() {
+  const { t } = useTranslation("home");
+  const navigate = useNavigate();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-function HarnessPillar({ icon, title, description, path }: HarnessPillarProps) {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isCompleteRoomCode(code)) {
+      setError(t("join.error_incomplete"));
+      return;
+    }
+    setError(null);
+    navigate(`/join/${code}`);
+  };
+
   return (
-    <Card className="h-full">
-      <CardHeader className="gap-3">
-        <span className="flex size-9 items-center justify-center rounded-md border border-border bg-muted/40 text-foreground">
-          {icon}
-        </span>
-        <div className="space-y-1.5">
-          <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription className="leading-relaxed">
-            {description}
-          </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-          {path}
-        </span>
+    <Card className="w-full max-w-sm" data-testid="landing-join-card">
+      <CardContent className="pt-6">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-3"
+          noValidate
+        >
+          <label
+            htmlFor="landing-code-input"
+            className="text-left text-sm font-medium text-foreground"
+          >
+            {t("join.label")}
+          </label>
+          <Input
+            id="landing-code-input"
+            data-testid="landing-code-input"
+            value={code}
+            onChange={(event) => {
+              setCode(normalizeRoomCodeInput(event.target.value));
+              if (error) setError(null);
+            }}
+            placeholder={t("join.code_placeholder")}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "landing-code-error" : undefined}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            maxLength={7}
+            className={cn(
+              "h-14 text-center font-mono text-xl tracking-[0.3em] uppercase"
+            )}
+          />
+          {error && (
+            <p
+              id="landing-code-error"
+              data-testid="landing-code-error"
+              className="text-left text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
+          <Button
+            type="submit"
+            size="lg"
+            data-testid="landing-join-button"
+            className="bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
+          >
+            {t("join.submit")}
+            <IconArrowRight className="ml-1 size-4" />
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );
 }
 
-function Footer() {
+function HowItWorks() {
   const { t } = useTranslation("home");
 
+  const steps = [
+    { icon: IconDeviceTv, key: "step_1" },
+    { icon: IconQrcode, key: "step_2" },
+    { icon: IconPlaylistAdd, key: "step_3" },
+  ] as const;
+
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <p>{t("footer.tagline")}</p>
-        <p className="font-mono text-xs uppercase tracking-wider">
-          {STACK.join(" · ")}
-        </p>
+    <section className="flex w-full max-w-3xl flex-col items-center gap-6 pt-4">
+      <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+        {t("how_it_works.title")}
+      </h2>
+      <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+        {steps.map(({ icon: Icon, key }) => (
+          <div
+            key={key}
+            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card px-4 py-6 text-center"
+          >
+            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+              <Icon className="size-5" />
+            </span>
+            <p className="text-sm font-medium text-foreground">
+              {t(`how_it_works.${key}.title`)}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t(`how_it_works.${key}.body`)}
+            </p>
+          </div>
+        ))}
       </div>
-    </footer>
+    </section>
   );
 }

@@ -2,13 +2,8 @@ import { useTranslation } from "react-i18next";
 import { useOutletContext, Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
-  IconShieldLock,
   IconLayoutDashboard,
-  IconCloudUpload,
-  IconAtom,
   IconSparkles,
-  IconBook,
-  IconBrandGithub,
   IconMicrophone,
   IconLoader2,
 } from "@tabler/icons-react";
@@ -21,10 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StackBadge } from "@/components/stack-badge";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { FeatureCard } from "@/components/feature-card";
 import { api } from "@/trpc/client";
 
 export const handle = { i18n: ["dashboard"] };
@@ -52,9 +45,6 @@ export default function DashboardIndex() {
           <h1 className="text-3xl font-semibold tracking-tight">
             {t("welcome", { name: user.name })}
           </h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            {t("subtitle")}
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
@@ -65,12 +55,6 @@ export default function DashboardIndex() {
               </Link>
             </Button>
           )}
-          <Button asChild variant="outline" size="sm" data-testid="dashboard-docs">
-            <a href="https://github.com/" target="_blank" rel="noreferrer">
-              <IconBook className="size-4" />
-              {t("actions.docs")}
-            </a>
-          </Button>
           <LanguageSwitcher compact />
           <ThemeToggle />
         </div>
@@ -78,23 +62,28 @@ export default function DashboardIndex() {
 
       {/* Host a karaoke room */}
       <section className="mb-12">
-        <Card data-testid="dashboard-host-room">
-          <CardHeader className="gap-2">
-            <div className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-md border border-border bg-muted/40 text-foreground">
-                <IconMicrophone className="size-5" />
-              </span>
-              <CardTitle className="text-base">
-                {t("host_room.title")}
-              </CardTitle>
-            </div>
-            <CardDescription>{t("host_room.description")}</CardDescription>
+        <Card
+          data-testid="dashboard-host-room"
+          className="border-primary/20 bg-gradient-to-br from-card to-primary/5"
+        >
+          <CardHeader className="gap-3">
+            <span className="flex size-12 items-center justify-center rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent">
+              <IconMicrophone className="size-6" />
+            </span>
+            <CardTitle className="font-display text-xl">
+              {t("host_room.title")}
+            </CardTitle>
+            <CardDescription className="max-w-md">
+              {t("host_room.description")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
+              size="lg"
               data-testid="dashboard-host-room-button"
               disabled={createRoom.isPending}
               onClick={() => createRoom.mutate({})}
+              className="bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
             >
               {createRoom.isPending ? (
                 <IconLoader2 className="size-4 animate-spin" />
@@ -107,65 +96,6 @@ export default function DashboardIndex() {
         </Card>
       </section>
 
-      {/* Educational grid */}
-      <section className="mb-12">
-        <div className="mb-4 flex items-baseline justify-between gap-4">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            {t("explore.title")}
-          </h2>
-          <span className="font-mono text-[11px] text-muted-foreground">
-            {t("explore.count")}
-          </span>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-          <FeatureCard
-            icon={<IconShieldLock className="size-5" />}
-            title={t("explore.cards.auth.title")}
-            description={t("explore.cards.auth.description")}
-            badges={["Better Auth", "D1"]}
-            to="/admin/users"
-            disabled={!isAdmin}
-            disabledHint={t("explore.cards.auth.admin_only")}
-            cta={t("explore.cards.auth.cta")}
-            testId="dash-card-auth"
-          />
-          <FeatureCard
-            icon={<IconLayoutDashboard className="size-5" />}
-            title={t("explore.cards.admin.title")}
-            description={t("explore.cards.admin.description")}
-            badges={["tRPC", "Drizzle"]}
-            to="/admin"
-            disabled={!isAdmin}
-            disabledHint={t("explore.cards.admin.admin_only")}
-            cta={t("explore.cards.admin.cta")}
-            testId="dash-card-admin"
-          />
-          <FeatureCard
-            icon={<IconCloudUpload className="size-5" />}
-            title={t("explore.cards.upload.title")}
-            description={t("explore.cards.upload.description")}
-            badges={["R2", "Workers"]}
-            to="/admin/kitchen-sink"
-            disabled={!isAdmin}
-            disabledHint={t("explore.cards.upload.admin_only")}
-            cta={t("explore.cards.upload.cta")}
-            testId="dash-card-upload"
-          />
-          <FeatureCard
-            icon={<IconAtom className="size-5" />}
-            title={t("explore.cards.effect.title")}
-            description={t("explore.cards.effect.description")}
-            badges={["Effect TS", "Schema"]}
-            to="/admin/kitchen-sink"
-            disabled={!isAdmin}
-            disabledHint={t("explore.cards.effect.admin_only")}
-            cta={t("explore.cards.effect.cta")}
-            testId="dash-card-effect"
-          />
-        </div>
-      </section>
-
       {/* Status / your account */}
       <section>
         <Card data-testid="dashboard-account">
@@ -173,25 +103,10 @@ export default function DashboardIndex() {
             <CardTitle className="text-base">{t("account.title")}</CardTitle>
             <CardDescription>{t("account.description")}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2">
-              <StackBadge active>
-                {isAdmin ? t("account.role_admin") : t("account.role_user")}
-              </StackBadge>
-              <StackBadge>{t("account.session_active")}</StackBadge>
-            </div>
-            <Button asChild variant="ghost" size="sm">
-              <a
-                href="https://github.com/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground"
-                data-testid="dashboard-source"
-              >
-                <IconBrandGithub className="size-4" />
-                {t("account.source")}
-              </a>
-            </Button>
+          <CardContent>
+            <span className="text-sm text-muted-foreground">
+              {isAdmin ? t("account.role_admin") : t("account.role_user")}
+            </span>
           </CardContent>
         </Card>
       </section>

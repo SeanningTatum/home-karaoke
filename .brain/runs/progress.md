@@ -21,6 +21,108 @@
 
 ---
 
+## 2026-07-16 — feat-008 SHIPPED + PR #3 opened (feat/ui-overhaul → main): 9 commits f44c013..HEAD. Pre-PR Greptile: 1 P1 a11y (persistent sr-only live region, user-approved fix) + 1 P2 (onDone ref) — both fixed, 401 tests green. verify-done all gates PASS after brain-coherence cleanup (harness 11/11). Verification 11/11 + 16 screenshots. PR: https://github.com/SeanningTatum/home-karaoke/pull/3
+- branch: `feat/ui-overhaul`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #3; then: pick fun app name (one-file common.json swap), fix room.close→DO broadcast gap, prod deploy path
+
+---
+
+## 2026-07-16 — PR opened for ui-overhaul: https://github.com/SeanningTatum/home-karaoke/pull/3
+- branch: `feat/ui-overhaul`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-16 — shipped ui-overhaul: Shipped 2026-07-16. Phases 1-6a complete (7 commits f44c013..915e2fd + this ship). Plan plans/karaoke-ui-overhaul.html (
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-16 — feat-008 verification: feature-verifier PASS 11/11 golden (TV+phone contexts, tap-reorder cross-device confirmed) + 2 error paths, 15 screenshots, 0 app-origin console errors. Found 1 regression (TV lobby hides play button+queue → can't cold-start party from TV; fixer agent running) + pre-existing feat-007 gap (tRPC room.close doesn't notify DO — guests see stale room until reload; follow-up, not blocking).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Regression fix lands → verify-done runner → ship feat-008 → /create-pr-with-review
+
+---
+
+## 2026-07-16 — feat-008 Phase 6a COMPLETE (sonnet builder): delight pass — 'You're up, {name}!' TV overlay (ref-latched, skips first-play edge + reload), TV queue-row entrance anim, WebAudio join/add pops (synth, no assets, 13 tests, injectable ctx) behind persisted host mute toggle, hero fade-up. Builder caught INITIAL_STATE seeding bug (sounds gated on settings!==null). typecheck 0 / 401 tests / build PASS / live smoke (room-sounds-toggle SSR verified).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer 6a → commit → feature-verifier walks (TV+phone) → verify-done → ship → /create-pr-with-review
+
+---
+
+## 2026-07-16 — feat-008 Phase 5 COMPLETE (sonnet builder): guest phone reskin — nickname step w/ live avatar + random party-name spinner (24x24 combos, seedable helper +5 tests), gradient + add button w/ position toast + queue-almost-full warning (reuses MAX_QUEUE_SIZE), queue tab added-by chips + tap move-up/move-to-top via existing queue.reorder message (moveUpIndex/moveToTopIndex/ownQueueStanding +10 tests), sticky position bar. typecheck 0 / 388 tests / build PASS / live-room smoke.
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer Phase 5 → commit → Phase 6: delight pass + feature-verifier + verify-done + ship + /create-pr-with-review
+
+---
+
+## 2026-07-16 — feat-008 Phase 4 COMPLETE (sonnet builder): host TV reskin — lobby/playing states, roster avatar chips, added-by attribution rendered (already single-writer in feat-007 protocol, no schema change), one-shot lobby→playing confetti (ref-latched, reduced-motion gated), persistent corner QR, tv-* scale. Fixed tailwind-merge vs custom tv-* utility conflict. typecheck 0 / 373 tests / build PASS / live authed smoke (room created, lobby SSR verified, closed).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer Phase 4 → commit → Phase 5 guest phone reskin + quick wins
+
+---
+
+## 2026-07-16 — feat-008 Phase 3 COMPLETE (sonnet builder): landing rebuilt (hero + JoinRoomCard 6-char XXX-XXX code input + how-it-works), AuthShell karaoke reskin (StackBadge deleted), dashboard host-hub polish. room-code helpers extended +11 tests. typecheck 0 / 373 tests / build PASS / SSR smoke pass. Phases 1-2 committed f44c013 + 4b1998e; per-phase commits authorized. After ship: /create-pr-with-review to main (user directive).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer Phase 3 → commit → Phase 4 host TV screen reskin
+
+---
+
+## 2026-07-16 — feat-008 Phase 2 COMPLETE (sonnet builder): file-upload feature + analytics chain deleted (14 files; AnalyticsRepository had no other consumer), home stubbed dark-minimal, dashboard slimmed, /admin redirects to users, Acme→Home Karaoke (en+zh), feat-003/feat-004 flipped to cut. Purge greps clean. typecheck 0 / 362 tests / build PASS.
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer review Phase 2, then Phase 3: landing + auth + dashboard rebuild
+
+---
+
+## 2026-07-16 — feat-008 Phase 1 COMPLETE: design.md + app.css tokens (dark night-club default, Bricolage Grotesque via fontsource, TV type scale, AA contrast tuning), dark default theme, design-system.md replaced. typecheck 0 / 401 tests / build PASS. Enforcer clean (1 intentional minor).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Phase 2: strip boilerplate (sonnet builder) — file-upload UI+api+ns, admin analytics demo, home marketing stub, brand strings; keep kitchen-sink+admin/users; flip feat-003/feat-004 to cut
+
+---
+
+## 2026-07-16 — start-task feat-008 ui-overhaul Phase 1: baseline PASS (typecheck/test/harness 11/11). feature-tracker (sonnet) registering feat-008 in-progress; run note .brain/features/ui-overhaul/runs/2026-07-16-ui-overhaul-phase-1.md opened. Coordinator delegating design.md + tokens to sonnet builder; brain watch dashboard next.
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Sonnet builder authors design.md then derives app.css tokens per rules/frontend.md
+
+---
+
+## 2026-07-16 — feat-008 ui-overhaul registered in feature_list.json (in-progress)
+- branch: `beaver/6f474634`
+- in-progress feature: feat-008 (ui-overhaul)
+- run note: `.brain/features/ui-overhaul/runs/2026-07-16-ui-overhaul-phase-1.md`
+- next: Phase 1 — design.md + theme foundation (pink→gold gradient, Google Fonts display face, 10-foot TV type scale on /room)
+
+---
+
+## 2026-07-16 — UI/UX overhaul plan researched (Refero + web UX + codebase inventory via Sonnet agents) and reviewed in plans/karaoke-ui-overhaul.html — round 1, all 5 decisions answered: dark night-club direction, keep /admin/users + kitchen-sink, playful landing w/ code entry, reskin + quick wins (pop sounds in, no singer rotation), Google Fonts display face; design.md drives Phase 1; both themes kept; fun app name TBD
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Propose fun app names to user; then /start-task feat-008 ui-overhaul Phase 1 (design.md + tokens)
+
+---
+
 ## 2026-07-16 — PR #1 P1 (r3593261839) resolved via Option B + merged. Guest-reorder now single-writer: DO owns both live toggle + D1 persist (persistGuestReorderInD1, raw drizzle like closeRoomInD1); client sends WS only. Removed dead tRPC setGuestReorder / repo updateGuestReorder / UpdateGuestReorderInput + tests; i18n 2 stale keys → guest_reorder_offline. typecheck 0 / 401 tests / build ok / enforcer 0. Thread replied+resolved, PR #1 merged to main. Feature wall-clock: ~1h 55m (fb24f09 → merge, 9 commits).
 - branch: `feat/group-karaoke` → merged `main`
 - in-progress feature: none

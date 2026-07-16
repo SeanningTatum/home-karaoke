@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   generateRoomCode,
+  normalizeRoomCodeInput,
+  isCompleteRoomCode,
   ROOM_CODE_ALPHABET,
   type RandomSource,
 } from "../room-code";
@@ -47,5 +49,58 @@ describe("generateRoomCode", () => {
 
   it("uses the Workers-safe default source (crypto.getRandomValues) without throwing", () => {
     expect(() => generateRoomCode()).not.toThrow();
+  });
+});
+
+describe("normalizeRoomCodeInput", () => {
+  it("uppercases lowercase input", () => {
+    expect(normalizeRoomCodeInput("kq7")).toBe("KQ7");
+  });
+
+  it("strips characters outside the unambiguous alphabet, including 0/O/1/I/L", () => {
+    expect(normalizeRoomCodeInput("k0O1IL q7")).toBe("KQ7");
+  });
+
+  it("inserts the group hyphen once a 4th character is typed", () => {
+    expect(normalizeRoomCodeInput("KQ7")).toBe("KQ7");
+    expect(normalizeRoomCodeInput("KQ73")).toBe("KQ7-3");
+  });
+
+  it("passes through an already-hyphenated code unchanged (hyphen is stripped and reinserted)", () => {
+    expect(normalizeRoomCodeInput("KQ7-3FP")).toBe("KQ7-3FP");
+  });
+
+  it("caps at 6 alphabet characters, ignoring anything typed past that", () => {
+    expect(normalizeRoomCodeInput("KQ73FPXYZ")).toBe("KQ7-3FP");
+  });
+
+  it("returns an empty string for empty input", () => {
+    expect(normalizeRoomCodeInput("")).toBe("");
+  });
+});
+
+describe("isCompleteRoomCode", () => {
+  it("accepts a well-formed code", () => {
+    expect(isCompleteRoomCode("KQ7-3FP")).toBe(true);
+  });
+
+  it("rejects an incomplete code", () => {
+    expect(isCompleteRoomCode("KQ7-3")).toBe(false);
+    expect(isCompleteRoomCode("KQ7")).toBe(false);
+    expect(isCompleteRoomCode("")).toBe(false);
+  });
+
+  it("rejects a code missing the hyphen", () => {
+    expect(isCompleteRoomCode("KQ73FP")).toBe(false);
+  });
+
+  it("rejects a code containing ambiguous characters", () => {
+    expect(isCompleteRoomCode("KQ0-3FP")).toBe(false);
+  });
+
+  it("accepts every code `generateRoomCode` produces", () => {
+    for (let i = 0; i < 20; i++) {
+      expect(isCompleteRoomCode(generateRoomCode())).toBe(true);
+    }
   });
 });

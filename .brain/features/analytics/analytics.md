@@ -1,78 +1,18 @@
 # Feature: Analytics
 
-_Last updated: 2026-05-07_
+**Status: cut 2026-07-16 by feat-008 (ui-overhaul).** See plan `plans/karaoke-ui-overhaul.html` decision 2 and `.brain/features/feature_list.json` (feat-004 evidence) for the record of what was removed and why.
 
-## Purpose
-Read-only analytics dashboard at `/admin` (the admin index route). Surfaces user growth, role distribution, verification status, and recent-signup counts. Pulls everything from the `user` table — no separate analytics warehouse.
+## What it was
 
-## When It's Used
-- Admin lands on `/admin` → loader fetches all four panels in parallel
-- Stat cards refresh on route revalidation
+A read-only admin dashboard at `/admin` (the admin index route) showing user-growth time series, role/verification distribution charts, and recent-signup counts — all derived from the `user` table via `AnalyticsRepository` and a dedicated tRPC `analytics` router. It was boilerplate carried over from the cf-saas-starter template with no karaoke-specific value, so feat-008 Phase 2 cut it as part of stripping SaaS-boilerplate surfaces ahead of the karaoke reskin.
 
-## How It Works
+## What was removed
 
-Loader runs four tRPC analytics calls in parallel with a 90-day window:
-
-```typescript
-const [stats, growthData, roleDistribution, verificationDistribution] =
-  await Promise.all([
-    context.trpc.analytics.getUserStats(),
-    context.trpc.analytics.getUserGrowth({ startDate, endDate }),
-    context.trpc.analytics.getRoleDistribution(),
-    context.trpc.analytics.getVerificationDistribution(),
-  ]);
-```
-
-`AnalyticsRepository` runs the queries via `Effect.all([...], { concurrency: "unbounded" })`. Each subquery wraps drizzle in `Effect.tryPromise` mapping failure → `QueryError`.
-
-### Procedures
-
-| Procedure | Returns |
-|-----------|---------|
-| `getUserStats` | `{ totalUsers, verifiedUsers, bannedUsers, adminUsers, verificationRate }` |
-| `getUserGrowth({ startDate, endDate })` | `Array<{ date: string, count: number }>` (grouped by day) |
-| `getRoleDistribution` | `Array<{ name: "User" \| "Admin", value: number }>` |
-| `getVerificationDistribution` | `Array<{ name: "Verified" \| "Unverified", value: number }>` |
-| `getRecentSignupsCount({ days })` | `number` |
-
-### Persistence details
-All queries hit the `user` table directly. SQLite-side date bucketing uses `date(created_at / 1000, 'unixepoch')` — `created_at` is `timestamp_ms`, so dividing by 1000 yields seconds for `unixepoch`.
-
-### Testability
-- `app/repositories/__tests__/analytics.test.ts` exercises each method against a stubbed `Database`
-- Pure SQL pieces (date conversion) are inline — no extracted helper
-
-## Key Files
-
-| File | Role |
-|------|------|
-| [`app/routes/admin/_index.tsx`](../../../app/routes/admin/_index.tsx) | Page (loader + layout) |
-| [`app/components/analytics/`](../../../app/components/analytics/) | Reusable chart components (`StatCard`, `StatCardGrid`, `TimeSeriesChart`, `DistributionChart`, `InsightsCard`) |
-| [`app/routes/admin/components/chart-area-interactive.tsx`](../../../app/routes/admin/components/chart-area-interactive.tsx) | Interactive area chart |
-| [`app/routes/admin/components/section-cards.tsx`](../../../app/routes/admin/components/section-cards.tsx) | Stat cards row |
-| [`app/trpc/routes/analytics.ts`](../../../app/trpc/routes/analytics.ts) | Analytics procedures |
-| [`app/repositories/analytics.ts`](../../../app/repositories/analytics.ts) | `AnalyticsRepository` |
-| [`app/lib/schemas/analytics.ts`](../../../app/lib/schemas/analytics.ts) | `DateRangeInput`, `UserGrowthPoint`, `UserStats`, `DistributionPoint` |
-
-## Dependencies
-
-- Effect services: `Database`
-- Repositories: `AnalyticsRepository`
-- UI: ShadCN cards + chart primitives
-
-## Tagged Errors
-
-| Error | Where raised | tRPC code |
-|-------|--------------|-----------|
-| `QueryError` | every analytics method on drizzle failure | `INTERNAL_SERVER_ERROR` |
-
-## Known gaps
-
-- Layout-level auth gate missing (gap #1) — non-admins see the empty page shell
-- Time-series query bucketing is inline; if filters expand (per-role growth, etc.), extract a pure SQL-condition builder to mirror `buildUserConditions` in `user.ts`
+The whole chain: `AnalyticsRepository` (`app/repositories/analytics.ts`) was only ever consumed by the deleted `admin/_index.tsx` dashboard, so it — along with its unit tests, the `analytics` tRPC router (`app/trpc/routes/analytics.ts`), the chart components (`app/components/analytics/*`), `app/lib/insights.ts`, and `app/lib/schemas/analytics.ts` — was deleted in full. Nothing survives. `/admin/` now redirects to `/admin/users`, which stayed in scope per the ui-overhaul plan.
 
 ## Changelog
 
 | Date | Type | Description |
-|------|------|-------------|
-| 2026-05-07 | brain | First per-feature memory; documented full procedure surface verified from `analytics.ts` |
+|------|------|--------------|
+| 2026-07-16 | brain | Tombstoned — feature cut by feat-008 Phase 2; whole chain deleted, no surviving layer. `/admin/` now redirects to `/admin/users`. |
+| 2026-05-07 | brain | First per-feature memory; documented full procedure surface verified from `analytics.ts`. |

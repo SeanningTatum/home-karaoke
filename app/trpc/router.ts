@@ -9,7 +9,6 @@ import {
 } from "@/lib/schemas/user";
 import { ValidationError } from "@/models/errors/repository";
 import { adminRouter } from "./routes/admin";
-import { analyticsRouter } from "./routes/analytics";
 import { roomRouter } from "./routes/room";
 import { youtubeRouter } from "./routes/youtube";
 
@@ -83,7 +82,6 @@ const userRouter = createTRPCRouter({
 export const appRouter = createTRPCRouter({
   user: userRouter,
   admin: adminRouter,
-  analytics: analyticsRouter,
   room: roomRouter,
   youtube: youtubeRouter,
 });

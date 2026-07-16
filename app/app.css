@@ -1,20 +1,30 @@
 @import "tailwindcss" source(".");
 @import "tw-animate-css";
 
+/* Self-hosted fonts (no runtime Google Fonts CDN dependency — see design.md §Typography). */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/bricolage-grotesque";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque",
+    "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-background text-foreground;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -53,75 +63,104 @@ body {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Karaoke design system additions — see design.md */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-accent-start: var(--accent-start);
+  --color-accent-end: var(--accent-end);
+  --shadow-glow-accent: var(--glow-accent);
+  --shadow-glow-success: var(--glow-success);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --radius: 1rem;
+
+  /* "Morning karaoke" — light theme. Warm off-white stage-lights-off palette. */
+  --background: oklch(0.986 0.006 75.4); /* #fdfaf6 */
+  --foreground: oklch(0.204 0.025 307.1); /* #1a1420 */
+  --card: oklch(1 0 0); /* #ffffff */
+  --card-foreground: oklch(0.204 0.025 307.1);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.204 0.025 307.1);
+  --primary: oklch(0.57 0.217 0.9); /* #d31d70 — deep pink, AA-safe on light bg */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.497 0.246 299.2); /* #7b1fd6 — violet */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.955 0.012 313.2); /* #f3eef6 */
+  --muted-foreground: oklch(0.517 0.032 301.2); /* #6b6478 */
+  --accent: oklch(0.946 0.025 305.9); /* #f1e9fb — violet-tinted hover surface */
+  --accent-foreground: oklch(0.204 0.025 307.1);
+  --destructive: oklch(0.575 0.209 26.9); /* #d92b2b */
+  --border: oklch(0.911 0.014 314.8); /* #e5dfe8 */
+  --input: oklch(0.868 0.02 312.8); /* #d8d0dd */
+  --ring: oklch(0.57 0.217 0.9);
+  --chart-1: oklch(0.677 0.238 356.8); /* pink */
+  --chart-2: oklch(0.879 0.163 91.1); /* gold */
+  --chart-3: oklch(0.596 0.27 302.8); /* violet */
+  --chart-4: oklch(0.827 0.154 170.5); /* mint */
+  --chart-5: oklch(0.727 0.176 41.2); /* ember orange */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.204 0.025 307.1);
+  --sidebar-primary: oklch(0.57 0.217 0.9);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.946 0.025 305.9);
+  --sidebar-accent-foreground: oklch(0.204 0.025 307.1);
+  --sidebar-border: oklch(0.911 0.014 314.8);
+  --sidebar-ring: oklch(0.57 0.217 0.9);
+
+  /* Karaoke additions */
+  --success: oklch(0.516 0.103 167.8); /* #087a5c — deepened mint, AA on light bg */
+  --success-foreground: oklch(1 0 0);
+  --accent-start: oklch(0.57 0.217 0.9); /* #d31d70 — gradient pink stop, light-safe */
+  --accent-end: oklch(0.679 0.142 76.5); /* #c98a00 — gradient gold stop, light-safe */
+  --glow-accent: 0 0 20px oklch(0.57 0.217 0.9 / 30%),
+    0 0 44px oklch(0.679 0.142 76.5 / 18%);
+  --glow-success: 0 0 18px oklch(0.516 0.103 167.8 / 30%);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* "Night-club stage" — dark theme, DEFAULT. */
+  --background: oklch(0.156 0.015 297.7); /* #0d0b12 */
+  --foreground: oklch(0.967 0.006 308.4); /* #f5f3f7 */
+  --card: oklch(0.204 0.02 298.4); /* #18151f */
+  --card-foreground: oklch(0.967 0.006 308.4);
+  --popover: oklch(0.241 0.023 299.9); /* #211d29 */
+  --popover-foreground: oklch(0.967 0.006 308.4);
+  --primary: oklch(0.677 0.238 356.8); /* #ff3d9a — signature pink */
+  --primary-foreground: oklch(0.156 0.015 297.7);
+  --secondary: oklch(0.596 0.27 302.8); /* #a238ff — violet */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.246 0.027 297.5); /* #221e2c */
+  --muted-foreground: oklch(0.777 0.025 301.8); /* #b9b3c4 */
+  --accent: oklch(0.277 0.028 299.8); /* #2a2534 — hover surface */
+  --accent-foreground: oklch(0.967 0.006 308.4);
+  --destructive: oklch(0.578 0.207 26.6); /* #d92e2e — tuned from #ff4d4d for AA */
+  --border: oklch(0.34 0.035 298.3); /* #3a3448 */
+  --input: oklch(0.34 0.035 298.3);
+  --ring: oklch(0.677 0.238 356.8);
+  --chart-1: oklch(0.677 0.238 356.8); /* pink */
+  --chart-2: oklch(0.879 0.163 91.1); /* gold */
+  --chart-3: oklch(0.596 0.27 302.8); /* violet */
+  --chart-4: oklch(0.827 0.154 170.5); /* mint */
+  --chart-5: oklch(0.727 0.176 41.2); /* ember orange */
+  --sidebar: oklch(0.204 0.02 298.4);
+  --sidebar-foreground: oklch(0.967 0.006 308.4);
+  --sidebar-primary: oklch(0.677 0.238 356.8);
+  --sidebar-primary-foreground: oklch(0.156 0.015 297.7);
+  --sidebar-accent: oklch(0.277 0.028 299.8);
+  --sidebar-accent-foreground: oklch(0.967 0.006 308.4);
+  --sidebar-border: oklch(0.34 0.035 298.3);
+  --sidebar-ring: oklch(0.677 0.238 356.8);
+
+  /* Karaoke additions */
+  --success: oklch(0.827 0.154 170.5); /* #2fe6b8 */
+  --success-foreground: oklch(0.156 0.015 297.7);
+  --accent-start: oklch(0.677 0.238 356.8); /* #ff3d9a — gradient pink stop */
+  --accent-end: oklch(0.879 0.163 91.1); /* #ffd23d — gradient gold stop */
+  --glow-accent: 0 0 28px oklch(0.677 0.238 356.8 / 45%),
+    0 0 64px oklch(0.879 0.163 91.1 / 25%);
+  --glow-success: 0 0 24px oklch(0.827 0.154 170.5 / 40%);
 }
 
 @layer base {
@@ -131,4 +170,187 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Gradient-accent utilities — sparing use only (primary CTA, now-singing highlight,
+   add-song +). See design.md §Gradient accent usage rules. */
+@utility bg-gradient-accent {
+  background-image: linear-gradient(
+    135deg,
+    var(--accent-start) 0%,
+    var(--accent-end) 100%
+  );
+}
+
+@utility text-gradient-accent {
+  background-image: linear-gradient(
+    135deg,
+    var(--accent-start) 0%,
+    var(--accent-end) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* 10-foot TV type scale for /room — nothing under 24px. See design.md §Typography. */
+@utility tv-display {
+  font-family: var(--font-display);
+  font-size: 6rem; /* 96px */
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+@utility tv-headline {
+  font-family: var(--font-display);
+  font-size: 3.5rem; /* 56px */
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+@utility tv-title {
+  font-family: var(--font-display);
+  font-size: 2.25rem; /* 36px */
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+@utility tv-body {
+  font-family: var(--font-sans);
+  font-size: 1.75rem; /* 28px */
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+@utility tv-label {
+  font-family: var(--font-sans);
+  font-size: 1.5rem; /* 24px */
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ~5% safe margins for TV-viewport layouts. See design.md §Typography. */
+@utility tv-safe {
+  padding-inline: clamp(1.5rem, 5vw, 5rem);
+  padding-block: clamp(1rem, 5vh, 3rem);
+}
+
+@utility tv-safe-x {
+  padding-inline: clamp(1.5rem, 5vw, 5rem);
+}
+
+@utility tv-safe-y {
+  padding-block: clamp(1rem, 5vh, 3rem);
+}
+
+/* Motion principle: purposeful, celebration moments rare, reduced motion always honored. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Room host TV screen (Phase 4) — one-shot "room goes live" confetti burst.
+   Hand-rolled, no library, per design.md §6 (celebration moments are rare).
+   Duration collapses under the global prefers-reduced-motion net above; the
+   JS trigger in app/routes/room/$code.tsx additionally skips firing this at
+   all for reduced-motion users, rather than relying on duration alone. */
+@keyframes room-confetti-fall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@utility animate-confetti-fall {
+  animation: room-confetti-fall 1.4s ease-in forwards;
+}
+
+/* Lobby "who's here" roster chips ticking in as guests join — new DOM nodes
+   (new roster userId) play this once on mount; existing chips keep their
+   node identity across re-renders and never replay it. */
+@keyframes room-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@utility animate-chip-in {
+  animation: room-chip-in 0.4s ease-out;
+}
+
+/* Host TV "You're up, {name}!" name card (Phase 6a) — brief fade+scale-in
+   for the full-screen overlay. Reduced-motion is primarily handled by the
+   JS trigger in app/routes/room/$code.tsx (it never sets the singer at all
+   for a reduced-motion viewer, same discipline as CelebrationBurst); this
+   keyframe's duration also collapses under the global net above as a
+   second line of defense. */
+@keyframes room-now-up-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-now-up {
+  animation: room-now-up-in 0.3s ease-out;
+}
+
+/* Host TV queue-row entrance (Phase 6a) — new rows slide up + fade in when
+   a song is genuinely added to the queue. app/components/room/queue-rail.tsx
+   tracks known item ids in a ref and only applies this class to ids it has
+   never seen before, so reorders and the initial mount never replay it. */
+@keyframes room-queue-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-queue-row-in {
+  animation: room-queue-row-in 0.25s ease-out;
+}
+
+/* Landing hero headline entrance (Phase 6a) — subtle fade-up on mount,
+   CSS-only (no JS state to gate reduced motion with), so it rides the
+   global prefers-reduced-motion net above; `motion-reduce:animate-none` at
+   the render site is belt-and-suspenders. */
+@keyframes room-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-hero-in {
+  animation: room-hero-in 0.5s ease-out;
 }

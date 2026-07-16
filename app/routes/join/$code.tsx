@@ -14,6 +14,7 @@ import { NicknameForm } from "@/components/join/nickname-form";
 import { SearchTab } from "@/components/join/search-tab";
 import { QueueTab } from "@/components/join/queue-tab";
 import { ControlsTab } from "@/components/join/controls-tab";
+import { PositionBar } from "@/components/join/position-bar";
 import type { Route } from "./+types/$code";
 
 export const handle = { i18n: ["room"] };
@@ -225,6 +226,7 @@ function JoinRoomView({
           <SearchTab
             roomId={roomId}
             send={send}
+            queueLength={state.queue.length}
             onQueued={() => setActiveTab("queue")}
           />
         </TabsContent>
@@ -249,6 +251,8 @@ function JoinRoomView({
           </TabsContent>
         )}
       </Tabs>
+
+      <PositionBar queue={state.queue} ownUserId={ownUserId} />
     </div>
   );
 }

@@ -46,11 +46,12 @@ features/
 |---------|------|--------|---------------------|
 | Authentication | [`authentication/authentication.md`](authentication/authentication.md) | shipped | [2026-07-13 ✅ PASS](authentication/verifications/2026-07-13.md) |
 | Admin Dashboard | [`admin-dashboard/admin-dashboard.md`](admin-dashboard/admin-dashboard.md) | shipped | — |
-| File Upload | [`file-upload/file-upload.md`](file-upload/file-upload.md) | shipped | — |
-| Analytics | [`analytics/analytics.md`](analytics/analytics.md) | shipped | — |
+| File Upload | [`file-upload/file-upload.md`](file-upload/file-upload.md) | cut (2026-07-16, feat-008 Phase 2) | — |
+| Analytics | [`analytics/analytics.md`](analytics/analytics.md) | cut (2026-07-16, feat-008 Phase 2) | — |
 | Preview Deployments | [`preview-deployments/preview-deployments.md`](preview-deployments/preview-deployments.md) | shipped | — |
 | Feature Verification | [`feature-verification/feature-verification.md`](feature-verification/feature-verification.md) | shipped | [2026-07-13 ✅ PASS (self-verified via authentication)](authentication/verifications/2026-07-13.md) |
-| Group Karaoke Rooms | [`group-karaoke/group-karaoke.md`](group-karaoke/group-karaoke.md) | in-progress | — |
+| Group Karaoke Rooms | [`group-karaoke/group-karaoke.md`](group-karaoke/group-karaoke.md) | shipped | [2026-07-16 ✅ PASS](group-karaoke/verifications/2026-07-16.md) |
+| Karaoke UI/UX Overhaul | [`ui-overhaul/ui-overhaul.md`](ui-overhaul/ui-overhaul.md) | in-progress | — |
 
 ## Update trigger
 

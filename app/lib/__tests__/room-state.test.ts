@@ -6,6 +6,9 @@ import {
   MAX_QUEUE_SIZE,
   removeFromQueue,
   reorderQueue,
+  moveUpIndex,
+  moveToTopIndex,
+  ownQueueStanding,
   advanceToNext,
   applyPlay,
   applyPause,
@@ -243,6 +246,65 @@ describe("queue transitions", () => {
     const state = baseState({ queue: [item({ id: "q1" })] });
     const next = reorderQueue(state, "missing", 0);
     expect(next).toBe(state);
+  });
+});
+
+describe("moveUpIndex", () => {
+  const queue = [item({ id: "q1" }), item({ id: "q2" }), item({ id: "q3" })];
+
+  it("returns the index one slot earlier", () => {
+    expect(moveUpIndex(queue, "q2")).toBe(0);
+    expect(moveUpIndex(queue, "q3")).toBe(1);
+  });
+
+  it("returns null when the item is already first", () => {
+    expect(moveUpIndex(queue, "q1")).toBeNull();
+  });
+
+  it("returns null for an unknown id", () => {
+    expect(moveUpIndex(queue, "missing")).toBeNull();
+  });
+});
+
+describe("moveToTopIndex", () => {
+  const queue = [item({ id: "q1" }), item({ id: "q2" }), item({ id: "q3" })];
+
+  it("returns 0 for any non-first item", () => {
+    expect(moveToTopIndex(queue, "q2")).toBe(0);
+    expect(moveToTopIndex(queue, "q3")).toBe(0);
+  });
+
+  it("returns null when the item is already first", () => {
+    expect(moveToTopIndex(queue, "q1")).toBeNull();
+  });
+
+  it("returns null for an unknown id", () => {
+    expect(moveToTopIndex(queue, "missing")).toBeNull();
+  });
+});
+
+describe("ownQueueStanding", () => {
+  const queue = [
+    item({ id: "q1", addedByUserId: "u2" }),
+    item({ id: "q2", addedByUserId: "u1" }),
+    item({ id: "q3", addedByUserId: "u1" }),
+    item({ id: "q4", addedByUserId: "u3" }),
+  ];
+
+  it("counts the viewer's own items and finds the earliest position (1-based)", () => {
+    expect(ownQueueStanding(queue, "u1")).toEqual({ count: 2, nextPosition: 2 });
+  });
+
+  it("returns count 0 / nextPosition null when the viewer has nothing queued", () => {
+    expect(ownQueueStanding(queue, "u4")).toEqual({ count: 0, nextPosition: null });
+  });
+
+  it("returns count 0 / nextPosition null for a null ownUserId (no session yet)", () => {
+    expect(ownQueueStanding(queue, null)).toEqual({ count: 0, nextPosition: null });
+  });
+
+  it("returns count 0 / nextPosition null for an empty queue", () => {
+    expect(ownQueueStanding([], "u1")).toEqual({ count: 0, nextPosition: null });
   });
 });
 

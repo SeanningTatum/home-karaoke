@@ -7,7 +7,6 @@ import { WorkflowsLive, type Workflows } from "@/services/workflows";
 import { YouTubeLive, type YouTube } from "@/services/youtube";
 import { LoggerLive, MinLogLevelLive } from "@/services/logger";
 import { UserRepository } from "@/repositories/user";
-import { AnalyticsRepository } from "@/repositories/analytics";
 import { BucketRepository } from "@/repositories/bucket";
 import { RoomRepository } from "@/repositories/room";
 import { SongRepository } from "@/repositories/song";
@@ -19,7 +18,6 @@ export type AppServices =
   | Workflows
   | YouTube
   | UserRepository
-  | AnalyticsRepository
   | BucketRepository
   | RoomRepository
   | SongRepository;
@@ -38,7 +36,6 @@ export const makeAppRuntime = (env: Env, baseURL?: string) => {
   );
   const reposLayer = Layer.mergeAll(
     UserRepository.Default,
-    AnalyticsRepository.Default,
     BucketRepository.Default,
     RoomRepository.Default,
     SongRepository.Default

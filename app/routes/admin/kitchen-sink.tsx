@@ -192,8 +192,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/trpc/client";
 import { SiteHeader } from "./layout/site-header";
 
-// SiteHeader (rendered below) uses the "admin" namespace (GitHub link text);
-// declare it here so it's loaded on a direct/hard navigation to this route.
+// Declare the "admin" namespace so it's loaded on a direct/hard navigation
+// to this route (shared admin-chrome components may need it).
 export const handle = { i18n: ["admin"] };
 
 export default function KitchenSink() {
