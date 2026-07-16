@@ -158,6 +158,12 @@ function RoomHostView({
     send({ type: "playback.videoEnded" });
   };
 
+  // Broken video (not found / embedding disabled / player error): advance
+  // the queue but do NOT record history — it was never actually sung.
+  const handleVideoError = () => {
+    send({ type: "playback.videoEnded" });
+  };
+
   const handleSkip = () => {
     recordCurrentIfPlaying();
     send({ type: "playback.skip" });
@@ -214,7 +220,11 @@ function RoomHostView({
             </AlertDialog>
           </div>
         </div>
-        <YoutubePlayer playback={playback} onVideoEnded={handleVideoEnded} />
+        <YoutubePlayer
+        playback={playback}
+        onVideoEnded={handleVideoEnded}
+        onVideoError={handleVideoError}
+      />
         <HostControls
           playback={playback}
           queueLength={queue.length}

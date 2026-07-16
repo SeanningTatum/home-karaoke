@@ -42,14 +42,21 @@ const loadYouTubeIframeApi = (): Promise<typeof YT> => {
 
 export interface YoutubePlayerProps {
   readonly playback: PlaybackState | null;
-  /** Send `playback.videoEnded` — advances the queue (also used to skip a broken video). */
+  /** A song finished naturally — advance the queue AND record play history. */
   readonly onVideoEnded: () => void;
+  /**
+   * The video failed to load/play (not found, embedding disabled, ...) —
+   * advance the queue WITHOUT recording play history: an errored video was
+   * never sung.
+   */
+  readonly onVideoError: () => void;
   readonly className?: string;
 }
 
 export function YoutubePlayer({
   playback,
   onVideoEnded,
+  onVideoError,
   className,
 }: YoutubePlayerProps) {
   const { t } = useTranslation("room");
@@ -58,6 +65,8 @@ export function YoutubePlayer({
   const loadedVideoIdRef = useRef<string | null>(null);
   const onVideoEndedRef = useRef(onVideoEnded);
   onVideoEndedRef.current = onVideoEnded;
+  const onVideoErrorRef = useRef(onVideoError);
+  onVideoErrorRef.current = onVideoError;
 
   const [apiReady, setApiReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
@@ -91,10 +100,10 @@ export function YoutubePlayer({
         onError: () => {
           // Every documented code (2 invalid param, 5 HTML5 error, 100 not
           // found, 101/150 embedding disabled) is unplayable from here —
-          // tell the host and skip via the same message that advances the
-          // queue on a normal end-of-song.
+          // tell the host and skip, via the error path so the broken video
+          // is NOT written to play history as if it was sung.
           toast.error(t("player.error_skipping"));
-          onVideoEndedRef.current();
+          onVideoErrorRef.current();
         },
         onAutoplayBlocked: () => setAutoplayBlocked(true),
       },

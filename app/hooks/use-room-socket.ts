@@ -73,19 +73,24 @@ export function useRoomSocket({
     useState<ConnectionStatus>("connecting");
   const wsRef = useRef<WebSocket | null>(null);
   const backoffRef = useRef(MIN_BACKOFF_MS);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
-  const unmountedRef = useRef(false);
 
   useEffect(() => {
     // SSR guard — this hook only ever runs client-side, but be explicit.
     if (typeof window === "undefined" || !enabled) return;
 
-    unmountedRef.current = false;
+    // Per-effect cancellation flag (NOT a shared ref): when `code`/`nickname`
+    // change, the old effect's socket `close` event fires asynchronously —
+    // after the next effect has already started. A shared ref would have been
+    // reset to `false` by then, letting the OLD close handler schedule a
+    // reconnect whose closure still captures the stale room code and
+    // overwrite `wsRef` with a socket bound to the wrong room. A closure
+    // variable belongs to exactly one effect run, so the stale handler
+    // always sees its own `cancelled = true`.
+    let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
-      if (unmountedRef.current) return;
+      if (cancelled) return;
       const ws = new WebSocket(wsUrlFor(code, nickname));
       wsRef.current = ws;
 
@@ -124,13 +129,13 @@ export function useRoomSocket({
       });
 
       ws.addEventListener("close", () => {
-        wsRef.current = null;
-        if (unmountedRef.current) return;
+        if (wsRef.current === ws) wsRef.current = null;
+        if (cancelled) return;
 
         setConnectionStatus("reconnecting");
         const delay = backoffRef.current;
         backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
-        reconnectTimerRef.current = setTimeout(connect, delay);
+        reconnectTimer = setTimeout(connect, delay);
       });
 
       // The browser always follows a socket "error" with "close" — actual
@@ -141,8 +146,8 @@ export function useRoomSocket({
     connect();
 
     return () => {
-      unmountedRef.current = true;
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       wsRef.current?.close();
       wsRef.current = null;
       setConnectionStatus("closed");

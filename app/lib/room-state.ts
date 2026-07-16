@@ -24,6 +24,14 @@ export interface RoomLiveState {
 
 const DEFAULT_VOLUME = 80;
 
+/**
+ * Hard cap on queue length. Any authenticated client (anonymous guests
+ * included) can send `queue.add`, so without a ceiling one client could
+ * flood the queue — every item is persisted to DO storage and re-broadcast
+ * to all sockets on each update. 200 is far beyond a realistic party queue.
+ */
+export const MAX_QUEUE_SIZE = 200;
+
 export const createInitialRoomState = (
   settings: RoomSettings
 ): RoomLiveState => ({
@@ -55,7 +63,7 @@ export const canPerform = (
 ): boolean => {
   switch (message.type) {
     case "queue.add":
-      return true;
+      return ctx.state.queue.length < MAX_QUEUE_SIZE;
     case "queue.remove": {
       if (ctx.role === "host") return true;
       const item = ctx.state.queue.find((q) => q.id === message.queueItemId);
@@ -95,10 +103,15 @@ export interface AddToQueueInput {
 export const addToQueue = (
   state: RoomLiveState,
   input: AddToQueueInput
-): RoomLiveState => ({
-  ...state,
-  queue: [...state.queue, { ...input }],
-});
+): RoomLiveState =>
+  // Defense-in-depth alongside the `canPerform` gate — a full queue is
+  // returned unchanged rather than silently growing past the cap.
+  state.queue.length >= MAX_QUEUE_SIZE
+    ? state
+    : {
+        ...state,
+        queue: [...state.queue, { ...input }],
+      };
 
 export const removeFromQueue = (
   state: RoomLiveState,

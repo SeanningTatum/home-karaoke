@@ -3,6 +3,7 @@ import {
   createInitialRoomState,
   canPerform,
   addToQueue,
+  MAX_QUEUE_SIZE,
   removeFromQueue,
   reorderQueue,
   advanceToNext,
@@ -64,6 +65,27 @@ describe("canPerform", () => {
         { userId: "u2", role: "guest", state }
       )
     ).toBe(true);
+  });
+
+  it("rejects queue.add once the queue is at MAX_QUEUE_SIZE — even for the host", () => {
+    const full = baseState({
+      queue: Array.from({ length: MAX_QUEUE_SIZE }, (_, i) =>
+        item({ id: `q${i}` })
+      ),
+    });
+    const add = {
+      type: "queue.add",
+      videoId: "v",
+      title: "t",
+      channel: "c",
+      thumbnailUrl: "u",
+    } as const;
+    expect(canPerform(add, { userId: "u2", role: "guest", state: full })).toBe(
+      false
+    );
+    expect(
+      canPerform(add, { userId: "host-1", role: "host", state: full })
+    ).toBe(false);
   });
 
   it("allows the host to remove any item", () => {
@@ -165,6 +187,26 @@ describe("queue transitions", () => {
     expect(next.queue[0]).toEqual(item());
     // original state untouched
     expect(state.queue).toHaveLength(0);
+  });
+
+  it("addToQueue returns the state unchanged once the queue is full", () => {
+    const full = baseState({
+      queue: Array.from({ length: MAX_QUEUE_SIZE }, (_, i) =>
+        item({ id: `q${i}` })
+      ),
+    });
+    const next = addToQueue(full, {
+      id: "overflow",
+      videoId: "v",
+      title: "t",
+      channel: "c",
+      thumbnailUrl: "u",
+      singerNickname: "Mallory",
+      addedByUserId: "u9",
+      addedAt: 2000,
+    });
+    expect(next).toBe(full);
+    expect(next.queue).toHaveLength(MAX_QUEUE_SIZE);
   });
 
   it("removeFromQueue drops the matching item only", () => {
