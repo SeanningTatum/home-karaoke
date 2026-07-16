@@ -311,12 +311,17 @@ export class KaraokeRoom extends DurableObject<Env> {
 
   /** Resets live state after a close — shared by `alarm()` and `closeRoom()`. */
   private async clearRoom(): Promise<void> {
+    // Clear the in-memory session cache BEFORE the storage awaits: a
+    // `webSocketClose` interleaved at either await would otherwise find its
+    // session via `this.sessions.get(ws)` (checked before the now-null
+    // attachment) and `disconnect()` would persist ghost state right after
+    // `deleteAll()` wiped it. Empty map → attachment fallback → null → no-op.
+    this.sessions.clear();
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     this.liveState = createInitialRoomState({ allowGuestReorder: false });
     this.hydratedFromStorage = false;
     this.roomId = null;
-    this.sessions.clear();
   }
 
   private async armIdleAlarm(): Promise<void> {
