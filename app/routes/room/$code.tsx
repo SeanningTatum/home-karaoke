@@ -214,11 +214,10 @@ function RoomHostView({
       }
     }
 
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) return;
-
+    // No reduced-motion gate here: the singer announcement must reach
+    // assistive tech either way — NowUpOverlay itself suppresses only the
+    // VISUAL card under prefers-reduced-motion while its always-mounted
+    // aria-live region still announces.
     if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
     setNowUpSinger({ nickname: currentItem!.singerNickname });
     nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 2500);

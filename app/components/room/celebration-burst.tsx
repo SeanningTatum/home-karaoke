@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -43,11 +43,17 @@ export function CelebrationBurst({ show, onDone }: CelebrationBurstProps) {
     [show]
   );
 
+  // Ref-stash the callback so the timer effect stays keyed on `show` alone
+  // without stale-capturing a caller's `onDone`.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+
   useEffect(() => {
     if (!show) return;
-    const timer = setTimeout(onDone, DURATION_MS);
+    const timer = setTimeout(() => onDoneRef.current(), DURATION_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
 
   if (!show) return null;
