@@ -277,7 +277,27 @@ export const YouTubeLive = Layer.effect(
                 field: "YOUTUBE_API_KEY",
               })
             ),
-      getVideo: apiKey ? getVideoWithKey(apiKey) : getVideoViaOEmbed,
+      // A key that is set but broken (revoked, malformed, quota-dead) must
+      // not be worse than no key at all: if the keyed videos.list call fails
+      // for any reason other than "video genuinely doesn't exist", degrade to
+      // the keyless oEmbed lookup so paste-a-link keeps working.
+      getVideo: apiKey
+        ? (videoId) =>
+            getVideoWithKey(apiKey)(videoId).pipe(
+              Effect.catchTags({
+                YouTubeQuotaExceededError: (e) =>
+                  Effect.logWarning(
+                    "keyed videos.list failed; falling back to oEmbed",
+                    e
+                  ).pipe(Effect.zipRight(getVideoViaOEmbed(videoId))),
+                YouTubeUnavailableError: (e) =>
+                  Effect.logWarning(
+                    "keyed videos.list failed; falling back to oEmbed",
+                    e
+                  ).pipe(Effect.zipRight(getVideoViaOEmbed(videoId))),
+              })
+            )
+        : getVideoViaOEmbed,
     });
   })
 );

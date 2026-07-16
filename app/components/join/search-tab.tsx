@@ -59,7 +59,13 @@ export function SearchTab({ roomId, send, onQueued }: SearchTabProps) {
       setPendingId(null);
       if (error.message.startsWith(VIDEO_NOT_EMBEDDABLE_MESSAGE_PREFIX)) {
         toast.error(t("join.search.not_embeddable"));
-      } else if (pasteMode) {
+      } else if (
+        pasteMode &&
+        (error.data?.code === "BAD_REQUEST" || error.data?.code === "NOT_FOUND")
+      ) {
+        // Only blame the pasted URL when the server actually rejected it as
+        // one (unparseable / video doesn't exist) — an upstream YouTube
+        // outage (BAD_GATEWAY etc.) is not the user's link's fault.
         toast.error(t("join.search.paste_error"));
       } else {
         toast.error(error.message || t("join.search.error"));

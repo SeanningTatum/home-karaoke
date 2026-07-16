@@ -208,7 +208,7 @@ describe("YouTubeLive.getVideo (with API key)", () => {
     }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
   );
 
-  it.effect("fails with YouTubeQuotaExceededError on a 403 quotaExceeded response", () =>
+  it.effect("falls back to oEmbed on a 403 quotaExceeded response", () =>
     Effect.gen(function* () {
       const fetchSpy = vi.mocked(fetch);
       fetchSpy.mockResolvedValueOnce(
@@ -216,11 +216,57 @@ describe("YouTubeLive.getVideo (with API key)", () => {
           error: { errors: [{ reason: "quotaExceeded" }] },
         }) as unknown as Response
       );
+      fetchSpy.mockResolvedValueOnce(
+        jsonResponse(200, {
+          title: "Fallback Song",
+          author_name: "Fallback Channel",
+          thumbnail_url: "https://img/fb.jpg",
+        }) as unknown as Response
+      );
 
       const yt = yield* YouTube;
-      const exit = yield* Effect.exit(yt.getVideo("v1"));
+      const video = yield* yt.getVideo("v1");
+
+      expect(video.title).toBe("Fallback Song");
+      expect(video.embeddable).toBe(true);
+      expect(String(fetchSpy.mock.calls[1]?.[0])).toContain("oembed");
+    }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
+  );
+
+  it.effect("falls back to oEmbed when the key is rejected (broken/invalid key)", () =>
+    Effect.gen(function* () {
+      const fetchSpy = vi.mocked(fetch);
+      fetchSpy.mockResolvedValueOnce(
+        jsonResponse(400, {
+          error: { errors: [{ reason: "badRequest" }] },
+        }) as unknown as Response
+      );
+      fetchSpy.mockResolvedValueOnce(
+        jsonResponse(200, {
+          title: "Fallback Song",
+          author_name: "Fallback Channel",
+          thumbnail_url: "https://img/fb.jpg",
+        }) as unknown as Response
+      );
+
+      const yt = yield* YouTube;
+      const video = yield* yt.getVideo("v1");
+
+      expect(video.title).toBe("Fallback Song");
+      expect(String(fetchSpy.mock.calls[1]?.[0])).toContain("oembed");
+    }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
+  );
+
+  it.effect("still fails with VideoNotFoundError when the video genuinely doesn't exist (no fallback)", () =>
+    Effect.gen(function* () {
+      const fetchSpy = vi.mocked(fetch);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(200, { items: [] }) as unknown as Response);
+
+      const yt = yield* YouTube;
+      const exit = yield* Effect.exit(yt.getVideo("missing"));
       expect(Exit.isFailure(exit)).toBe(true);
-      expect(failureValue(exit)).toBeInstanceOf(YouTubeQuotaExceededError);
+      expect(failureValue(exit)).toBeInstanceOf(VideoNotFoundError);
+      expect(fetchSpy.mock.calls.length).toBe(1);
     }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
   );
 });
