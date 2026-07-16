@@ -1,0 +1,83 @@
+{
+  "player": {
+    "start_party": "Start the party",
+    "resume": "Resume",
+    "error_skipping": "That video can't be played — skipping to the next song"
+  },
+  "banner": {
+    "idle": "Queue is empty — scan to add songs",
+    "singer": "sung by {{name}}"
+  },
+  "controls": {
+    "play": "Play",
+    "pause": "Pause",
+    "skip": "Skip",
+    "playback_heading": "Playback",
+    "volume_label": "Volume",
+    "guest_reorder_label": "Let guests reorder the queue",
+    "guest_reorder_description": "When on, any guest can drag songs to a new position — not just their own.",
+    "end_party": "End party",
+    "end_party_confirm_title": "End this party?",
+    "end_party_confirm_description": "This closes the room for everyone. Guests won't be able to rejoin, and the queue is cleared.",
+    "end_party_confirm_action": "End party",
+    "end_party_cancel": "Cancel",
+    "end_party_error": "Couldn't end the party — try again",
+    "guest_reorder_offline": "You're offline — reconnect to change this setting."
+  },
+  "queue": {
+    "title": "Queue",
+    "count_one": "{{count}} song",
+    "count_other": "{{count}} songs",
+    "empty": "Queue is empty — scan to add songs",
+    "singer": "{{name}}",
+    "you": "You",
+    "drag_handle": "Drag to reorder",
+    "remove": "Remove from queue"
+  },
+  "join": {
+    "hint": "Scan to join & add songs",
+    "nickname": {
+      "title": "Join the room",
+      "description": "Pick a name other singers will see",
+      "label": "Nickname",
+      "placeholder": "e.g. Alex",
+      "submit": "Join",
+      "submitting": "Joining…",
+      "error_session": "Couldn't join the room — try again"
+    },
+    "tabs": {
+      "search": "Search",
+      "queue": "Queue",
+      "controls": "Controls"
+    },
+    "search": {
+      "placeholder": "Search for a song",
+      "submit": "Search",
+      "searching": "Searching…",
+      "empty": "No results — try a different search or paste a link",
+      "add": "Add",
+      "adding": "Adding…",
+      "added": "Added to the queue",
+      "error": "Search failed — try again",
+      "quota_title": "Search is temporarily unavailable",
+      "quota_description": "Paste a YouTube link below instead.",
+      "paste_toggle": "Paste a link instead",
+      "paste_placeholder": "Paste a YouTube link",
+      "paste_submit": "Add link",
+      "paste_error": "Couldn't add that link — check it's a YouTube video URL",
+      "not_embeddable": "That video can't be played here — try a different one"
+    }
+  },
+  "connection": {
+    "connecting": "Connecting…",
+    "reconnecting": "Reconnecting…"
+  },
+  "state": {
+    "closed_title": "This room has closed",
+    "closed_description": "The host ended this karaoke session. Start a new one from the dashboard.",
+    "not_found_title": "Room not found",
+    "not_found_description": "No room matches code {{code}}. Check the code or start a new room.",
+    "back_to_dashboard": "Back to dashboard",
+    "back_to_home": "Back to home"
+  }
+}

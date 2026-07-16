@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Group Karaoke Rooms — Plan</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --accent: #6d5dfc;
+    --border: #e2e2e2; --danger: #c0392b; --success: #1f8a4c; --warn: #b8860b;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #16161a; --fg: #eee; --muted: #999; --border: #333; }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.55;
+    max-width: 880px; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h2 { margin-top: var(--space-6); border-bottom: 1px solid var(--border);
+    padding-bottom: var(--space-2); }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; }
+  .chip-status-draft { background: #eee; color: #444; }
+  .chip-status-in-review { background: #fff3cd; color: #7a5b00; }
+  .chip-status-reviewed { background: #d4edda; color: #1f8a4c; }
+  .chip-high { background: #f8d7da; color: var(--danger); }
+  .chip-med { background: #fff3cd; color: var(--warn); }
+  .chip-low { background: #d4edda; color: var(--success); }
+  .decision-card { border: 1px solid var(--border); border-radius: 10px;
+    padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  .tag-recommended { color: var(--success); font-weight: 600; }
+  .btn-queue, .btn-approve, .btn-request-changes {
+    border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em;
+  }
+  .btn-queue { background: var(--accent); color: #fff; }
+  .btn-approve { background: var(--success); color: #fff; }
+  .btn-request-changes { background: transparent; color: var(--danger);
+    border: 1px solid var(--danger); }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  pre.mermaid { text-align: center; }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: transparent; border-radius: 6px; font-size: 0.85em; padding: 1px 8px; }
+  .item-x { color: var(--danger); } .item-restore { color: var(--accent); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--bg); color: var(--fg); }
+  .decision-resolved { background: #d4edda; color: #1f8a4c; border-radius: 8px;
+    padding: 8px 14px; font-weight: 600; }
+  @media (prefers-color-scheme: dark) {
+    .decision-resolved { background: #143d24; color: #7fd8a0; }
+  }
+  code { background: rgba(128,128,128,0.15); padding: 1px 5px; border-radius: 4px;
+    font-size: 0.9em; }
+  .layout-sketch { border: 1px solid var(--border); border-radius: 10px;
+    padding: var(--space-3); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em; white-space: pre; overflow-x: auto; color: var(--muted); }
+</style>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+</head>
+<body>
+
+<header>
+  <h1>Group Karaoke Rooms</h1>
+  <div>
+    <span>2026-07-15</span> ·
+    <span>feature: group-karaoke (new, feat-007)</span> ·
+    <span class="chip chip-status-reviewed">reviewed</span> ·
+    <span>round 1 — all 4 decisions resolved</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>Build the app's core feature: a host creates a karaoke room and gets a big-screen
+  view (YouTube player + live queue + join QR); guests scan the QR on their phones,
+  get an anonymous Better Auth session + nickname, search YouTube, and add songs — no
+  signup. A per-room actor (<code>@cloudflare/actors</code> over a Durable Object) holds
+  live state (queue, playback, roster) and syncs everyone over hibernating WebSockets;
+  the host's screen is the only audio output and the host's phone-or-screen controls
+  play/pause/skip/reorder/volume. Every search and every played song is persisted to D1
+  — the seed of our own song database, playlists, and future recommendations.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>The brain shows all six template features <strong>shipped</strong> and nothing
+  in-progress (feature_list.json updated 2026-07-13; latest checkpoint 2026-07-15
+  "audit-remediation shipped" closed the last cross-cutting task). There are zero
+  prior plans — this is the first product feature beyond the SaaS-starter scaffolding,
+  and the reason the repo exists ("home-karaoke").</p>
+  <p>Codebase facts that shape this plan (verified by a codebase scout today):</p>
+  <ul>
+    <li><strong>No Durable Objects, WebSockets, or KV anywhere.</strong> Realtime infra is
+      net-new; only the generic <code>add-cf-binding</code> recipe describes the steps.</li>
+    <li><strong>Auth is email/password only</strong> (Better Auth + admin plugin). No
+      anonymous/guest primitive exists — resolved in round 1: add the Better Auth
+      anonymous plugin (card 1).</li>
+    <li><strong>No app-specific tables.</strong> <code>room</code> and friends get the full
+      <code>add-db-table</code> recipe treatment (schema → migration → repo → tests → seeds).</li>
+    <li><strong><code>@dnd-kit/core</code> + <code>sortable</code> already installed</strong> (unused) — covers queue drag-reorder.</li>
+    <li>All five non-negotiables apply: Effect TS everywhere, Effect Schema (no Zod),
+      tagged errors mapped in <code>tagToTRPC</code>, unit test per helper/repo, Workers-not-Node.</li>
+  </ul>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture</h2>
+  <pre class="mermaid">
+flowchart TD
+  HostScreen["Host screen (TV/laptop)<br/>YouTube player + queue + QR"]
+  Phone["Participant phone<br/>join → nickname → search → add"]
+  HostPhone["Host controls<br/>play/pause/skip/reorder/volume"]
+  Worker["CF Worker<br/>React Router SSR + tRPC"]
+  DO["KaraokeRoom Durable Object<br/>live state: queue, playback, roster<br/>(SQLite storage, WS hibernation)"]
+  D1[("D1<br/>rooms, users<br/>(durable)")]
+  YT["YouTube Data API v3<br/>search + embeddable check"]
+
+  HostScreen -->|"WS (state sync)"| DO
+  Phone -->|"WS (add/queue view)"| DO
+  HostPhone -->|"WS (commands)"| DO
+  HostScreen -.->|"HTTPS (create room)"| Worker
+  Phone -.->|"HTTPS (join page)"| Worker
+  Worker -->|"room rows"| D1
+  Worker -->|"search proxy (tRPC)"| YT
+  Worker -->|"upgrade + route by room code"| DO
+  </pre>
+  <p style="color: var(--muted); font-size: 0.9em;">Solid arrows = live WebSocket
+  traffic through the room's Durable Object. Dashed = ordinary HTTP page loads /
+  tRPC calls. The DO is the single source of truth for everything live; D1 only
+  stores the durable room record (and later, history).</p>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-participant-identity" data-brain-action>
+    <p class="decision-resolved">✔ Decided 2026-07-15: Better Auth anonymous plugin</p>
+    <p><strong>1. How do participants (guests on phones) get an identity?</strong></p>
+    <p>Hosts are logged-in users (existing Better Auth). Guests scanning a QR at a
+    party must not be forced through email signup. Three ways to give them an identity:</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-participant-identity" id="opt-ephemeral"
+            value="Room-scoped ephemeral identity (nickname + signed cookie, no user rows)" data-brain-action></td>
+          <td><label for="opt-ephemeral">Room-scoped ephemeral identity</label></td>
+          <td>Zero-friction join (nickname only); no junk rows in <code>user</code> table
+            or admin dashboard; identity lives as a signed room-scoped token +
+            WS attachment; vanishes when room closes</td>
+          <td>Guests invisible to Better Auth — can't reuse <code>protectedProcedure</code>
+            for guest actions (guest actions flow through the DO/WS anyway); new small
+            token-signing helper to build + test</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-participant-identity" id="opt-anon-plugin"
+            value="Better Auth anonymous plugin" checked data-brain-action></td>
+          <td><label for="opt-anon-plugin">Better Auth anonymous plugin
+            <span class="tag-recommended">(chosen)</span></label></td>
+          <td>Real sessions; <code>protectedProcedure</code> works for guests; upgrade
+            path to full account later</td>
+          <td>Every party guest becomes a <code>user</code> row (pollutes admin dashboard +
+            analytics, needs cleanup job); plugin config + schema migration; heavier
+            than the need</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-participant-identity" id="opt-require-account"
+            value="Require full account signup" data-brain-action></td>
+          <td><label for="opt-require-account">Require full account</label></td>
+          <td>No new auth surface at all</td>
+          <td>Party-killer UX — nobody signs up with a mic in their hand; effectively
+            kills the QR-join concept</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-participant-identity',
+        'How do participants get an identity?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-participant-identity"></span>
+  </div>
+
+  <div class="decision-card" id="decision-realtime" data-brain-action>
+    <p class="decision-resolved">✔ Decided 2026-07-15: @cloudflare/actors library over DOs
+    (with fallback: if the beta library blocks us, drop to raw DO + Hibernation API —
+    same architecture, same binding, only the wrapper changes)</p>
+    <p><strong>2. Realtime transport for queue + playback sync?</strong></p>
+    <p>Queue changes and play/pause must reach the host screen and every phone in
+    &lt;1s to feel live. Research (2026) confirms Cloudflare's documented standard
+    for room-based realtime:</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-realtime" id="opt-do-ws"
+            value="Durable Object per room + WebSocket Hibernation API (SQLite storage)" data-brain-action></td>
+          <td><label for="opt-do-ws">Durable Object per room + WS Hibernation</label></td>
+          <td>Cloudflare's canonical pattern for exactly this; instant bidirectional
+            sync; idle hibernating rooms bill $0 duration (a room open all evening
+            costs ~nothing while idle); strict write ordering per room; DO SQLite
+            holds live state so a redeploy/eviction doesn't wipe the queue</td>
+          <td>Net-new infra for this repo (binding, DO class export,
+            <code>new_sqlite_classes</code> migration, WS client hook) — the plan's
+            biggest single chunk</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-realtime" id="opt-polling"
+            value="tRPC polling every 2-3s" data-brain-action></td>
+          <td><label for="opt-polling">tRPC polling (2–3s interval)</label></td>
+          <td>Zero new infra; reuses existing React Query patterns</td>
+          <td>Play/pause lag feels broken; N phones × poll rate hammers D1; still need
+            somewhere consistent to hold live playback state — ends up needing a DO anyway</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-realtime" id="opt-actors"
+            value="@cloudflare/actors library over DOs" checked data-brain-action></td>
+          <td><label for="opt-actors">@cloudflare/actors (DO wrapper SDK)
+            <span class="tag-recommended">(chosen)</span></label></td>
+          <td>Less boilerplate; built-in fan-out helpers</td>
+          <td>Beta (~June 2025), less battle-tested, adds a dependency between us and
+            the primitive; raw DO API is fully documented and stable</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-realtime',
+        'Realtime transport for queue + playback sync?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-realtime"></span>
+  </div>
+
+  <div class="decision-card" id="decision-search" data-brain-action>
+    <p class="decision-resolved">✔ Decided 2026-07-15: Data API v3 + paste-URL fallback,
+    debounced + edge-cached — <strong>plus persist every search + result to D1</strong> so we
+    gradually build our own song database / playlists and shrink API reliance over time</p>
+    <p><strong>3. How do participants search YouTube?</strong></p>
+    <p>Key constraint: official search costs <strong>100 quota units per call</strong>
+    against a <strong>10,000 units/day free quota → ~100 searches/day</strong>.
+    A party of 10 people searching freely can burn that in one evening. Requires a
+    Google Cloud API key (server-side only, restricted to YouTube Data API v3).</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-search" id="opt-data-api"
+            value="YouTube Data API v3 search + paste-URL fallback, debounced + edge-cached" checked data-brain-action></td>
+          <td><label for="opt-data-api">Data API v3 + paste-URL fallback
+            <span class="tag-recommended">(chosen, + persist searches)</span></label></td>
+          <td>Official, reliable, ToS-clean; debounce (search on submit, not keystroke)
+            + caching identical queries stretches quota; paste-a-YouTube-URL always works
+            as a quota-proof escape hatch; <code>videos.list</code> embeddable pre-check
+            costs only 1 unit</td>
+          <td>Needs you to create a Google Cloud project + API key; hard ~100
+            searches/day ceiling until a quota increase is granted (slow for hobby
+            projects — design around the default)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-search" id="opt-scrape"
+            value="Scraping lib (youtube-sr / Invidious)" data-brain-action></td>
+          <td><label for="opt-scrape">Scraping lib (youtube-sr / Invidious)</label></td>
+          <td>No key, no quota</td>
+          <td>ToS violation risk; breaks when YouTube changes markup; Cloudflare edge
+            IPs are exactly what YouTube's anti-bot targets; unfit for a public app</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-search" id="opt-url-only"
+            value="Paste-URL only for MVP (no search)" data-brain-action></td>
+          <td><label for="opt-url-only">Paste-URL only (defer search)</label></td>
+          <td>Zero external setup; ships faster</td>
+          <td>Much worse guest UX — searching YouTube on a phone then copying a URL
+            is clunky mid-party; search is half the participant experience</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-search',
+        'How do participants search YouTube?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-search"></span>
+  </div>
+
+  <div class="decision-card" id="decision-state-split" data-brain-action>
+    <p class="decision-resolved">✔ Decided 2026-07-15: DO SQLite = live truth
+    (queue/playback/roster); D1 = durable room record + history</p>
+    <p><strong>4. Where does live room state live — DO as source of truth, or D1?</strong></p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-state-split" id="opt-do-truth"
+            value="DO SQLite = live truth (queue/playback/roster); D1 = durable room record only" checked data-brain-action></td>
+          <td><label for="opt-do-truth">DO = live truth, D1 = room record
+            <span class="tag-recommended">(chosen)</span></label></td>
+          <td>Queue mutations are zero-latency, strictly ordered, colocated with the
+            broadcast; D1 keeps only what outlives the party (room row, later history);
+            matches Cloudflare's documented split</td>
+          <td>Two storage places to reason about; queue state not visible in Drizzle
+            Studio (acceptable — it's ephemeral by nature)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-state-split" id="opt-d1-truth"
+            value="D1 = truth for everything; DO only broadcasts change notifications" data-brain-action></td>
+          <td><label for="opt-d1-truth">D1 = truth, DO = notifier only</label></td>
+          <td>One database; queue queryable/seedable like other tables</td>
+          <td>Every play/pause/reorder becomes a network round-trip to D1 before
+            broadcast (laggy); write-hot ephemeral data in the durable store; loses
+            DO's ordering guarantee — race-prone under simultaneous adds</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-state-split',
+        'Where does live room state live?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-state-split"></span>
+  </div>
+</section>
+
+<section id="ui-sketch">
+  <h2>Screens</h2>
+  <p><strong>Host screen</strong> (the TV/laptop everyone watches) — matches your layout ask:
+  player main-stage, queue right rail, join panel bottom-left:</p>
+  <div class="layout-sketch">┌──────────────────────────────────────────────┬─────────────────┐
+│                                              │  UP NEXT        │
+│                                              │  1. ▶ Song A    │
+│            YouTube player                    │     — Mika      │
+│            (current song +                   │  2. Song B      │
+│             singer nickname)                 │     — Sean      │
+│                                              │  3. Song C      │
+│                                              │     — Ana       │
+│                                              │  (drag = host)  │
+├───────────────────┬──────────────────────────┤                 │
+│  ▐▛▀▜▌  JOIN      │  host controls:          │                 │
+│  ▐▌██▐▌ code:     │  ⏯ ⏭  ──vol──  🔗       │  + 12 in queue  │
+│  ▐▙▄▟▌  KQ7-3FP   │                          │                 │
+└───────────────────┴──────────────────────────┴─────────────────┘</div>
+  <p><strong>Participant phone</strong>: join page (<code>/join/:code</code> from QR) → nickname →
+  room view with two tabs — <strong><em>Search</em> is a first-class participant screen</strong>
+  (search box → results with thumbnails → "Add to queue", paste-URL fallback) and
+  <em>Queue</em> (live list, own songs highlighted). <strong>Host's phone</strong> gets the same
+  two tabs plus a Controls tab (play/pause/skip/volume/reorder/remove/reorder-permission
+  toggle) — role decided by the session, one route serves both.</p>
+</section>
+
+<section id="plan-of-record" data-brain-section="plan-of-record">
+  <h2>Plan of record</h2>
+  <p style="color: var(--muted); font-size: 0.9em;">Implementation will be delegated
+  phase-by-phase to Sonnet sub-agents (recipe-runner / general-purpose), with the
+  effect-ts-enforcer reviewing each phase and feature-verifier walking the final flows.
+  Click ✕ to drop a phase, double-click text to rewrite, add items below.</p>
+  <ol>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 — Room foundation (D1 + tRPC + anonymous auth).</strong>
+      <span data-item-text data-brain-action>Better Auth <code>anonymous</code> plugin config +
+      migration. D1 tables: <code>room</code> (id, code, hostUserId, status, allowGuestReorder
+      toggle, createdAt, closedAt), <code>song</code> (videoId, title, channel, thumbnail,
+      embeddable — our growing song database), <code>search_log</code> (query, normalizedQuery,
+      userId, roomId, pickedVideoId), <code>room_song</code> (played-history: roomId, videoId,
+      singerNickname, playedAt). Repos + tagged errors (RoomNotFound, RoomClosed) +
+      <code>room.create/get/close</code> tRPC procedures + human-friendly room-code generator
+      (unambiguous alphabet). Acceptance: repo + helper unit tests green; host can create a
+      room and fetch it by code via tRPC; anonymous session can be created.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="1"><strong>Phase 2 — Realtime core (@cloudflare/actors + WS).</strong>
+      <span data-item-text data-brain-action>Timeboxed spike on <code>@cloudflare/actors</code>
+      first (research flagged beta maturity; fallback = raw DO + Hibernation API, same
+      binding/architecture). KaraokeRoom actor (WS fan-out, identity/role attachments,
+      SQLite-backed live state: queue, playback, roster) + wrangler binding with
+      <code>new_sqlite_classes</code> migration (mirrored in preview env) + export from
+      <code>workers/app.ts</code> + WS upgrade route authenticated via Better Auth session
+      (anonymous or full) + typed message protocol (Effect Schema) + <code>useRoomSocket</code>
+      React hook with reconnect/backoff. Acceptance: two browser tabs see each other's queue
+      mutations &lt;1s; state survives simulated eviction; spike verdict recorded in run note.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="2"><strong>Phase 3 — Host screen.</strong>
+      <span data-item-text data-brain-action><code>/room/:code</code> route (host-gated):
+      YouTube IFrame player (YT.Player, cue-next preloading, ENDED → auto-advance,
+      onError 100/101/150 → skip + toast, onAutoplayBlocked → "tap to resume"), queue
+      right-rail (live via WS), bottom-left join panel (QRCodeSVG + room code), "Start the
+      party" first-gesture button. Acceptance: songs play in order and auto-advance;
+      QR resolves to the join URL.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="3"><strong>Phase 4 — Participant flow (phones).</strong>
+      <span data-item-text data-brain-action><code>/join/:code</code> → nickname form →
+      anonymous Better Auth session (nickname stored on the anonymous user) → mobile room
+      view (Search tab: debounced YouTube search via <code>youtube.search</code> tRPC proxy —
+      appends "karaoke" to the query when absent, checks our own <code>song</code>/<code>search_log</code>
+      cache in D1 before spending API quota, logs every search + picked result; embeddable
+      pre-check on add; paste-URL fallback; Queue tab: live queue, own songs marked).
+      Acceptance: phone joins via QR, searches, adds a song, sees it on the host screen live;
+      search + pick rows land in D1.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="4"><strong>Phase 5 — Host controls + room lifecycle.</strong>
+      <span data-item-text data-brain-action>Controls tab for host (play/pause/skip,
+      volume slider → player.setVolume on host screen, remove song) + dnd-kit drag-reorder
+      gated by the room's <code>allowGuestReorder</code> toggle (host setting: host-only vs
+      anyone; host can flip it live) + participant join/leave toasts + room close flow +
+      auto-close after 1 hour idle (DO alarm) + on every song completion write a
+      <code>room_song</code> history row to D1 (feeds future top-songs aggregation +
+      recommended lists). Acceptance: host phone controls the big screen &lt;1s; reorder
+      permission follows the toggle; idle room closes itself at 1h; history rows appear.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="5"><strong>Phase 6 — Verify + ship.</strong>
+      <span data-item-text data-brain-action>i18n strings, seed fixtures, feature-verifier
+      browser walk (golden path: create → QR join → search → add → play → reorder → skip;
+      error path: non-embeddable video auto-skips), verification doc, /verify-done,
+      feature_list flip via <code>brain ship</code>. Acceptance: verification doc PASS +
+      harness check green.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or scope item..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+  <details>
+    <summary>Why DO before any UI (phase 2 before 3/4)?</summary>
+    <p>Every screen is a thin view over the DO's broadcast state. Building the player
+    against mock state first would mean rewiring it later; building the socket layer
+    first lets phases 3–5 run partly in parallel across sub-agents against a real
+    contract (the typed WS message schema).</p>
+  </details>
+</section>
+
+<section id="files-changed">
+  <h2>Files that change</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>wrangler.jsonc</td><td>edit</td><td>DO binding + <code>new_sqlite_classes</code> migration + YT API key var (prod <em>and</em> preview env — bindings not inherited)</td></tr>
+      <tr><td>workers/app.ts</td><td>edit</td><td>export KaraokeRoom DO class (same pattern as ExampleWorkflow)</td></tr>
+      <tr><td>app/durable-objects/karaoke-room.ts</td><td>new</td><td>the room actor (@cloudflare/actors over a DO): WS fan-out, live state, broadcast, 1h-idle alarm</td></tr>
+      <tr><td>app/db/schema.ts + drizzle/0001_*.sql</td><td>edit/new</td><td><code>room</code>, <code>song</code>, <code>search_log</code>, <code>room_song</code> tables + anonymous-plugin columns + migration</td></tr>
+      <tr><td>app/lib/auth.ts (Better Auth config)</td><td>edit</td><td>add <code>anonymous()</code> plugin for guest sessions</td></tr>
+      <tr><td>app/repositories/room.ts, song.ts (+ tests)</td><td>new</td><td>RoomRepository + SongRepository/search-log (Effect.Service), wired into runtime.ts</td></tr>
+      <tr><td>app/services/youtube.ts (+ test layer)</td><td>new</td><td>YouTube Data API client as Context.Tag + Layer (search, embeddable check)</td></tr>
+      <tr><td>app/models/errors/*</td><td>new</td><td>RoomNotFound, RoomClosed, YouTubeQuotaExceeded, VideoNotEmbeddable → AppError union + tagToTRPC + mapping tests</td></tr>
+      <tr><td>app/lib/schemas/room.ts (+ tests)</td><td>new</td><td>Effect Schemas: room, queue item, WS message protocol, nickname</td></tr>
+      <tr><td>app/routes.ts + app/routes/room/*, app/routes/join/*</td><td>edit/new</td><td><code>/room/:code</code> (host screen), <code>/join/:code</code> (participant), WS upgrade endpoint</td></tr>
+      <tr><td>app/trpc/routers/room.ts, youtube.ts</td><td>new</td><td>room.create/get/close; youtube.search (server-side key, debounce-friendly)</td></tr>
+      <tr><td>app/components/room/*</td><td>new</td><td>player, queue rail, join panel (QRCodeSVG), search sheet, controls, dnd wiring</td></tr>
+      <tr><td>app/hooks/use-room-socket.ts</td><td>new</td><td>WS client: connect, reconnect w/ backoff, typed messages</td></tr>
+      <tr><td>package.json</td><td>edit</td><td>+ <code>qrcode.react</code>, <code>@cloudflare/actors</code> (dnd-kit already present)</td></tr>
+      <tr><td>scripts/seed-preview.ts</td><td>edit</td><td>seed a demo room fixture</td></tr>
+      <tr><td>.brain/* (rules, architecture, features/group-karaoke/)</td><td>edit/new</td><td>brain updates per the change table: cloudflare.md (DO pattern), data-models, integrations (YouTube), feature doc</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="golden-path">
+  <h2>Golden path</h2>
+  <pre class="mermaid">
+sequenceDiagram
+  participant H as Host (screen)
+  participant W as Worker
+  participant DO as KaraokeRoom DO
+  participant P as Guest phone
+  participant YT as YouTube API
+
+  H->>W: POST room.create (tRPC, logged in)
+  W->>DO: init room (code KQ7-3FP)
+  W-->>H: /room/KQ7-3FP → player + QR
+  H->>DO: WS connect (role: host)
+  P->>W: scan QR → /join/KQ7-3FP → nickname "Mika"
+  W-->>P: anonymous Better Auth session
+  P->>DO: WS connect (role: guest, Mika)
+  DO-->>H: roster update ("Mika joined")
+  P->>W: youtube.search("dancing queen")
+  Note over W: append "karaoke" if absent,<br/>check D1 song/search cache first
+  W->>YT: search.list (100u) → results → log to D1
+  P->>W: add song → videos.list embeddable? ✓
+  P->>DO: WS: queue.add(videoId, Mika)
+  DO-->>H: queue update → player cues video
+  DO-->>P: queue update (own song highlighted)
+  H->>H: "Start the party" click → playVideo()
+  Note over H: song ENDED → auto-advance,<br/>DO broadcasts now-playing
+  </pre>
+</section>
+
+<section id="error-paths">
+  <h2>Error paths</h2>
+  <table>
+    <thead><tr><th>Failure</th><th>Detected by</th><th>Handled by</th><th>User sees</th></tr></thead>
+    <tbody data-brain-section="error-paths">
+      <template>
+        <tr data-brain-item>
+          <td colspan="4"><span data-item-text data-brain-action></span>
+            <span class="item-controls">
+              <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+              <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+            </span></td>
+        </tr>
+      </template>
+      <tr data-brain-item="0">
+        <td><span data-item-text data-brain-action>Video not embeddable</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+        <td>add-time: <code>videos.list status.embeddable</code>; play-time: onError 101/150</td>
+        <td>add rejected with VideoNotEmbeddable; at play-time auto-skip to next</td>
+        <td>"Can't be played in rooms — pick another" / brief skip toast on screen</td></tr>
+      <tr data-brain-item="1">
+        <td><span data-item-text data-brain-action>YouTube search quota exhausted (100/day)</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+        <td>403 quotaExceeded from Data API</td>
+        <td>YouTubeQuotaExceeded tagged error → tRPC; search UI switches to paste-URL mode</td>
+        <td>"Search is resting — paste a YouTube link instead"</td></tr>
+      <tr data-brain-item="2">
+        <td><span data-item-text data-brain-action>WS drops (phone locks, wifi blip)</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+        <td>close/error event in useRoomSocket</td>
+        <td>reconnect with backoff + full state resync from DO on reconnect</td>
+        <td>brief "reconnecting…" pill; queue refreshes itself</td></tr>
+      <tr data-brain-item="3">
+        <td><span data-item-text data-brain-action>Autoplay blocked on auto-advance</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+        <td>onAutoplayBlocked event</td>
+        <td>host screen shows resume overlay; one click resumes</td>
+        <td>"Tap to keep the party going" overlay on host screen</td></tr>
+      <tr data-brain-item="4">
+        <td><span data-item-text data-brain-action>Room code invalid / room closed</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+        <td>RoomNotFound / RoomClosed from repo or DO</td>
+        <td>tagged error → NOT_FOUND; join page error state</td>
+        <td>"Room not found — check the code" with retry field</td></tr>
+      <tr data-brain-item="5">
+        <td><span data-item-text data-brain-action>DO evicted / redeploy mid-party</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+        <td>constructor rehydration path</td>
+        <td>queue + playback state persisted in DO SQLite; sockets rebuilt from serialized attachments</td>
+        <td>nothing — party continues</td></tr>
+    </tbody>
+  </table>
+  <div class="list-add-row" data-brain-section-add="error-paths">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a failure mode..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="testing-plan" data-brain-section="testing-plan">
+  <h2>Testing plan</h2>
+  <ul class="checklist">
+    <template>
+      <li data-brain-item>
+        <label><input type="checkbox"> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <!-- dblclick on label text toggles the checkbox twice before edit mode opens — harmless, do not preventDefault -->
+    <li data-brain-item="0"><label><input type="checkbox"> <span data-item-text data-brain-action>Unit: room-code generator (charset, length, collision retry), room-token sign/verify, WS message schemas, RoomRepository CRUD, youtube service (mock layer), all new tagged-error → tRPC mappings</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="1"><label><input type="checkbox"> <span data-item-text data-brain-action>Golden path (feature-verifier, two browser contexts): host creates room → phone-context joins via join URL → nickname → search (mocked or live) → add song → appears on host screen &lt;1s → play → reorder → skip</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="2"><label><input type="checkbox"> <span data-item-text data-brain-action>Error path: add non-embeddable video → rejected with friendly message; invalid room code → join error state</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="3"><label><input type="checkbox"> <span data-item-text data-brain-action>Resilience: kill WS (dev tools offline) → reconnect resyncs queue; refresh host screen mid-song → state restored from DO</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="4"><label><input type="checkbox"> <span data-item-text data-brain-action>Guests cannot invoke host commands: forged play/pause/reorder WS message from guest socket is rejected by role check in DO</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="5"><label><input type="checkbox"> <span data-item-text data-brain-action>Regression: existing auth/admin/upload e2e smoke still green; typecheck + full unit suite + build pass (/verify-done)</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing-plan">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0">
+      <span data-item-text data-brain-action>Safari validation: does auto-advance playback survive without a fresh gesture on the actual host device (older smart-TV browsers especially)? Needs an empirical spike in phase 3.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="1">
+      <span data-item-text data-brain-action>Anonymous-user hygiene: every guest becomes a user row — hide them from admin dashboard/analytics, and clean up anonymous users N days after their room closes? (Follows from decision 1.)</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+  </ul>
+  <p style="color: var(--muted); font-size: 0.9em;">Resolved in round 1: queue fairness
+  (dropped — FIFO for MVP), room lifetime (auto-close 1h idle + persist history for future
+  top-songs/recommendations), reorder rights (host feature toggle: host-only vs anyone),
+  search bias (append "karaoke" when absent), participants keep a search screen.</p>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+  <form onsubmit="event.preventDefault();
+    var v = this.answer.value.trim(); if (!v) return;
+    window.brain && window.brain.queuePrompt({ tag: 'message',
+      queueKey: 'open-q-freeform', prompt: v });
+    this.answer.value = '';" style="margin-top: var(--space-3);">
+    <input name="answer" type="text" placeholder="Answer any open question here..." data-brain-action
+      style="width: 70%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg);" />
+    <button type="submit" class="btn-queue" data-brain-action>Submit</button>
+  </form>
+</section>
+
+<section id="verdict">
+  <h2>Verdict</h2>
+  <div>
+    <button type="button" class="btn-approve" data-brain-action
+      onclick="queueVerdict('approve')">Approve plan</button>
+    <button type="button" class="btn-request-changes" data-brain-action
+      onclick="queueVerdict('request-changes')">Request changes</button>
+    <span class="queue-ack" id="ack-verdict"></span>
+  </div>
+</section>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+
+  function queueVerdict(verdict) {
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "message",
+        queueKey: "verdict",
+        prompt: verdict === "approve"
+          ? "Plan approved as written."
+          : "Requesting changes — see annotations."
+      });
+    }
+    var ack = document.getElementById("ack-verdict");
+    if (ack) ack.textContent = "Queued: " + verdict;
+  }
+
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

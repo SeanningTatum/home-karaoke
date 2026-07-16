@@ -74,33 +74,66 @@ jobs:
           CLOUDFLARE_ENV: preview
         run: bun run build
 
+      # NOTE: a Worker's FIRST-EVER Durable Object migration cannot be applied
+      # via `wrangler versions upload` (it errors with code 10211 —
+      # "migrations must be fully applied via a non-versioned deployment").
+      # The `home-karaoke-preview` base Worker must therefore be bootstrapped
+      # once with a full `wrangler deploy --env preview` before per-PR version
+      # uploads succeed. `bun run setup` handles this; if you add a NEW DO
+      # class later, re-run that full deploy once.
       - name: Upload preview version
         id: upload
         run: |
+          # Capture wrangler's own output without `set -e` aborting on the
+          # command-substitution assignment — otherwise a real wrangler
+          # failure (e.g. the DO-migration error above) is swallowed before we
+          # ever echo it, leaving a bare "exit code 1" with no context.
+          set +e
           OUT=$(bunx wrangler versions upload --preview-alias "pr-${{ github.event.number }}" 2>&1)
+          STATUS=$?
+          set -e
           echo "$OUT"
-          ALIAS_URL=$(printf '%s' "$OUT" | grep -oE 'Version Preview Alias URL: https://\S+' | awk '{print $NF}')
-          VERSION_URL=$(printf '%s' "$OUT" | grep -oE 'Version Preview URL: https://\S+' | awk '{print $NF}')
-          if [ -z "$ALIAS_URL" ] || [ -z "$VERSION_URL" ]; then
-            echo "::error::Could not extract preview URLs from wrangler output — its format may have changed. See the log above."
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::wrangler versions upload failed (exit $STATUS). See the log above for the underlying Cloudflare error."
             exit 1
           fi
+          ALIAS_URL=$(printf '%s' "$OUT" | grep -oE 'Version Preview Alias URL: https://\S+' | awk '{print $NF}')
+          VERSION_URL=$(printf '%s' "$OUT" | grep -oE 'Version Preview URL: https://\S+' | awk '{print $NF}')
           {
             echo "alias_url=$ALIAS_URL"
             echo "version_url=$VERSION_URL"
           } >> "$GITHUB_OUTPUT"
+          # The version uploaded fine even if no preview URL was emitted, so
+          # warn (don't fail the check). wrangler only prints preview URLs when
+          # the uploaded version reports `has_preview` — which requires Preview
+          # URLs to be enabled for the Worker (Cloudflare dashboard → the
+          # Worker → Settings → Preview URLs, and `preview_urls: true` in
+          # wrangler.jsonc). The PR comment falls back to the version ID.
+          if [ -z "$ALIAS_URL" ] || [ -z "$VERSION_URL" ]; then
+            echo "::warning::wrangler uploaded the version but emitted no preview URL. Preview URLs may be disabled for the home-karaoke-preview Worker — the PR comment will omit the live link. See https://developers.cloudflare.com/workers/configuration/previews/"
+          fi
 
       # The seed summary comes from the seed script itself (--describe), so
       # extending fixtures in scripts/seed-preview.ts automatically updates
       # every future PR comment — no workflow edit needed.
       - name: Compose PR comment
+        env:
+          ALIAS_URL: ${{ steps.upload.outputs.alias_url }}
+          VERSION_URL: ${{ steps.upload.outputs.version_url }}
         run: |
           {
             echo "### Preview deployment"
             echo
-            echo "**${{ steps.upload.outputs.alias_url }}**"
-            echo
-            echo "Per-commit version: ${{ steps.upload.outputs.version_url }}"
+            if [ -n "$ALIAS_URL" ]; then
+              echo "**$ALIAS_URL**"
+              echo
+              echo "Per-commit version: $VERSION_URL"
+            else
+              echo "_Preview URLs are disabled for this Worker, so there's no"
+              echo "live link. The version uploaded successfully — enable Preview"
+              echo "URLs in the Cloudflare dashboard (the Worker → Settings) to"
+              echo "get a shareable URL here._"
+            fi
             echo "Commit: \`${{ github.sha }}\`"
             echo
             echo "Data: this PR gets its **own D1 database** (created when the PR"

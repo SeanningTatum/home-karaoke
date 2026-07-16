@@ -1,0 +1,82 @@
+{
+  "player": {
+    "start_party": "开始播放",
+    "resume": "继续播放",
+    "error_skipping": "这个视频无法播放 —— 正在跳到下一首"
+  },
+  "banner": {
+    "idle": "队列为空 —— 扫码添加歌曲",
+    "singer": "演唱者 {{name}}"
+  },
+  "controls": {
+    "play": "播放",
+    "pause": "暂停",
+    "skip": "跳过",
+    "playback_heading": "播放控制",
+    "volume_label": "音量",
+    "guest_reorder_label": "允许访客调整队列顺序",
+    "guest_reorder_description": "开启后，任何访客都可以拖动歌曲调整顺序 —— 不仅限于自己添加的歌曲。",
+    "end_party": "结束派对",
+    "end_party_confirm_title": "结束这场派对？",
+    "end_party_confirm_description": "这将为所有人关闭房间。访客将无法重新加入，队列也会被清空。",
+    "end_party_confirm_action": "结束派对",
+    "end_party_cancel": "取消",
+    "end_party_error": "无法结束派对 —— 请重试",
+    "guest_reorder_offline": "你已离线 —— 重新连接后才能更改此设置。"
+  },
+  "queue": {
+    "title": "队列",
+    "count_other": "{{count}} 首歌曲",
+    "empty": "队列为空 —— 扫码添加歌曲",
+    "singer": "{{name}}",
+    "you": "你",
+    "drag_handle": "拖动以调整顺序",
+    "remove": "从队列中移除"
+  },
+  "join": {
+    "hint": "扫码加入并添加歌曲",
+    "nickname": {
+      "title": "加入房间",
+      "description": "选择一个其他歌手能看到的昵称",
+      "label": "昵称",
+      "placeholder": "例如：小明",
+      "submit": "加入",
+      "submitting": "加入中…",
+      "error_session": "加入房间失败 —— 请重试"
+    },
+    "tabs": {
+      "search": "搜索",
+      "queue": "队列",
+      "controls": "控制"
+    },
+    "search": {
+      "placeholder": "搜索歌曲",
+      "submit": "搜索",
+      "searching": "搜索中…",
+      "empty": "没有结果 —— 换个搜索词或粘贴链接",
+      "add": "添加",
+      "adding": "添加中…",
+      "added": "已加入队列",
+      "error": "搜索失败 —— 请重试",
+      "quota_title": "搜索暂时不可用",
+      "quota_description": "请在下方粘贴 YouTube 链接。",
+      "paste_toggle": "改为粘贴链接",
+      "paste_placeholder": "粘贴 YouTube 链接",
+      "paste_submit": "添加链接",
+      "paste_error": "无法添加该链接 —— 请确认是 YouTube 视频链接",
+      "not_embeddable": "这个视频无法在此播放 —— 请换一个"
+    }
+  },
+  "connection": {
+    "connecting": "连接中…",
+    "reconnecting": "重新连接中…"
+  },
+  "state": {
+    "closed_title": "房间已关闭",
+    "closed_description": "主持人已结束此次卡拉OK。从仪表盘开启一个新房间。",
+    "not_found_title": "未找到房间",
+    "not_found_description": "没有与代码 {{code}} 匹配的房间。请检查代码或新建一个房间。",
+    "back_to_dashboard": "返回仪表盘",
+    "back_to_home": "返回首页"
+  }
+}
