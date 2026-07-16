@@ -1,23 +1,51 @@
 import { useTranslation } from "react-i18next";
 import { IconMicrophone } from "@tabler/icons-react";
 import type { QueueItem } from "@/lib/schemas/room-ws";
+import { cn } from "@/lib/utils";
 
 export interface NowSingingBannerProps {
   readonly currentItem: QueueItem | null;
+  /** "tv" — the host TV screen (`/room/:code`): tv-headline size + gradient
+   * accent text, singer name stacked below. "compact" (default) — the
+   * guest phone Queue tab (`/join/:code`), unchanged single-row layout. */
+  readonly size?: "tv" | "compact";
 }
 
 /** Title + singer strip above the player. Renders a quiet "nothing queued" hint when idle. */
-export function NowSingingBanner({ currentItem }: NowSingingBannerProps) {
+export function NowSingingBanner({
+  currentItem,
+  size = "compact",
+}: NowSingingBannerProps) {
   const { t } = useTranslation("room");
+  const isTv = size === "tv";
 
   if (!currentItem) {
     return (
       <p
         data-testid="room-now-singing"
-        className="text-sm text-muted-foreground"
+        className={cn("text-muted-foreground", isTv ? "tv-body" : "text-sm")}
       >
         {t("banner.idle")}
       </p>
+    );
+  }
+
+  if (isTv) {
+    return (
+      <div
+        data-testid="room-now-singing"
+        className="flex min-w-0 items-center gap-4 text-foreground"
+      >
+        <IconMicrophone className="size-10 shrink-0 text-primary" />
+        <div className="min-w-0">
+          <p className="tv-headline text-gradient-accent truncate font-bold">
+            {currentItem.title}
+          </p>
+          <span className="tv-label block truncate normal-case text-muted-foreground">
+            {t("banner.singer", { name: currentItem.singerNickname })}
+          </span>
+        </div>
+      </div>
     );
   }
 

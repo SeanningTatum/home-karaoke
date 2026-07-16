@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/room/initials-avatar";
 import { cn } from "@/lib/utils";
 import type { QueueItem, Role } from "@/lib/schemas/room-ws";
 
@@ -39,6 +40,10 @@ export interface QueueRailProps {
   /** Whether drag-to-reorder is enabled for this viewer — host: always;
    * guest: only when `state.settings.allowGuestReorder` is on. */
   readonly reorderable?: boolean;
+  /** "tv" — the host TV screen (`/room/:code`): 10-foot type scale, added-by
+   * chip. "compact" (default) — the guest phone Search/Queue/Controls tabs
+   * on `/join/:code`, unchanged sizing. */
+  readonly size?: "tv" | "compact";
   /** Sends `queue.reorder` over the room socket. Required when `reorderable`. */
   readonly onReorder?: (queueItemId: string, toIndex: number) => void;
   /** Sends `queue.remove` over the room socket. Omit to hide remove buttons entirely. */
@@ -61,10 +66,12 @@ export function QueueRail({
   ownUserId = null,
   viewerRole = "host",
   reorderable = false,
+  size = "compact",
   onReorder,
   onRemove,
 }: QueueRailProps) {
   const { t } = useTranslation("room");
+  const isTv = size === "tv";
   const [displayQueue, setDisplayQueue] = useState<readonly QueueItem[]>(queue);
 
   useEffect(() => {
@@ -99,17 +106,45 @@ export function QueueRail({
       className={cn("flex h-full flex-col gap-3", className)}
     >
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-          <IconPlaylist className="size-4" />
+        <h2
+          className={cn(
+            "flex items-center text-muted-foreground",
+            isTv
+              ? "tv-title gap-2 normal-case text-foreground"
+              : "gap-1.5 text-sm font-medium uppercase tracking-wider"
+          )}
+        >
+          <IconPlaylist className={isTv ? "size-8 text-primary" : "size-4"} />
           {t("queue.title")}
         </h2>
-        <Badge variant="secondary" data-testid="room-queue-count">
+        <Badge
+          variant="secondary"
+          data-testid="room-queue-count"
+          className={
+            // `Badge` bakes in `text-xs` unconditionally via its own
+            // `cn()`, which `tailwind-merge` only strips in favor of
+            // another RECOGNIZED Tailwind class — a custom `tv-label`
+            // utility isn't recognized and would silently lose the
+            // cascade to Badge's own `text-xs`. Composing the tv-label
+            // spec (24px/600/uppercase/0.04em tracking, design.md's TV
+            // type scale) from plain Tailwind utilities here instead so
+            // the override actually applies.
+            isTv
+              ? "px-4 py-1.5 text-2xl font-semibold uppercase tracking-[0.04em]"
+              : undefined
+          }
+        >
           {t("queue.count", { count: queue.length })}
         </Badge>
       </div>
 
       {queue.length === 0 ? (
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <p
+          className={cn(
+            "text-center text-muted-foreground",
+            isTv ? "tv-body mt-10" : "mt-6 text-sm"
+          )}
+        >
           {t("queue.empty")}
         </p>
       ) : (
@@ -122,7 +157,12 @@ export function QueueRail({
             items={displayQueue.map((item) => item.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ul className="flex flex-col gap-2 overflow-y-auto">
+            <ul
+              className={cn(
+                "flex flex-col overflow-y-auto",
+                isTv ? "gap-3" : "gap-2"
+              )}
+            >
               {displayQueue.map((item) => {
                 const isOwn =
                   ownUserId != null && item.addedByUserId === ownUserId;
@@ -136,6 +176,7 @@ export function QueueRail({
                     reorderable={reorderable}
                     canRemove={canRemove}
                     onRemove={onRemove}
+                    isTv={isTv}
                   />
                 );
               })}
@@ -153,9 +194,18 @@ interface QueueRowProps {
   readonly reorderable: boolean;
   readonly canRemove: boolean;
   readonly onRemove?: (queueItemId: string) => void;
+  /** TV type scale + added-by chip (see `QueueRailProps.size`). */
+  readonly isTv?: boolean;
 }
 
-function QueueRow({ item, isOwn, reorderable, canRemove, onRemove }: QueueRowProps) {
+function QueueRow({
+  item,
+  isOwn,
+  reorderable,
+  canRemove,
+  onRemove,
+  isTv = false,
+}: QueueRowProps) {
   const { t } = useTranslation("room");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: !reorderable });
@@ -172,7 +222,8 @@ function QueueRow({ item, isOwn, reorderable, canRemove, onRemove }: QueueRowPro
       data-testid="room-queue-item"
       data-own={isOwn ? "true" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-md border border-border bg-card p-2",
+        "flex items-center rounded-md border border-border bg-card",
+        isTv ? "gap-4 rounded-xl p-4" : "gap-2 p-2",
         isOwn && "border-primary/50 bg-primary/5",
         isDragging && "z-10 opacity-70 shadow-md"
       )}
@@ -182,37 +233,78 @@ function QueueRow({ item, isOwn, reorderable, canRemove, onRemove }: QueueRowPro
           type="button"
           data-testid="room-queue-drag-handle"
           aria-label={t("queue.drag_handle")}
-          className="flex shrink-0 touch-none items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          className={cn(
+            "flex shrink-0 touch-none items-center justify-center rounded text-muted-foreground hover:text-foreground active:cursor-grabbing",
+            isTv ? "p-2" : "p-1"
+          )}
           {...attributes}
           {...listeners}
         >
-          <IconGripVertical className="size-4" />
+          <IconGripVertical className={isTv ? "size-6" : "size-4"} />
         </button>
       )}
       {item.thumbnailUrl ? (
         <img
           src={item.thumbnailUrl}
           alt=""
-          className="size-12 shrink-0 rounded object-cover"
+          className={cn(
+            "shrink-0 rounded object-cover",
+            isTv ? "size-20 rounded-lg" : "size-12"
+          )}
         />
       ) : (
-        <span className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
-          <IconMusic className="size-5 text-muted-foreground" />
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded bg-muted",
+            isTv ? "size-20 rounded-lg" : "size-12"
+          )}
+        >
+          <IconMusic
+            className={cn("text-muted-foreground", isTv ? "size-8" : "size-5")}
+          />
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium leading-tight">
+        <p
+          className={cn(
+            "truncate font-medium leading-tight",
+            isTv ? "tv-body" : "text-sm"
+          )}
+        >
           {item.title}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
-          {t("queue.singer", { name: item.singerNickname })}
-        </p>
+        {/* Added-by chip — `item.singerNickname` is server-set from the
+            adding guest's own WS identity (see `applyClientMessage` /
+            `karaoke-room.ts`'s `x-nickname` header), never client-reported,
+            so it already IS "who added this" data end-to-end. */}
+        {isTv ? (
+          <div className="mt-2 flex items-center gap-2">
+            <InitialsAvatar name={item.singerNickname} size="sm" />
+            <p
+              // Not `tv-label`: that utility is uppercase, which reads
+              // oddly on a person's nickname — a plain 24px/semibold
+              // size still clears the "nothing under 24px" TV rule.
+              className="truncate text-2xl font-semibold text-muted-foreground"
+            >
+              {t("queue.singer", { name: item.singerNickname })}
+            </p>
+          </div>
+        ) : (
+          <p className="truncate text-xs text-muted-foreground">
+            {t("queue.singer", { name: item.singerNickname })}
+          </p>
+        )}
       </div>
       {isOwn && (
         <Badge
           variant="outline"
           data-testid="room-queue-own-marker"
-          className="shrink-0"
+          className={cn(
+            "shrink-0",
+            // See the queue-count Badge above for why this is composed
+            // from plain Tailwind utilities rather than `tv-label`.
+            isTv && "px-3 py-1 text-2xl font-semibold uppercase tracking-[0.04em]"
+          )}
         >
           {t("queue.you")}
         </Badge>
@@ -221,13 +313,13 @@ function QueueRow({ item, isOwn, reorderable, canRemove, onRemove }: QueueRowPro
         <Button
           type="button"
           variant="ghost"
-          size="icon"
+          size={isTv ? "icon-lg" : "icon"}
           data-testid="room-queue-remove"
           aria-label={t("queue.remove")}
           className="shrink-0 text-muted-foreground hover:text-destructive"
           onClick={() => onRemove?.(item.id)}
         >
-          <IconX className="size-4" />
+          <IconX className={isTv ? "size-6" : "size-4"} />
         </Button>
       )}
     </li>

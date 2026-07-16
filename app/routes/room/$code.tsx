@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { redirect, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
@@ -10,6 +11,7 @@ import { RoomRepository } from "@/repositories/room";
 import { buildJoinUrl } from "@/lib/room-urls";
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { api } from "@/trpc/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -28,6 +30,8 @@ import { HostControls } from "@/components/room/host-controls";
 import { QueueRail } from "@/components/room/queue-rail";
 import { JoinPanel } from "@/components/room/join-panel";
 import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
+import { RosterStrip } from "@/components/room/roster-strip";
+import { CelebrationBurst } from "@/components/room/celebration-burst";
 import type { Route } from "./+types/$code";
 
 export const handle = { i18n: ["room"] };
@@ -132,7 +136,31 @@ function RoomHostView({
   const { t } = useTranslation("room");
   const navigate = useNavigate();
   const { state, send, connectionStatus } = useRoomSocket({ code });
-  const { queue, playback } = state;
+  const { queue, playback, roster } = state;
+
+  // "Room goes live" is the lobby -> playing transition: the moment a
+  // `currentItem` first appears this session. Playback status can bounce
+  // between "playing"/"paused" afterwards without re-triggering — only the
+  // null -> non-null edge counts, and only once per mount (see
+  // CelebrationBurst's own doc comment for the reduced-motion handling).
+  const hasCurrentItem = Boolean(playback?.currentItem);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const hasCelebratedRef = useRef(false);
+  const prevHasCurrentItemRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    const previouslyHadItem = prevHasCurrentItemRef.current;
+    prevHasCurrentItemRef.current = hasCurrentItem;
+
+    if (previouslyHadItem !== false || !hasCurrentItem) return;
+    if (hasCelebratedRef.current) return;
+    hasCelebratedRef.current = true;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!prefersReducedMotion) setShowCelebration(true);
+  }, [hasCurrentItem]);
 
   const recordPlayed = api.room.recordPlayed.useMutation({
     onError: (error) => {
@@ -185,78 +213,140 @@ function RoomHostView({
   });
 
   return (
-    <div className="grid h-screen grid-cols-1 grid-rows-[1fr_auto] gap-4 bg-background p-4 text-foreground lg:grid-cols-[3fr_minmax(280px,1fr)]">
-      <div className="flex min-h-0 flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <NowSingingBanner currentItem={playback?.currentItem ?? null} />
-          <div className="flex items-center gap-3">
-            <ConnectionStatusPill status={connectionStatus} />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  data-testid="room-end-party-button"
+    <div
+      data-testid="room-host-view"
+      className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground"
+    >
+      <div
+        className={cn(
+          "flex items-center gap-3 pb-4",
+          hasCurrentItem ? "justify-between" : "justify-end"
+        )}
+      >
+        {hasCurrentItem && (
+          <NowSingingBanner currentItem={playback?.currentItem ?? null} size="tv" />
+        )}
+        <div className="flex shrink-0 items-center gap-3">
+          <ConnectionStatusPill status={connectionStatus} />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="lg"
+                data-testid="room-end-party-button"
+                className="gap-2 text-2xl font-semibold"
+              >
+                <IconDoorExit className="size-5" />
+                {t("controls.end_party")}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent data-testid="room-end-party-dialog">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-4xl font-bold font-display">
+                  {t("controls.end_party_confirm_title")}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
+                  {t("controls.end_party_confirm_description")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  data-testid="room-end-party-cancel"
+                  size="lg"
+                  // `AlertDialogCancel`/`AlertDialogAction` render via
+                  // Radix's `asChild` Slot, which merges this className
+                  // onto the child by plain concatenation — NOT through
+                  // `tailwind-merge` — so a same-specificity override
+                  // (`text-2xl`) can lose to the wrapped Button's own
+                  // baked-in `text-sm` depending on generated CSS order.
+                  // `!` forces it to win regardless.
+                  className="!text-2xl !font-semibold"
                 >
-                  <IconDoorExit className="size-4" />
-                  {t("controls.end_party")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent data-testid="room-end-party-dialog">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {t("controls.end_party_confirm_title")}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("controls.end_party_confirm_description")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel data-testid="room-end-party-cancel">
-                    {t("controls.end_party_cancel")}
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    data-testid="room-end-party-confirm"
-                    disabled={closeRoom.isPending}
-                    onClick={() => closeRoom.mutate({ roomId: room.id })}
-                  >
-                    {t("controls.end_party_confirm_action")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  {t("controls.end_party_cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  data-testid="room-end-party-confirm"
+                  size="lg"
+                  disabled={closeRoom.isPending}
+                  onClick={() => closeRoom.mutate({ roomId: room.id })}
+                  className="!text-2xl !font-semibold"
+                >
+                  {t("controls.end_party_confirm_action")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+
+      {/* Playing state — kept mounted (just hidden) rather than
+          conditionally unmounted while in the lobby, so the YoutubePlayer's
+          IFrame instance and its user-gesture "started" flag survive the
+          lobby -> playing transition instead of resetting. */}
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[3fr_minmax(340px,1fr)]",
+          !hasCurrentItem && "hidden"
+        )}
+      >
+        <div className="flex min-h-0 flex-col gap-4">
+          <YoutubePlayer
+            playback={playback}
+            onVideoEnded={handleVideoEnded}
+            onVideoError={handleVideoError}
+          />
+          <div className="flex items-center justify-between gap-4">
+            <HostControls
+              playback={playback}
+              queueLength={queue.length}
+              onPlay={() => send({ type: "playback.play" })}
+              onPause={() => send({ type: "playback.pause" })}
+              onSkip={handleSkip}
+              size="tv"
+            />
+            {/* Persistent join affordance while a song is playing — always
+                visible, never hidden behind an interaction. */}
+            <JoinPanel joinUrl={joinUrl} code={code} size="sm" />
           </div>
         </div>
-        <YoutubePlayer
-        playback={playback}
-        onVideoEnded={handleVideoEnded}
-        onVideoError={handleVideoError}
+
+        <div className="min-h-0 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+          <QueueRail
+            queue={queue}
+            viewerRole="host"
+            reorderable
+            size="tv"
+            onReorder={(queueItemId, toIndex) =>
+              send({ type: "queue.reorder", queueItemId, toIndex })
+            }
+            onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
+          />
+        </div>
+      </div>
+
+      {/* Lobby state — party's about to start: big room code + QR, idle
+          glow, live "who's here" roster. */}
+      {!hasCurrentItem && (
+        <div
+          data-testid="room-lobby"
+          className="flex flex-1 flex-col items-center justify-center gap-10 overflow-y-auto py-6"
+        >
+          <p
+            data-testid="room-lobby-heading"
+            className="tv-label text-muted-foreground"
+          >
+            {t("lobby.heading")}
+          </p>
+          <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
+          <RosterStrip roster={roster} />
+        </div>
+      )}
+
+      <CelebrationBurst
+        show={showCelebration}
+        onDone={() => setShowCelebration(false)}
       />
-        <HostControls
-          playback={playback}
-          queueLength={queue.length}
-          onPlay={() => send({ type: "playback.play" })}
-          onPause={() => send({ type: "playback.pause" })}
-          onSkip={handleSkip}
-        />
-      </div>
-
-      <div className="row-span-2 min-h-0 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-        <QueueRail
-          queue={queue}
-          viewerRole="host"
-          reorderable
-          onReorder={(queueItemId, toIndex) =>
-            send({ type: "queue.reorder", queueItemId, toIndex })
-          }
-          onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
-        />
-      </div>
-
-      <div className="flex justify-start">
-        <JoinPanel joinUrl={joinUrl} code={code} />
-      </div>
     </div>
   );
 }

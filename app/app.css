@@ -257,3 +257,41 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Room host TV screen (Phase 4) — one-shot "room goes live" confetti burst.
+   Hand-rolled, no library, per design.md §6 (celebration moments are rare).
+   Duration collapses under the global prefers-reduced-motion net above; the
+   JS trigger in app/routes/room/$code.tsx additionally skips firing this at
+   all for reduced-motion users, rather than relying on duration alone. */
+@keyframes room-confetti-fall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@utility animate-confetti-fall {
+  animation: room-confetti-fall 1.4s ease-in forwards;
+}
+
+/* Lobby "who's here" roster chips ticking in as guests join — new DOM nodes
+   (new roster userId) play this once on mount; existing chips keep their
+   node identity across re-renders and never replay it. */
+@keyframes room-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@utility animate-chip-in {
+  animation: room-chip-in 0.4s ease-out;
+}

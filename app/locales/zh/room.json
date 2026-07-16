@@ -67,6 +67,12 @@
       "not_embeddable": "这个视频无法在此播放 —— 请换一个"
     }
   },
+  "lobby": {
+    "heading": "派对大厅",
+    "prompt": "扫码加入派对",
+    "roster_title_other": "{{count}} 位嘉宾已加入",
+    "roster_empty": "扫码成为第一位加入的人"
+  },
   "connection": {
     "connecting": "连接中…",
     "reconnecting": "重新连接中…"

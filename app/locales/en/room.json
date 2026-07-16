@@ -68,6 +68,13 @@
       "not_embeddable": "That video can't be played here — try a different one"
     }
   },
+  "lobby": {
+    "heading": "Party lobby",
+    "prompt": "Scan to join the party",
+    "roster_title_one": "{{count}} guest has joined",
+    "roster_title_other": "{{count}} guests have joined",
+    "roster_empty": "Be the first to scan and join"
+  },
   "connection": {
     "connecting": "Connecting…",
     "reconnecting": "Reconnecting…"

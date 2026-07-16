@@ -263,3 +263,59 @@ Three surfaces touched (`home.tsx`, `authentication/components/auth-shell.tsx` +
 
 _Status: Phase 3 complete — landing, auth, and dashboard rebuilt; all three verify-done gates green; smoke-tested against a live dev server._
 
+## Step: Phase 4 — host TV screen reskin (Sonnet builder)
+
+### What changed
+
+**Added-by attribution: already shipped, not deferred.** Checked `app/lib/schemas/room-ws.ts`'s `QueueItem` and `app/lib/room-state.ts`'s `applyClientMessage` (per instruction) before touching anything: `QueueItem.singerNickname` + `addedByUserId` are already set server-side by the DO from the adding guest's own WS identity (`applyClientMessage`'s `ctx.nickname`/`ctx.userId`, sourced from the `x-nickname`/`x-user-id` upgrade headers in `app/durable-objects/karaoke-room.ts` — never client-reported per message). So "who added this song" was already single-writer, end-to-end data from feat-007 — no schema/reducer change was needed; Phase 4 only had to *render* it. No new protocol field, no reducer changes, no new unit tests required (the 373 existing tests are unchanged in count).
+
+**`app/routes/room/$code.tsx`** — restructured into two states driven by `Boolean(playback?.currentItem)`:
+- **Lobby** (`data-testid="room-lobby"`, shown whenever nothing is currently playing — including between songs after the queue drains, not just before the first song): big `tv-display` room code + large QR on the forced-white tile (`JoinPanel size="lg"`, idle `animate-pulse` glow ring gated by `motion-reduce:animate-none`), a "who's here" `RosterStrip`, and a friendly `lobby.prompt` line.
+- **Playing**: `NowSingingBanner size="tv"` (gradient-accent `tv-headline`), `YoutubePlayer` + `HostControls size="tv"` + a small persistent `JoinPanel size="sm"` (corner join affordance, always visible, never gated behind an interaction), and `QueueRail size="tv"`.
+- The Playing block is **kept mounted and just `hidden`** (CSS `display:none`, not conditionally unmounted) while in the lobby, specifically so the `YoutubePlayer`'s IFrame instance and its user-gesture "started" flag survive the lobby→playing transition instead of resetting and re-demanding a tap.
+- **Celebration**: a `hasCelebratedRef` + `prevHasCurrentItemRef` pair detects the one true `null → non-null` edge on `playback.currentItem` (not just "is something playing" — repeated play/pause on the same song never re-fires, and a mid-session queue-drain back to idle followed by a new song does NOT re-fire either, since the ref latches permanently after the first fire). Before setting `showCelebration`, checks `window.matchMedia("(prefers-reduced-motion: reduce)").matches` and skips entirely for reduced-motion users — deliberately not relying on the app-wide duration-collapse net alone, since this component is JS-mounted, not purely CSS-driven.
+- Host controls / connection pill / end-party dialog restyled to theme (gradient on the play/pause control only per design.md §3; destructive stays `--destructive`); all behavior (mutations, WS sends, disabled conditions) identical to Phase 3.
+
+**New components** (`app/components/room/`): `initials-avatar.tsx` (shared gradient-fill initials avatar, design.md §8's "persistent gradient surface" exception), `roster-strip.tsx` ("who's here" chips — new roster `userId` gets a fresh DOM node so `animate-chip-in` only plays once per guest, existing chips never replay it), `celebration-burst.tsx` (hand-rolled confetti, no library, one-shot via `onDone` callback + `setTimeout(1500ms)`).
+
+**Shared components extended additively** (`join-panel.tsx`, `now-singing-banner.tsx`, `queue-rail.tsx`, `host-controls.tsx` all gained an optional `size`/variant prop defaulting to the pre-Phase-4 compact behavior) — these four are also used by `/join/:code`'s guest tabs (`queue-tab.tsx`, `controls-tab.tsx`), which is Phase 5's surface; defaults were verified unchanged so this phase doesn't encroach on that scope.
+
+**Bug found and fixed while building this**: custom `tv-*` utility classes (`tv-label`, `tv-title`, `tv-body`) are NOT recognized by `tailwind-merge`'s conflict-group config, so when combined with a shadcn/Radix component's own baked-in Tailwind text-size class (`Button`'s base `text-sm`, `Badge`'s base `text-xs`, `AlertDialogTitle`/`Description`'s base `text-lg`/`text-sm`), `twMerge` doesn't strip the component's default — both classes survive into the DOM and the winner is decided by generated-CSS source order, which (confirmed by inspecting the compiled `build/client/assets/*.css`) put the core Tailwind class LATER than my custom utility, silently overriding my override. Fixed by composing the TV-scale spec from plain recognized Tailwind utilities (`text-2xl font-semibold uppercase tracking-[0.04em]` for the tv-label spec, `text-4xl font-bold font-display` for tv-title, `text-[1.75rem] leading-[1.4] font-medium` for tv-body) everywhere a shadcn component's hidden default needed overriding, instead of the custom `tv-*` classes, which restores proper `twMerge` dedup. `AlertDialogCancel`/`AlertDialogAction` specifically render via Radix's `asChild` Slot pattern, which merges the className onto the child by plain concatenation (bypassing `tailwind-merge` entirely, even for otherwise-recognized classes) — those two use `!text-2xl !font-semibold` (Tailwind's important-modifier) so the override wins regardless of source order. Verified the fix for the count/own-marker badges and the end-party trigger button by curling the live SSR HTML and confirming `text-xs`/`text-sm` are absent from the rendered `class=` attribute (only the intended TV-scale classes remain).
+
+**i18n** (`app/locales/{en,zh}/room.json`) — new `lobby.*` keys: `heading`, `prompt`, `roster_title` (en: `_one`/`_other`; zh: `_other` only, matching the existing `queue.count` pattern for zh's single CLDR plural category), `roster_empty`. All existing keys reused as-is (`join.hint`, `queue.singer`, `controls.*`).
+
+**`app/app.css`** — two new one-shot keyframe utilities: `animate-confetti-fall` (celebration particles) and `animate-chip-in` (roster chip entrance). Both durations collapse under the existing global `prefers-reduced-motion` net; the idle glow ring reuses Tailwind's built-in `animate-pulse` (no new keyframe) gated additionally with `motion-reduce:animate-none`.
+
+### Verify (paste tails)
+
+```
+$ bun run typecheck
+✨ Types written to worker-configuration.d.ts
+(tsc -b — no errors, exit 0)
+
+$ bun run test
+ Test Files  29 passed (29)
+      Tests  373 passed (373)
+(unchanged from Phase 3 — no reducer/schema changes, per the attribution finding above)
+
+$ bun run build
+✓ built in 6.47s
+(exit 0)
+```
+
+Smoke (manual `bun run dev`, seeded local D1 via `bun run db:seed`, logged in as `admin@preview.local`, then killed):
+```
+$ curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/room/ZZZ-ZZZ (no session cookie) → 302 to /login (requireSession gate — pre-existing, confirms route alive without a 500)
+$ curl -s -b cookies.txt http://localhost:5173/room/ZZZ-ZZZ → 200, contains "room-unavailable" + "Room not found" (authenticated not-found render)
+$ room.create → new code (e.g. N7X-MRN); curl -s -b cookies.txt http://localhost:5173/room/<code> → 200, contains room-host-view, room-lobby, room-lobby-heading, room-join-qr, room-code-text (showing the real code), room-roster-empty, room-end-party-button
+$ grep for lobby copy → "Party lobby", "Scan to join the party", "Be the first to scan and join", "End party" all present in SSR HTML
+$ grep for the queue-count badge's rendered class= attribute → confirms text-xs/px-2/py-0.5 absent, text-2xl/font-semibold/uppercase/tracking-[0.04em]/px-4/py-1.5 present (verifies the tailwind-merge fix above)
+$ room.close → 200; dev server killed
+```
+
+### Scope notes
+
+Touched only feat-008's own Phase-4 surface: `app/routes/room/$code.tsx` + `app/components/room/*` (3 new files, 4 extended additively) + `app/app.css` + `app/locales/{en,zh}/room.json`. No new persistence, no new protocol/schema fields, no new tagged errors, no `throw`/`try-catch` outside Effect (client components follow existing `use-room-socket` patterns unchanged), no Zod, no `process.env`, no hardcoded hex/rgb/oklch in JSX (all new color usage goes through semantic tokens / `bg-gradient-accent` / `shadow-glow-accent`), `cn()` used for every conditional class. i18n kept en/zh in lockstep. Left uncommitted in the working tree per instruction — nothing staged or committed.
+
+_Status: Phase 4 complete — host TV screen reskinned (lobby + playing states, persistent join affordance, one-shot celebration, added-by attribution rendered from already-existing data); all three verify-done gates green; smoke-tested against a live dev server with a real authenticated session._
+

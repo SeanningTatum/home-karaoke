@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — feat-008 Phase 4 COMPLETE (sonnet builder): host TV reskin — lobby/playing states, roster avatar chips, added-by attribution rendered (already single-writer in feat-007 protocol, no schema change), one-shot lobby→playing confetti (ref-latched, reduced-motion gated), persistent corner QR, tv-* scale. Fixed tailwind-merge vs custom tv-* utility conflict. typecheck 0 / 373 tests / build PASS / live authed smoke (room created, lobby SSR verified, closed).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer Phase 4 → commit → Phase 5 guest phone reskin + quick wins
+
+---
+
 ## 2026-07-16 — feat-008 Phase 3 COMPLETE (sonnet builder): landing rebuilt (hero + JoinRoomCard 6-char XXX-XXX code input + how-it-works), AuthShell karaoke reskin (StackBadge deleted), dashboard host-hub polish. room-code helpers extended +11 tests. typecheck 0 / 373 tests / build PASS / SSR smoke pass. Phases 1-2 committed f44c013 + 4b1998e; per-phase commits authorized. After ship: /create-pr-with-review to main (user directive).
 - branch: `beaver/6f474634`
 - in-progress feature: none
