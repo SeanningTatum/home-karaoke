@@ -1,7 +1,7 @@
 {
-  "company_name": "Acme Inc.",
-  "app_name": "CloudFlare SaaS Starter",
-  "app_name_short": "CF",
+  "company_name": "Home Karaoke",
+  "app_name": "Home Karaoke",
+  "app_name_short": "HK",
   "nav": {
     "home": "Home",
     "users": "Users",
@@ -34,8 +34,5 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
-  },
-  "analytics": {
-    "total": "Total"
   }
 }

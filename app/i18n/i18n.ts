@@ -10,7 +10,6 @@ export const namespaces = [
   "dashboard",
   "home",
   "validation",
-  "upload",
   "room",
 ] as const;
 

@@ -21,6 +21,46 @@
 
 ---
 
+## 2026-07-16 — feat-008 Phase 2 COMPLETE (sonnet builder): file-upload feature + analytics chain deleted (14 files; AnalyticsRepository had no other consumer), home stubbed dark-minimal, dashboard slimmed, /admin redirects to users, Acme→Home Karaoke (en+zh), feat-003/feat-004 flipped to cut. Purge greps clean. typecheck 0 / 362 tests / build PASS.
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer review Phase 2, then Phase 3: landing + auth + dashboard rebuild
+
+---
+
+## 2026-07-16 — feat-008 Phase 1 COMPLETE: design.md + app.css tokens (dark night-club default, Bricolage Grotesque via fontsource, TV type scale, AA contrast tuning), dark default theme, design-system.md replaced. typecheck 0 / 401 tests / build PASS. Enforcer clean (1 intentional minor).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Phase 2: strip boilerplate (sonnet builder) — file-upload UI+api+ns, admin analytics demo, home marketing stub, brand strings; keep kitchen-sink+admin/users; flip feat-003/feat-004 to cut
+
+---
+
+## 2026-07-16 — start-task feat-008 ui-overhaul Phase 1: baseline PASS (typecheck/test/harness 11/11). feature-tracker (sonnet) registering feat-008 in-progress; run note .brain/features/ui-overhaul/runs/2026-07-16-ui-overhaul-phase-1.md opened. Coordinator delegating design.md + tokens to sonnet builder; brain watch dashboard next.
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Sonnet builder authors design.md then derives app.css tokens per rules/frontend.md
+
+---
+
+## 2026-07-16 — feat-008 ui-overhaul registered in feature_list.json (in-progress)
+- branch: `beaver/6f474634`
+- in-progress feature: feat-008 (ui-overhaul)
+- run note: `.brain/features/ui-overhaul/runs/2026-07-16-ui-overhaul-phase-1.md`
+- next: Phase 1 — design.md + theme foundation (pink→gold gradient, Google Fonts display face, 10-foot TV type scale on /room)
+
+---
+
+## 2026-07-16 — UI/UX overhaul plan researched (Refero + web UX + codebase inventory via Sonnet agents) and reviewed in plans/karaoke-ui-overhaul.html — round 1, all 5 decisions answered: dark night-club direction, keep /admin/users + kitchen-sink, playful landing w/ code entry, reskin + quick wins (pop sounds in, no singer rotation), Google Fonts display face; design.md drives Phase 1; both themes kept; fun app name TBD
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Propose fun app names to user; then /start-task feat-008 ui-overhaul Phase 1 (design.md + tokens)
+
+---
+
 ## 2026-07-16 — PR #1 P1 (r3593261839) resolved via Option B + merged. Guest-reorder now single-writer: DO owns both live toggle + D1 persist (persistGuestReorderInD1, raw drizzle like closeRoomInD1); client sends WS only. Removed dead tRPC setGuestReorder / repo updateGuestReorder / UpdateGuestReorderInput + tests; i18n 2 stale keys → guest_reorder_offline. typecheck 0 / 401 tests / build ok / enforcer 0. Thread replied+resolved, PR #1 merged to main. Feature wall-clock: ~1h 55m (fb24f09 → merge, 9 commits).
 - branch: `feat/group-karaoke` → merged `main`
 - in-progress feature: none

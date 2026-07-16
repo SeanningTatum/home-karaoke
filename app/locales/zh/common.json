@@ -1,7 +1,7 @@
 {
-  "company_name": "Acme 公司",
-  "app_name": "CloudFlare SaaS 起步包",
-  "app_name_short": "CF",
+  "company_name": "居家卡拉OK",
+  "app_name": "居家卡拉OK",
+  "app_name_short": "HK",
   "nav": {
     "home": "首页",
     "users": "用户",
@@ -34,8 +34,5 @@
     "light": "浅色",
     "dark": "深色",
     "system": "跟随系统"
-  },
-  "analytics": {
-    "total": "总计"
   }
 }

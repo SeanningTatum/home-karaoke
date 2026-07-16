@@ -10,7 +10,6 @@ export default [
   // API Routes (no locale prefix)
   route("/api/trpc/*", "routes/api/trpc.$.ts"),
   route("/api/auth/*", "routes/api/auth.$.ts"),
-  route("/api/upload-file", "routes/api/upload-file.ts"),
   route("/api/set-locale", "routes/api/set-locale.ts"),
   route("/api/room/:code/ws", "routes/api/room.$code.ws.ts"),
 
