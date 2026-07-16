@@ -47,8 +47,12 @@ export function HostControls({
         aria-label={isPlaying ? t("controls.pause") : t("controls.play")}
         onClick={isPlaying ? onPause : onPlay}
         className={cn(
-          isTv &&
-            "size-16 rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
+          // Play/pause is the single primary transport action — per
+          // design.md §3 it gets the gradient accent in BOTH sizes (TV: big
+          // + glow; compact/phone: same fill, unchanged footprint) rather
+          // than the plain `secondary` fill every other control keeps.
+          "bg-gradient-accent text-primary-foreground hover:opacity-90",
+          isTv ? "size-16 rounded-full shadow-glow-accent" : "rounded-full"
         )}
       >
         {isPlaying ? (

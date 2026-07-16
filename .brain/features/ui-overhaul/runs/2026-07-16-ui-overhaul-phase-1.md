@@ -319,3 +319,53 @@ Touched only feat-008's own Phase-4 surface: `app/routes/room/$code.tsx` + `app/
 
 _Status: Phase 4 complete — host TV screen reskinned (lobby + playing states, persistent join affordance, one-shot celebration, added-by attribution rendered from already-existing data); all three verify-done gates green; smoke-tested against a live dev server with a real authenticated session._
 
+## Step: Phase 5 — guest phone reskin + quick wins (Sonnet builder)
+
+### What changed
+
+**Nickname step** (`app/components/join/nickname-form.tsx`) — welcoming heading ("Ready to join the party?" / description "Pick a name the room will cheer for"), a live `InitialsAvatar` preview above the form that updates on every keystroke (falls back to a gradient mic chip when empty), a random-name spinner button (`IconDice5`, `data-testid="join-nickname-randomize"`, i18n'd aria-label/title only — generated names themselves are proper-noun-ish and NOT i18n'd per instruction) next to the nickname input, and the CTA restyled to `bg-gradient-accent` + `shadow-glow-accent` with copy "Join the party."
+
+**New pure helper** (`app/lib/party-names.ts`) — `randomPartyName(random = Math.random)`: 24 adjectives × 24 nouns (576 combos, e.g. "Disco Llama", "Neon Walrus"), injectable RNG for determinism in tests. 5 unit tests in `app/lib/__tests__/party-names.test.ts` (fixed-random determinism, first/last-entry boundary, default `Math.random` path, list-length assertion).
+
+**Search tab** (`app/components/join/search-tab.tsx`) — bigger pill-shaped search input + circular submit button; result rows get a trailing **circular gradient "+"** add button (`bg-gradient-accent` + `shadow-glow-accent`, per design.md §3's third sanctioned gradient use — `data-testid="join-search-add"` preserved exactly, now icon-only with an i18n'd aria-label/title instead of text). On successful add, toast now reads "Added! You're #N" (`join.search.added_position`) where N = `queueLength + 1` at send-time — `addToQueue` in `room-state.ts` always appends to the tail, so this is exact for the common case (best-effort under a same-instant concurrent add from another guest, which is an acceptable approximation for a toast). New `queueLength` prop threaded from the route's live WS state. Added a "queue almost full" line (`join.search.queue_almost_full`, i18next `_one`/`_other`) once fewer than 20 of the existing `MAX_QUEUE_SIZE` (200, from feat-007) slots remain — no new cap invented, reuses the existing one.
+
+**Queue tab / shared `QueueRail`** (`app/components/room/queue-rail.tsx`) — compact (phone) rows now show an `InitialsAvatar` added-by chip next to the singer name (previously TV-only); own-item "You" badge/highlight unchanged (already shipped). Added tap-based **"move up"** (`IconArrowUp`) and **"move to top"** (`IconArrowBarUp`) icon buttons alongside the existing dnd-kit drag handle, gated by the exact same `reorderable` flag the drag handle uses (host: always; guest: only when `allowGuestReorder`) AND `!isTv` — the TV screen (`/room/:code`) keeps drag-only, phone surfaces (guest Queue tab + host Controls tab, both `size="compact"`) get both. **Reused the existing `queue.reorder` wire message verbatim — no new protocol message, no DO change.** `QueueReorderMessage` already carries `{ queueItemId, toIndex }` (a full destination index, not a delta), which is sufficient to express both "one slot up" and "to the top" client-side.
+
+**New pure reducer helpers** (`app/lib/room-state.ts`, next to `reorderQueue`) — `moveUpIndex(queue, id)` → current index − 1 (or `null` if already first/unknown), `moveToTopIndex(queue, id)` → `0` (or `null` same conditions). `QueueRail` computes the destination index with these, optimistically reorders its local `displayQueue` (same pattern as the existing drag-end handler), then calls the same `onReorder(queueItemId, toIndex)` prop the drag path already calls. 6 new unit tests.
+
+**Position bar** (new `app/components/join/position-bar.tsx`) — sticky bottom bar rendered under the Tabs in `app/routes/join/$code.tsx`, "You have N songs queued — next one is #K" (i18next `count`/`position`, `_one`/`_other`). Derivation is a new pure helper `ownQueueStanding(queue, ownUserId)` in `room-state.ts` (own-item count + 1-based position of the earliest still-queued own item — the currently-playing item already lives in `playback.currentItem`, not `queue`, so position `1` means "right after whoever's up now"). Purely client-derived from state the socket already has — no new wire message. 4 new unit tests. Renders `null` (nothing) once the viewer has 0 items queued.
+
+**Controls tab retheme** (`app/components/room/host-controls.tsx`) — the compact (phone) play/pause button now also gets `bg-gradient-accent` (previously TV-only), matching the TV screen's "play/pause is the one primary transport control that earns the gradient" rule from design.md §3. No behavior change — same `onPlay`/`onPause` wiring, same disabled condition, skip button untouched.
+
+**i18n** (`app/locales/{en,zh}/room.json`) — new keys: `queue.move_up`/`move_to_top`; `join.nickname.randomize`; `join.search.added_position`, `join.search.queue_almost_full_one`/`_other` (zh: `_other` only, matching the existing `queue.count`/`lobby.roster_title` zh convention for CLDR's single plural category); new `position.summary_one`/`_other` tree (zh: `_other` only). Reworded `join.nickname.title`/`description`/`submit` for the "welcoming heading" + "Join the party" CTA. Verified en/zh key-set parity programmatically — the only asymmetry is the pre-existing `_one`-suffix pattern (en has 4 more `_one` keys than zh, all Chinese-appropriate: `queue.count_one`, `lobby.roster_title_one`, plus my 2 new ones), same convention Phase 4 already established.
+
+### Verify (paste tails)
+
+```
+$ bun run typecheck
+✨ Types written to worker-configuration.d.ts
+Exit: 0
+
+$ bun run test
+ Test Files  30 passed (30)
+      Tests  388 passed (388)
+(373 Phase-4 baseline + 15 new: 5 party-names + 10 room-state moveUp/moveToTop/ownQueueStanding)
+
+$ bun run build
+✓ built in 6.83s
+Exit: 0
+```
+
+Smoke (manual `bun run dev`, killed after):
+```
+$ curl -s http://localhost:5173/join/FAKE-1 → contains "join-unavailable" + "Room not found" (friendly invalid-code state, no crash)
+$ bun run db:seed; signed in as admin@preview.local; room.create → GKX-HXG
+$ curl -s -b cookies http://localhost:5173/join/GKX-HXG → contains "join-nickname-card", "join-nickname-randomize", "join-nickname-submit", "Ready to join the party" (reskinned nickname step SSRs correctly for a real open room)
+```
+
+### Scope notes
+
+Touched only feat-008's own Phase-5 surface: `app/components/join/*` (nickname-form, search-tab extended; position-bar new), `app/components/room/queue-rail.tsx` + `host-controls.tsx` (shared with `/room/:code`, extended additively — TV `size="tv"` behavior unchanged, verified move-buttons are `!isTv`-gated), `app/lib/room-state.ts` (3 new pure exports, zero changes to existing ones), `app/lib/party-names.ts` (new), `app/routes/join/$code.tsx`, `app/locales/{en,zh}/room.json`. No new wire protocol message (confirmed `queue.reorder`'s existing `{queueItemId, toIndex}` shape is sufficient — this was the task's explicit P1 gate), no DO (`karaoke-room.ts`) change, no new persistence, no new tagged errors, no `throw`/`try-catch` outside Effect, no Zod, no `process.env`, no hardcoded hex/rgb/oklch in JSX (all new color usage goes through `bg-gradient-accent`/`shadow-glow-accent`/semantic tokens), `cn()` used for every conditional class, `data-testid` on every new interactive element, `prefers-reduced-motion` unaffected (no new animation added — the app-wide `app.css` safety net from Phase 1 already covers everything here). i18n kept en/zh in lockstep modulo the pre-existing `_one`-suffix asymmetry. Unit tests added for both new pure helper modules (party-names.ts, room-state.ts's 3 new exports) per non-negotiable #4. Left uncommitted in the working tree per instruction — nothing staged or committed.
+
+_Status: Phase 5 complete — guest phone reskin (nickname/search/queue tabs) + quick wins (random-name spinner, tap-reorder via the existing single-writer WS message, position bar, queue-almost-full warning, host Controls tab light retheme) shipped; all three verify-done gates green; smoke-tested against a live dev server including a real open room's SSR._
+

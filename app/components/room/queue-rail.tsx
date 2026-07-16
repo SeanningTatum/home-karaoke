@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconGripVertical, IconMusic, IconPlaylist, IconX } from "@tabler/icons-react";
+import {
+  IconArrowBarUp,
+  IconArrowUp,
+  IconGripVertical,
+  IconMusic,
+  IconPlaylist,
+  IconX,
+} from "@tabler/icons-react";
 import {
   DndContext,
   PointerSensor,
@@ -22,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InitialsAvatar } from "@/components/room/initials-avatar";
 import { cn } from "@/lib/utils";
+import { moveToTopIndex, moveUpIndex } from "@/lib/room-state";
 import type { QueueItem, Role } from "@/lib/schemas/room-ws";
 
 export interface QueueRailProps {
@@ -100,6 +108,29 @@ export function QueueRail({
     onReorder?.(String(active.id), newIndex);
   };
 
+  // Tap-based reorder (alongside the existing drag handle above) — reuses
+  // the SAME `queue.reorder` wire message the drag path sends (single
+  // writer stays the room DO; no new protocol message). `moveUpIndex`/
+  // `moveToTopIndex` are the pure helpers next to the rest of the reducers
+  // in `app/lib/room-state.ts`.
+  const handleMoveUp = (queueItemId: string) => {
+    const newIndex = moveUpIndex(displayQueue, queueItemId);
+    if (newIndex === null) return;
+    const oldIndex = displayQueue.findIndex((q) => q.id === queueItemId);
+    if (oldIndex === -1) return;
+    setDisplayQueue((prev) => arrayMove([...prev], oldIndex, newIndex));
+    onReorder?.(queueItemId, newIndex);
+  };
+
+  const handleMoveToTop = (queueItemId: string) => {
+    const newIndex = moveToTopIndex(displayQueue, queueItemId);
+    if (newIndex === null) return;
+    const oldIndex = displayQueue.findIndex((q) => q.id === queueItemId);
+    if (oldIndex === -1) return;
+    setDisplayQueue((prev) => arrayMove([...prev], oldIndex, newIndex));
+    onReorder?.(queueItemId, newIndex);
+  };
+
   return (
     <div
       data-testid="room-queue-rail"
@@ -163,7 +194,7 @@ export function QueueRail({
                 isTv ? "gap-3" : "gap-2"
               )}
             >
-              {displayQueue.map((item) => {
+              {displayQueue.map((item, index) => {
                 const isOwn =
                   ownUserId != null && item.addedByUserId === ownUserId;
                 const canRemove =
@@ -173,9 +204,12 @@ export function QueueRail({
                     key={item.id}
                     item={item}
                     isOwn={isOwn}
+                    isFirst={index === 0}
                     reorderable={reorderable}
                     canRemove={canRemove}
                     onRemove={onRemove}
+                    onMoveUp={handleMoveUp}
+                    onMoveToTop={handleMoveToTop}
                     isTv={isTv}
                   />
                 );
@@ -191,9 +225,16 @@ export function QueueRail({
 interface QueueRowProps {
   readonly item: QueueItem;
   readonly isOwn: boolean;
+  /** Already at the front of the queue — hides/disables the tap-reorder
+   * buttons since there's nowhere further up to move. */
+  readonly isFirst: boolean;
   readonly reorderable: boolean;
   readonly canRemove: boolean;
   readonly onRemove?: (queueItemId: string) => void;
+  /** Tap-based reorder alongside the drag handle — compact (phone) rows
+   * only, see `isTv` guard below. Omit to hide the buttons entirely. */
+  readonly onMoveUp?: (queueItemId: string) => void;
+  readonly onMoveToTop?: (queueItemId: string) => void;
   /** TV type scale + added-by chip (see `QueueRailProps.size`). */
   readonly isTv?: boolean;
 }
@@ -201,9 +242,12 @@ interface QueueRowProps {
 function QueueRow({
   item,
   isOwn,
+  isFirst,
   reorderable,
   canRemove,
   onRemove,
+  onMoveUp,
+  onMoveToTop,
   isTv = false,
 }: QueueRowProps) {
   const { t } = useTranslation("room");
@@ -214,6 +258,13 @@ function QueueRow({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  // Tap-based move-up/move-to-top buttons are a phone-only affordance
+  // (drag is awkward with one thumb) — the TV screen keeps drag-only.
+  // Gated by the SAME `reorderable` flag the drag handle uses (host
+  // always; guest only when `allowGuestReorder`), plus `isFirst` since
+  // there's nothing to do at the front of the queue.
+  const showMoveButtons = reorderable && !isTv && !isFirst;
 
   return (
     <li
@@ -242,6 +293,34 @@ function QueueRow({
         >
           <IconGripVertical className={isTv ? "size-6" : "size-4"} />
         </button>
+      )}
+      {showMoveButtons && (
+        <div className="flex shrink-0 flex-col gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            data-testid="room-queue-move-up"
+            aria-label={t("queue.move_up")}
+            title={t("queue.move_up")}
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => onMoveUp?.(item.id)}
+          >
+            <IconArrowUp className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            data-testid="room-queue-move-top"
+            aria-label={t("queue.move_to_top")}
+            title={t("queue.move_to_top")}
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => onMoveToTop?.(item.id)}
+          >
+            <IconArrowBarUp className="size-3.5" />
+          </Button>
+        </div>
       )}
       {item.thumbnailUrl ? (
         <img
@@ -290,9 +369,12 @@ function QueueRow({
             </p>
           </div>
         ) : (
-          <p className="truncate text-xs text-muted-foreground">
-            {t("queue.singer", { name: item.singerNickname })}
-          </p>
+          <div className="mt-1 flex items-center gap-1.5">
+            <InitialsAvatar name={item.singerNickname} size="sm" className="size-5 text-[0.6rem]" />
+            <p className="truncate text-xs text-muted-foreground">
+              {t("queue.singer", { name: item.singerNickname })}
+            </p>
+          </div>
         )}
       </div>
       {isOwn && (

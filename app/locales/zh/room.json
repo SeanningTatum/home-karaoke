@@ -31,16 +31,19 @@
     "singer": "{{name}}",
     "you": "你",
     "drag_handle": "拖动以调整顺序",
-    "remove": "从队列中移除"
+    "remove": "从队列中移除",
+    "move_up": "上移",
+    "move_to_top": "移到最前"
   },
   "join": {
     "hint": "扫码加入并添加歌曲",
     "nickname": {
-      "title": "加入房间",
-      "description": "选择一个其他歌手能看到的昵称",
+      "title": "准备好加入派对了吗？",
+      "description": "选一个能让全场欢呼的昵称",
       "label": "昵称",
       "placeholder": "例如：小明",
-      "submit": "加入",
+      "randomize": "换一个随机昵称",
+      "submit": "加入派对",
       "submitting": "加入中…",
       "error_session": "加入房间失败 —— 请重试"
     },
@@ -57,6 +60,7 @@
       "add": "添加",
       "adding": "添加中…",
       "added": "已加入队列",
+      "added_position": "已添加！你排在第 {{count}} 位",
       "error": "搜索失败 —— 请重试",
       "quota_title": "搜索暂时不可用",
       "quota_description": "请在下方粘贴 YouTube 链接。",
@@ -64,8 +68,12 @@
       "paste_placeholder": "粘贴 YouTube 链接",
       "paste_submit": "添加链接",
       "paste_error": "无法添加该链接 —— 请确认是 YouTube 视频链接",
-      "not_embeddable": "这个视频无法在此播放 —— 请换一个"
+      "not_embeddable": "这个视频无法在此播放 —— 请换一个",
+      "queue_almost_full_other": "队列快满了 —— 仅剩 {{count}} 个位置"
     }
+  },
+  "position": {
+    "summary_other": "你已排队 {{count}} 首歌 —— 下一首是第 {{position}} 位"
   },
   "lobby": {
     "heading": "派对大厅",

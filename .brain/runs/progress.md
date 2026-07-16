@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — feat-008 Phase 5 COMPLETE (sonnet builder): guest phone reskin — nickname step w/ live avatar + random party-name spinner (24x24 combos, seedable helper +5 tests), gradient + add button w/ position toast + queue-almost-full warning (reuses MAX_QUEUE_SIZE), queue tab added-by chips + tap move-up/move-to-top via existing queue.reorder message (moveUpIndex/moveToTopIndex/ownQueueStanding +10 tests), sticky position bar. typecheck 0 / 388 tests / build PASS / live-room smoke.
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer Phase 5 → commit → Phase 6: delight pass + feature-verifier + verify-done + ship + /create-pr-with-review
+
+---
+
 ## 2026-07-16 — feat-008 Phase 4 COMPLETE (sonnet builder): host TV reskin — lobby/playing states, roster avatar chips, added-by attribution rendered (already single-writer in feat-007 protocol, no schema change), one-shot lobby→playing confetti (ref-latched, reduced-motion gated), persistent corner QR, tv-* scale. Fixed tailwind-merge vs custom tv-* utility conflict. typecheck 0 / 373 tests / build PASS / live authed smoke (room created, lobby SSR verified, closed).
 - branch: `beaver/6f474634`
 - in-progress feature: none

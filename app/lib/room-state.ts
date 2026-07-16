@@ -141,6 +141,38 @@ export const reorderQueue = (
   return { ...state, queue: next };
 };
 
+/**
+ * Destination index for a "move up one position" tap action — one slot
+ * earlier than the item's current index. Returns `null` when the item is
+ * unknown or already at the front (nothing to do), so callers can skip
+ * sending a no-op `queue.reorder`. Pure — takes the queue array the caller
+ * is currently displaying (server `queue` prop or a component's own
+ * optimistic copy) rather than reading `RoomLiveState` directly, so it works
+ * identically on the client (`QueueRail`) and if ever needed server-side.
+ */
+export const moveUpIndex = (
+  queue: readonly QueueItem[],
+  queueItemId: string
+): number | null => {
+  const index = queue.findIndex((item) => item.id === queueItemId);
+  if (index <= 0) return null;
+  return index - 1;
+};
+
+/**
+ * Destination index for a "move to top" tap action — always the front of
+ * the queue. Returns `null` when the item is unknown or already first, same
+ * no-op convention as `moveUpIndex`.
+ */
+export const moveToTopIndex = (
+  queue: readonly QueueItem[],
+  queueItemId: string
+): number | null => {
+  const index = queue.findIndex((item) => item.id === queueItemId);
+  if (index <= 0) return null;
+  return 0;
+};
+
 // --- Playback transitions ----------------------------------------------------
 
 /** Pops the queue head into `currentItem`; `idle` when the queue is empty. */
@@ -180,6 +212,42 @@ export const setVolume = (
   ...state,
   playback: { ...state.playback, volume },
 });
+
+// --- Guest standing (position bar) --------------------------------------------
+
+export interface OwnQueueStanding {
+  /** How many songs in the live queue were added by this viewer. */
+  readonly count: number;
+  /** 1-based position (from the front of the queue) of the viewer's
+   * earliest-queued song still waiting — `null` when `count` is 0. The
+   * currently-playing item already lives in `playback.currentItem`, not in
+   * `queue`, so a position of `1` means "sings right after whoever's up
+   * now." */
+  readonly nextPosition: number | null;
+}
+
+/**
+ * Pure client-side derivation for `/join/:code`'s persistent "you have N
+ * songs queued" bottom bar — no new wire message, computed straight from
+ * the `queue.updated`/`room.state` broadcasts the client already has plus
+ * the viewer's own id (known since `NicknameForm`/the loader resolved it).
+ */
+export const ownQueueStanding = (
+  queue: readonly QueueItem[],
+  ownUserId: string | null
+): OwnQueueStanding => {
+  if (!ownUserId) return { count: 0, nextPosition: null };
+
+  let count = 0;
+  let nextPosition: number | null = null;
+  queue.forEach((item, index) => {
+    if (item.addedByUserId !== ownUserId) return;
+    count += 1;
+    if (nextPosition === null) nextPosition = index + 1;
+  });
+
+  return { count, nextPosition };
+};
 
 // --- Roster -------------------------------------------------------------------
 
