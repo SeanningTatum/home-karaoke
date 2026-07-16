@@ -54,18 +54,39 @@ export const youtubeRouter = createTRPCRouter({
 
           const yt = yield* YouTube;
           const results = yield* yt.search(input.query);
-          const { id: searchLogId } = yield* songs.logSearch({
-            query: input.query,
-            normalizedQuery,
-            userId: ctx.auth.user.id,
-            roomId: input.roomId,
-          });
+
+          // The YouTube API call above already spent its quota — a
+          // transient D1 write error on the log insert must not turn a
+          // successful search into a 500 the client retries (spending
+          // another 100-unit quota call for nothing). Degrade gracefully:
+          // log the failure and omit `searchLogId` (same optional shape
+          // `resolveVideo` already handles for the cache-hit branch).
+          const logResult = yield* Effect.either(
+            songs.logSearch({
+              query: input.query,
+              normalizedQuery,
+              userId: ctx.auth.user.id,
+              roomId: input.roomId,
+            })
+          );
+
+          if (logResult._tag === "Left") {
+            yield* Effect.logError(
+              "search_log insert failed after YouTube API call succeeded",
+              logResult.left
+            );
+          }
 
           // YouTubeQuotaExceededError / YouTubeUnavailableError /
           // ConfigurationError (no key configured) all fall through
           // unhandled here — `tagToTRPC` maps them, and the client reacts
           // by switching to the always-available paste-a-link flow.
-          return { source: "api" as const, results, searchLogId };
+          return {
+            source: "api" as const,
+            results,
+            searchLogId:
+              logResult._tag === "Right" ? logResult.right.id : undefined,
+          };
         })
       )
     ),
