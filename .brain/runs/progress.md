@@ -21,6 +21,22 @@
 
 ---
 
+## 2026-07-16 — PR #3 SQUASH-MERGED to main (cb1ee80): feat-008 ui-overhaul complete end-to-end. All checks green pre-merge (baseline, build, e2e, non-negotiables sweep, preview deploy, Greptile re-review pass). Feature wall-clock: plan review → merge same day 2026-07-16.
+- branch: `feat/ui-overhaul`
+- in-progress feature: none
+- run note: none
+- next: Optional: fun app name swap (common.json), room.close→DO broadcast fix, prod deploy (bun run deploy + remote migrations + YOUTUBE_API_KEY secret)
+
+---
+
+## 2026-07-16 — PR #3 review cycle: preview worker fully deployed (preview_urls applied, D1 0001 migrated — base URL live; pr-3 alias re-mints on this push). resolve-comments (sonnet): 2 Greptile P2s fixed a13808f (entrance-anim seeding gate vs empty pre-connect state; PartySounds dispose + 3 tests → 404 total), 0 P1s. Threads replied, Greptile re-review triggered.
+- branch: `feat/ui-overhaul`
+- in-progress feature: none
+- run note: none
+- next: Watch Greptile re-review + preview CI on PR #3; merge when green
+
+---
+
 ## 2026-07-16 — feat-008 SHIPPED + PR #3 opened (feat/ui-overhaul → main): 9 commits f44c013..HEAD. Pre-PR Greptile: 1 P1 a11y (persistent sr-only live region, user-approved fix) + 1 P2 (onDone ref) — both fixed, 401 tests green. verify-done all gates PASS after brain-coherence cleanup (harness 11/11). Verification 11/11 + 16 screenshots. PR: https://github.com/SeanningTatum/home-karaoke/pull/3
 - branch: `feat/ui-overhaul`
 - in-progress feature: none
