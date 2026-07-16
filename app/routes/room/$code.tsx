@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import {
   IconArrowLeft,
   IconDoorExit,
+  IconMusic,
+  IconPlayerPlayFilled,
+  IconPlaylist,
   IconVolume,
   IconVolumeOff,
 } from "@tabler/icons-react";
@@ -19,6 +22,8 @@ import { createPartySounds, type PartySounds } from "@/lib/party-sounds";
 import { api } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { InitialsAvatar } from "@/components/room/initials-avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -473,11 +478,17 @@ function RoomHostView({
       </div>
 
       {/* Lobby state — party's about to start: big room code + QR, idle
-          glow, live "who's here" roster. */}
+          glow, live "who's here" roster. `min-h-0` is required alongside
+          `overflow-y-auto` here: this div is a `flex-1` child of the
+          `h-screen flex-col overflow-hidden` root above, and a flex item's
+          default `min-height: auto` refuses to shrink below its content
+          size — without `min-h-0` the lobby would just grow taller than
+          the viewport and get silently clipped by the root's
+          `overflow-hidden` instead of becoming its own scroll region. */}
       {!hasCurrentItem && (
         <div
           data-testid="room-lobby"
-          className="flex flex-1 flex-col items-center justify-center gap-10 overflow-y-auto py-6"
+          className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto py-6"
         >
           <p
             data-testid="room-lobby-heading"
@@ -485,8 +496,106 @@ function RoomHostView({
           >
             {t("lobby.heading")}
           </p>
-          <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
-          <RosterStrip roster={roster} />
+
+          {/* Two-column once a queue exists — stacking the QR panel, roster,
+              queue summary, AND start-party button in one column overflowed
+              a 1920x1080 TV viewport (JoinPanel's "lg" size alone is ~600px
+              tall). Side-by-side keeps every element on screen without
+              shrinking the QR/roster hero the empty-queue lobby keeps as
+              its centered stack below. */}
+          <div
+            className={cn(
+              "flex w-full max-w-6xl flex-col items-center gap-8",
+              queue.length > 0 && "lg:flex-row lg:items-center lg:justify-center"
+            )}
+          >
+            <div className="flex flex-col items-center gap-6">
+              <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
+              {/* Capped to a few rows regardless of how many guests are
+                  connected — `max-h` + its own `overflow-y-auto` keeps a
+                  big roster from pushing anything else off screen. */}
+              <div className="max-h-32 w-full max-w-sm overflow-y-auto">
+                <RosterStrip roster={roster} />
+              </div>
+            </div>
+
+            {/* Regression fix (feature-verifier, ui-overhaul): from a cold
+                lobby there was previously no way to start the party or see
+                what's queued — `room-play-pause-button` + `QueueRail` only
+                render once `hasCurrentItem` is true, which itself only
+                becomes true AFTER `playback.play` is sent. Shown only once
+                something's actually queued; an empty queue leaves the
+                lobby exactly as it was (QR + prompt + roster). */}
+            {queue.length > 0 && (
+              <div
+                data-testid="room-lobby-queue"
+                className="flex w-full max-w-md flex-col items-center gap-4"
+              >
+                <div
+                  data-testid="room-lobby-queue-summary"
+                  className="max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card/60 p-4"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h2 className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                      <IconPlaylist className="size-4" />
+                      {t("queue.title")}
+                    </h2>
+                    <Badge variant="secondary" data-testid="room-lobby-queue-count">
+                      {t("queue.count", { count: queue.length })}
+                    </Badge>
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {queue.slice(0, 3).map((item) => (
+                      <li
+                        key={item.id}
+                        data-testid="room-lobby-queue-item"
+                        className="flex items-center gap-3 rounded-lg bg-card p-2"
+                      >
+                        {item.thumbnailUrl ? (
+                          <img
+                            src={item.thumbnailUrl}
+                            alt=""
+                            className="size-12 shrink-0 rounded object-cover"
+                          />
+                        ) : (
+                          <span className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
+                            <IconMusic className="size-5 text-muted-foreground" />
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {item.title}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <InitialsAvatar name={item.singerNickname} size="sm" />
+                            <p className="truncate text-xs text-muted-foreground">
+                              {t("queue.singer", { name: item.singerNickname })}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Sends the exact same `playback.play` message
+                    `HostControls`'s play button sends below — no new wire
+                    protocol. With no `currentItem` yet, `applyClientMessage`
+                    (`app/lib/room-state.ts`) pops the queue head into
+                    `currentItem`, which flips `hasCurrentItem` true and
+                    swaps this whole lobby for the playing-state grid. */}
+                <Button
+                  size="lg"
+                  data-testid="room-lobby-start-party"
+                  className="gap-3 rounded-full bg-gradient-accent px-10 py-7 text-2xl font-semibold text-primary-foreground shadow-glow-accent hover:opacity-90"
+                  onClick={() => send({ type: "playback.play" })}
+                >
+                  <IconPlayerPlayFilled className="size-6" />
+                  {t("player.start_party")}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

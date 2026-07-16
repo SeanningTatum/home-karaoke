@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — feat-008 verification: feature-verifier PASS 11/11 golden (TV+phone contexts, tap-reorder cross-device confirmed) + 2 error paths, 15 screenshots, 0 app-origin console errors. Found 1 regression (TV lobby hides play button+queue → can't cold-start party from TV; fixer agent running) + pre-existing feat-007 gap (tRPC room.close doesn't notify DO — guests see stale room until reload; follow-up, not blocking).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Regression fix lands → verify-done runner → ship feat-008 → /create-pr-with-review
+
+---
+
 ## 2026-07-16 — feat-008 Phase 6a COMPLETE (sonnet builder): delight pass — 'You're up, {name}!' TV overlay (ref-latched, skips first-play edge + reload), TV queue-row entrance anim, WebAudio join/add pops (synth, no assets, 13 tests, injectable ctx) behind persisted host mute toggle, hero fade-up. Builder caught INITIAL_STATE seeding bug (sounds gated on settings!==null). typecheck 0 / 401 tests / build PASS / live smoke (room-sounds-toggle SSR verified).
 - branch: `beaver/6f474634`
 - in-progress feature: none
