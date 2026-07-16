@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — PR #1 finalized: resolve-comments (1 P2 fixed 7c88866, 4 P1s escalated w/ thread replies, Greptile re-review triggered); verifier findings fixed 5224bc6 (getVideo oEmbed fallback on keyed failure +2 tests, honest paste toast — 404 tests); brain evidence committed 82d77c8; PR body updated w/ screenshots-by-path (blob links, private repo). BLOCKED: live-search re-walk needs real AIza key (current = cfut_ Cloudflare token, local + secret both wrong).
+- branch: `feat/group-karaoke`
+- in-progress feature: none
+- run note: none
+- next: User: provide valid YouTube API key + decide 4 escalated P1s; then re-run live-search walk
+
+---
+
 ## 2026-07-16 — Repo published + PR opened: github.com/SeanningTatum/home-karaoke (private). 3 commits: 005640f boilerplate baseline, fb24f09 group-karaoke feature (101 files), efd877d Greptile fixes + controls verification. Greptile pre-PR review: 3 P2 (history pollution on errored videos, queue cap 200, WS reconnect race) all fixed, 402 tests. Supplementary controls walk PASS (10/10, screenshots 09-14+E2). PR #1: https://github.com/SeanningTatum/home-karaoke/pull/1
 - branch: `feat/group-karaoke`
 - in-progress feature: none

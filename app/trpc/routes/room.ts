@@ -49,7 +49,12 @@ export const roomRouter = createTRPCRouter({
         ctx.runtime,
         Effect.gen(function* () {
           const repo = yield* RoomRepository;
-          return yield* repo.getRoomByCode(input);
+          const { hostUserId, ...room } = yield* repo.getRoomByCode(input);
+          // `room.get` is public (guests resolve a room before they auth),
+          // so never leak the host's internal user id to callers. Derive
+          // the only thing the client needs — whether the caller is the
+          // host — from the session server-side.
+          return { ...room, isHost: ctx.auth?.user.id === hostUserId };
         })
       )
     ),
@@ -136,6 +141,9 @@ export const roomRouter = createTRPCRouter({
             videoId: input.videoId,
             singerNickname: input.singerNickname,
             addedByUserId: input.addedByUserId ?? null,
+            // Reuse the queue-item id so two dual-screen record calls for
+            // the same performance collide on the PK — the second no-ops.
+            id: input.queueItemId,
           });
           yield* songs.markPlayed({ roomSongId: id });
           return { success: true } as const;

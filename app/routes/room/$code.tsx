@@ -150,23 +150,31 @@ function RoomHostView({
       videoId: current.videoId,
       singerNickname: current.singerNickname,
       addedByUserId: current.addedByUserId ?? undefined,
+      // Idempotency key — dedupes a dual-screen double-record.
+      queueItemId: current.id,
     });
   };
 
   const handleVideoEnded = () => {
     recordCurrentIfPlaying();
-    send({ type: "playback.videoEnded" });
+    send({
+      type: "playback.videoEnded",
+      currentItemId: playback?.currentItem?.id,
+    });
   };
 
   // Broken video (not found / embedding disabled / player error): advance
   // the queue but do NOT record history — it was never actually sung.
   const handleVideoError = () => {
-    send({ type: "playback.videoEnded" });
+    send({
+      type: "playback.videoEnded",
+      currentItemId: playback?.currentItem?.id,
+    });
   };
 
   const handleSkip = () => {
     recordCurrentIfPlaying();
-    send({ type: "playback.skip" });
+    send({ type: "playback.skip", currentItemId: playback?.currentItem?.id });
   };
 
   const closeRoom = api.room.close.useMutation({

@@ -46,6 +46,11 @@ export const RecordPlayedInput = Schema.Struct({
   videoId: Schema.String,
   singerNickname: Schema.String,
   addedByUserId: Schema.optional(Schema.String),
+  // The currently-playing queue item's id, reused as the room_song row id
+  // so two dual-screen record calls for the same performance collide on the
+  // primary key and the second no-ops (idempotent history). Optional: when
+  // absent a fresh id is generated (single-recorder path).
+  queueItemId: Schema.optional(Schema.String),
 });
 export type RecordPlayedInput = typeof RecordPlayedInput.Type;
 

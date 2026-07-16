@@ -257,6 +257,16 @@ export const applyClientMessage = (
       return applyPause(state);
     case "playback.skip":
     case "playback.videoEnded":
+      // Idempotency guard: if the sender named the item it thought was
+      // playing and the queue has already advanced past it (e.g. a second
+      // dual-screen skip/videoEnded for the same song), ignore — advancing
+      // again would silently drop the next song without recording it.
+      if (
+        message.currentItemId != null &&
+        message.currentItemId !== state.playback.currentItem?.id
+      ) {
+        return state;
+      }
       return advanceToNext(state);
     case "playback.setVolume":
       return setVolume(state, message.volume);

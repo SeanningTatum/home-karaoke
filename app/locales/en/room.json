@@ -22,7 +22,8 @@
     "end_party_confirm_action": "End party",
     "end_party_cancel": "Cancel",
     "end_party_error": "Couldn't end the party — try again",
-    "guest_reorder_error": "Couldn't save the setting — the toggle was reverted. Try again."
+    "guest_reorder_error": "Couldn't save the setting — the toggle was reverted. Try again.",
+    "guest_reorder_desync": "Couldn't save the setting and you're offline — the switch may be out of sync until you reconnect."
   },
   "queue": {
     "title": "Queue",

@@ -108,7 +108,7 @@ describe("SongRepository.markSearchPicked", () => {
     const stub = { update: updateSpy };
     return Effect.gen(function* () {
       const repo = yield* SongRepository;
-      yield* repo.markSearchPicked({ searchLogId: "sl1", videoId: "v1" });
+      yield* repo.markSearchPicked({ searchLogId: "sl1", videoId: "v1", userId: "u1" });
       expect(updateSpy).toHaveBeenCalledTimes(1);
     }).pipe(Effect.provide(provideStub(stub)));
   });
@@ -122,7 +122,7 @@ describe("SongRepository.markSearchPicked", () => {
     return Effect.gen(function* () {
       const repo = yield* SongRepository;
       const exit = yield* Effect.exit(
-        repo.markSearchPicked({ searchLogId: "sl1", videoId: "v1" })
+        repo.markSearchPicked({ searchLogId: "sl1", videoId: "v1", userId: "u1" })
       );
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit)) {

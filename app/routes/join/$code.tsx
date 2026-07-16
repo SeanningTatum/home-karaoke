@@ -60,7 +60,13 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     status: "ok" as const,
     code,
     roomId: room.id,
-    hostUserId: room.hostUserId,
+    // Derived server-side — never ship the host's internal user id to the
+    // client. The host reaches /join/:code with their real account session
+    // already resolved (they must be signed in to have created the room),
+    // so comparing here is sufficient; guests get an anonymous id that can
+    // never equal the host's. `isHost` only gates the Controls tab as a UX
+    // affordance — the DO's `canPerform` is the real enforcement.
+    isHost: Boolean(session) && session?.user.id === room.hostUserId,
     hasSession: Boolean(session),
     userId: session?.user.id ?? null,
   };
@@ -110,7 +116,7 @@ function JoinUnavailable({
 interface JoinFlowProps {
   readonly code: string;
   readonly roomId: string;
-  readonly hostUserId: string;
+  readonly isHost: boolean;
   readonly hasSession: boolean;
   readonly userId: string | null;
 }
@@ -121,7 +127,7 @@ interface JoinFlowProps {
  * client-side once mounted) and flips to the room view once the visitor
  * has a confirmed nickname + session.
  */
-function JoinFlow({ code, roomId, hostUserId, hasSession, userId }: JoinFlowProps) {
+function JoinFlow({ code, roomId, isHost, hasSession, userId }: JoinFlowProps) {
   const [joined, setJoined] = useState<{
     nickname: string;
     userId: string | null;
@@ -143,7 +149,7 @@ function JoinFlow({ code, roomId, hostUserId, hasSession, userId }: JoinFlowProp
     <JoinRoomView
       code={code}
       roomId={roomId}
-      hostUserId={hostUserId}
+      isHost={isHost}
       nickname={joined.nickname}
       ownUserId={joined.userId}
     />
@@ -153,7 +159,7 @@ function JoinFlow({ code, roomId, hostUserId, hasSession, userId }: JoinFlowProp
 interface JoinRoomViewProps {
   readonly code: string;
   readonly roomId: string;
-  readonly hostUserId: string;
+  readonly isHost: boolean;
   readonly nickname: string;
   readonly ownUserId: string | null;
 }
@@ -161,7 +167,7 @@ interface JoinRoomViewProps {
 function JoinRoomView({
   code,
   roomId,
-  hostUserId,
+  isHost,
   nickname,
   ownUserId,
 }: JoinRoomViewProps) {
@@ -170,12 +176,6 @@ function JoinRoomView({
     "search"
   );
   const { state, send, connectionStatus } = useRoomSocket({ code, nickname });
-  // The join route's own session may resolve to the room's host (e.g. the
-  // host opening /join/:code on a phone to remote-control the party while
-  // /room/:code plays on a TV) — that visitor additionally gets the
-  // host-only Controls tab. Tab visibility is a UX affordance only; the DO's
-  // `canPerform` is what actually enforces host-only actions.
-  const isHost = ownUserId != null && ownUserId === hostUserId;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 text-foreground">

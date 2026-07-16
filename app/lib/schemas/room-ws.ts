@@ -81,6 +81,11 @@ export type PlaybackPauseMessage = typeof PlaybackPauseMessage.Type;
 
 export const PlaybackSkipMessage = Schema.Struct({
   type: Schema.Literal("playback.skip"),
+  // Id of the queue item the sender believes is currently playing. The DO
+  // ignores the advance if it no longer matches `currentItem` — prevents a
+  // second dual-screen skip/videoEnded from advancing the queue twice and
+  // silently dropping a song. Optional for backward-compatible clients.
+  currentItemId: Schema.optional(Schema.String),
 });
 export type PlaybackSkipMessage = typeof PlaybackSkipMessage.Type;
 
@@ -92,6 +97,9 @@ export type PlaybackSetVolumeMessage = typeof PlaybackSetVolumeMessage.Type;
 
 export const PlaybackVideoEndedMessage = Schema.Struct({
   type: Schema.Literal("playback.videoEnded"),
+  // See PlaybackSkipMessage.currentItemId — same idempotency guard so a
+  // natural end + a simultaneous remote skip can't double-advance.
+  currentItemId: Schema.optional(Schema.String),
 });
 export type PlaybackVideoEndedMessage = typeof PlaybackVideoEndedMessage.Type;
 

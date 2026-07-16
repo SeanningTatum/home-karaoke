@@ -394,6 +394,40 @@ describe("applyClientMessage", () => {
     );
     expect(ended.playback.currentItem?.id).toBe("q1");
   });
+
+  it("playback.skip/videoEnded advance when currentItemId matches the playing item", () => {
+    const state = baseState({
+      queue: [item({ id: "q2" })],
+      playback: { status: "playing", currentItem: item({ id: "q1" }), volume: 80 },
+    });
+    const next = applyClientMessage(
+      state,
+      { type: "playback.skip", currentItemId: "q1" },
+      ctx
+    );
+    expect(next.playback.currentItem?.id).toBe("q2");
+  });
+
+  it("playback.skip/videoEnded is a no-op when currentItemId no longer matches (dual-screen double-advance guard)", () => {
+    // Queue already advanced to q2; a stale second skip for q1 must not pop q2.
+    const state = baseState({
+      queue: [item({ id: "q3" })],
+      playback: { status: "playing", currentItem: item({ id: "q2" }), volume: 80 },
+    });
+    const skip = applyClientMessage(
+      state,
+      { type: "playback.skip", currentItemId: "q1" },
+      ctx
+    );
+    expect(skip).toBe(state);
+
+    const ended = applyClientMessage(
+      state,
+      { type: "playback.videoEnded", currentItemId: "q1" },
+      ctx
+    );
+    expect(ended).toBe(state);
+  });
 });
 
 describe("broadcastsForMessage", () => {

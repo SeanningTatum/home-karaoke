@@ -22,7 +22,8 @@
     "end_party_confirm_action": "结束派对",
     "end_party_cancel": "取消",
     "end_party_error": "无法结束派对 —— 请重试",
-    "guest_reorder_error": "设置保存失败 —— 开关已恢复原状，请重试。"
+    "guest_reorder_error": "设置保存失败 —— 开关已恢复原状，请重试。",
+    "guest_reorder_desync": "设置保存失败且你已离线 —— 重新连接前开关状态可能不同步。"
   },
   "queue": {
     "title": "队列",

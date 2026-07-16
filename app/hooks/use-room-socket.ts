@@ -59,7 +59,7 @@ export interface UseRoomSocketOptions {
 
 export interface UseRoomSocketResult {
   readonly state: RoomSocketState;
-  readonly send: (message: ClientMessage) => void;
+  readonly send: (message: ClientMessage) => boolean;
   readonly connectionStatus: ConnectionStatus;
 }
 
@@ -157,8 +157,12 @@ export function useRoomSocket({
 
   const send = useCallback((message: ClientMessage) => {
     const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    // Returns whether the message actually went out — the socket may be
+    // closed (reconnecting). Callers that optimistically mutate need to
+    // know a revert `send()` was itself dropped so they can surface it.
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
     ws.send(encodeClientMessage(message));
+    return true;
   }, []);
 
   return { state, send, connectionStatus };

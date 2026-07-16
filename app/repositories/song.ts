@@ -35,6 +35,10 @@ export interface LogSearchInput {
 export interface MarkSearchPickedInput {
   readonly searchLogId: string;
   readonly videoId: string;
+  // Ownership guard: the pick may only mark a search_log row the same user
+  // created. Prevents an authenticated caller from attributing a pick to
+  // someone else's search (analytics/cache poisoning).
+  readonly userId: string;
 }
 
 export interface RecordRoomSongInput {
@@ -42,6 +46,10 @@ export interface RecordRoomSongInput {
   readonly videoId: string;
   readonly singerNickname: string;
   readonly addedByUserId?: string | null;
+  // Optional idempotency key reused as the row id. When two dual-screen
+  // clients record the same performance they pass the same queue-item id;
+  // the second insert collides on the PK and no-ops. Omit for a fresh id.
+  readonly id?: string;
 }
 
 export interface MarkPlayedInput {
@@ -116,20 +124,31 @@ export class SongRepository extends Effect.Service<SongRepository>()(
           db
             .update(searchLog)
             .set({ pickedVideoId: input.videoId })
-            .where(eq(searchLog.id, input.searchLogId))
+            .where(
+              and(
+                eq(searchLog.id, input.searchLogId),
+                eq(searchLog.userId, input.userId)
+              )
+            )
         );
 
       const recordRoomSong = (input: RecordRoomSongInput) =>
         Effect.gen(function* () {
-          const id = crypto.randomUUID();
+          const id = input.id ?? crypto.randomUUID();
           yield* tryCreate("room_song", () =>
-            db.insert(roomSong).values({
-              id,
-              roomId: input.roomId,
-              videoId: input.videoId,
-              singerNickname: input.singerNickname,
-              addedByUserId: input.addedByUserId ?? null,
-            })
+            db
+              .insert(roomSong)
+              .values({
+                id,
+                roomId: input.roomId,
+                videoId: input.videoId,
+                singerNickname: input.singerNickname,
+                addedByUserId: input.addedByUserId ?? null,
+              })
+              // Idempotent: a second dual-screen record for the same
+              // performance (same queue-item id) is a no-op rather than a
+              // duplicate history row.
+              .onConflictDoNothing({ target: roomSong.id })
           );
           return { id } as const;
         });

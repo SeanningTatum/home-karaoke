@@ -21,7 +21,7 @@ export interface ControlsTabProps {
   readonly queue: readonly QueueItem[];
   readonly playback: PlaybackState | null;
   readonly settings: RoomSettings | null;
-  readonly send: (message: ClientMessage) => void;
+  readonly send: (message: ClientMessage) => boolean;
 }
 
 /**
@@ -65,11 +65,19 @@ export function ControlsTab({
       // optimistic live toggle so the switch matches what D1 still holds,
       // and tell the host it didn't stick.
       console.error("room.setGuestReorder failed", error);
-      send({
+      const reverted = send({
         type: "room.setGuestReorder",
         allowed: !variables.allowGuestReorder,
       });
-      toast.error(t("controls.guest_reorder_error"));
+      // If the socket was closed the revert never went out, so the live
+      // switch stays in its new position while D1 holds the old value —
+      // don't pretend it merely failed to save. Tell the host the UI is
+      // out of sync until they reconnect.
+      toast.error(
+        reverted
+          ? t("controls.guest_reorder_error")
+          : t("controls.guest_reorder_desync")
+      );
     },
   });
 
@@ -81,12 +89,15 @@ export function ControlsTab({
       videoId: current.videoId,
       singerNickname: current.singerNickname,
       addedByUserId: current.addedByUserId ?? undefined,
+      // Idempotency key — dedupes a dual-screen double-record (e.g. host TV
+      // videoEnded + this phone skip landing on the same performance).
+      queueItemId: current.id,
     });
   };
 
   const handleSkip = () => {
     recordCurrentIfPlaying();
-    send({ type: "playback.skip" });
+    send({ type: "playback.skip", currentItemId: playback?.currentItem?.id });
   };
 
   const handleGuestReorderChange = (checked: boolean) => {

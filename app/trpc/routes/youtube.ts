@@ -136,6 +136,10 @@ export const youtubeRouter = createTRPCRouter({
             yield* songs.markSearchPicked({
               searchLogId: input.searchLogId,
               videoId: metadata.videoId,
+              // Scope to the caller — a no-op if the search_log row belongs
+              // to a different user, so a pick can't be attributed to
+              // someone else's search.
+              userId: ctx.auth.user.id,
             });
           }
 
