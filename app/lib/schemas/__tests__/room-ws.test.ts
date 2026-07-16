@@ -146,6 +146,15 @@ describe("decodeServerMessage", () => {
     expect(Either.isRight(decodeServerMessage(raw))).toBe(true);
   });
 
+  it("decodes room.closed", () => {
+    const raw = JSON.stringify({ type: "room.closed" });
+    const result = decodeServerMessage(raw);
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.type).toBe("room.closed");
+    }
+  });
+
   it("returns a JsonParseError for malformed JSON", () => {
     const result = decodeServerMessage("}}}");
     expect(Either.isLeft(result)).toBe(true);

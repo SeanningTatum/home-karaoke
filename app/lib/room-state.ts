@@ -362,6 +362,10 @@ export const rosterUpdated = (state: RoomLiveState): ServerMessage => ({
   roster: [...state.roster],
 });
 
+export const roomClosed = (): ServerMessage => ({
+  type: "room.closed",
+});
+
 export const roomStateSnapshot = (state: RoomLiveState): ServerMessage => ({
   type: "room.state",
   queue: [...state.queue],

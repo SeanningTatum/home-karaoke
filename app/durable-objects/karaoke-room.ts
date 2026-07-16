@@ -31,6 +31,7 @@ import {
   createInitialRoomState,
   forbiddenError,
   removeFromRoster,
+  roomClosed,
   roomStateSnapshot,
   rosterUpdated,
   setGuestReorder,
@@ -280,6 +281,37 @@ export class KaraokeRoom extends DurableObject<Env> {
       await this.closeRoomInD1(this.roomId);
     }
 
+    await this.clearRoom();
+  }
+
+  /**
+   * RPC entry point for a host-initiated close (`room.close` tRPC mutation).
+   * The Worker has already verified the caller is the host and marked the D1
+   * row closed through the repository layer — this method only handles the
+   * live side: tell every connected client the room is over, hang up their
+   * sockets so nobody lingers on dead state, and reset this DO the same way
+   * the idle alarm does. Callers treat it as best-effort; D1 is durability.
+   */
+  async closeRoom(): Promise<void> {
+    this.broadcast(roomClosed());
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        // Detach the session first: the runtime fires `webSocketClose` for
+        // server-initiated closes too, and `disconnect()` would otherwise
+        // re-persist live state AFTER `clearRoom()` wiped storage. A null
+        // attachment makes `disconnect()` a no-op for these sockets.
+        ws.serializeAttachment(null);
+        ws.close(1000, "Room closed by host");
+      } catch (error) {
+        console.error("karaoke-room: failed to close a socket", error);
+      }
+    }
+    await this.clearRoom();
+  }
+
+  /** Resets live state after a close — shared by `alarm()` and `closeRoom()`. */
+  private async clearRoom(): Promise<void> {
+    await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     this.liveState = createInitialRoomState({ allowGuestReorder: false });
     this.hydratedFromStorage = false;

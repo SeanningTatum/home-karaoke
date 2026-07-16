@@ -151,6 +151,15 @@ export const RosterUpdatedMessage = Schema.Struct({
 });
 export type RosterUpdatedMessage = typeof RosterUpdatedMessage.Type;
 
+// Terminal broadcast: the room is over (host ended it via `room.close`, or a
+// future server-side close path). Clients should stop reconnecting — the WS
+// upgrade route rejects closed rooms with 409 anyway — and re-resolve the
+// room via their loader to render the closed state.
+export const RoomClosedMessage = Schema.Struct({
+  type: Schema.Literal("room.closed"),
+});
+export type RoomClosedMessage = typeof RoomClosedMessage.Type;
+
 export const ErrorMessage = Schema.Struct({
   type: Schema.Literal("error"),
   code: Schema.String,
@@ -163,6 +172,7 @@ export const ServerMessage = Schema.Union(
   QueueUpdatedMessage,
   PlaybackUpdatedMessage,
   RosterUpdatedMessage,
+  RoomClosedMessage,
   ErrorMessage
 );
 export type ServerMessage = typeof ServerMessage.Type;

@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, createTRPCRouter } from "..";
 import { runProcedure } from "@/lib/effect-trpc";
+import { KaraokeRooms } from "@/services/karaoke-rooms";
 import { RoomRepository } from "@/repositories/room";
 import { SongRepository } from "@/repositories/song";
 import {
@@ -79,7 +80,27 @@ export const roomRouter = createTRPCRouter({
               })
             );
           }
-          return yield* repo.closeRoom(input);
+          const closed = yield* repo.closeRoom(input);
+
+          // Live-notify the room's Durable Object so already-connected
+          // clients see the close immediately instead of a stale room until
+          // reload. Best-effort by design: the D1 write above is the durable
+          // close (the WS upgrade route rejects closed rooms), so a DO
+          // failure is logged but never fails the mutation.
+          const rooms = yield* KaraokeRooms;
+          yield* rooms.notifyRoomClosed(input.roomId).pipe(
+            Effect.tapErrorCause((cause) =>
+              Effect.logWarning("room.close_notify_failed").pipe(
+                Effect.annotateLogs({
+                  roomId: input.roomId,
+                  cause: String(cause),
+                })
+              )
+            ),
+            Effect.catchAll(() => Effect.void)
+          );
+
+          return closed;
         })
       )
     ),

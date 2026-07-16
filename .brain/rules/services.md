@@ -46,11 +46,12 @@ The runtime composes services into a single Layer in `app/runtime.ts` via `makeA
 | `AuthApi` | `app/services/auth.ts` | `app/AuthApi` | `{ auth: Auth, api: Auth["api"] }` — Layer built via factory `AuthApiLive(baseURL?)`, not a bare Layer |
 | `Workflows` | `app/services/workflows.ts` | `app/Workflows` | `{ exampleWorkflow, triggerExample }` |
 | `YouTube` | `app/services/youtube.ts` | `app/YouTube` | `{ search, getVideo }` — key from `CloudflareEnv.YOUTUBE_API_KEY` (optional); `search` fails `ConfigurationError` when unset, `getVideo` falls back to the keyless oEmbed endpoint. Test layer: `youtube.test-layer.ts` (`makeTestYouTube(stub)`) |
+| `KaraokeRooms` | `app/services/karaoke-rooms.ts` | `app/KaraokeRooms` | `{ notifyRoomClosed }` — wraps the `KARAOKE_ROOM` DO namespace for non-upgrade calls (DO RPC `closeRoom()`); the WS upgrade route still forwards the raw Request itself |
 | `Session` | `app/services/session.ts` | `app/Session` | `{ session, user }` — built ad-hoc via `SessionLive(headers)`, **not** in the global runtime |
 | `CloudflareEnv` | `app/services/cloudflare.ts` | `app/CloudflareEnv` | The raw `Env` |
 | `Logger` | `app/services/logger.ts` | — (no Tag) | `LoggerLive` + `MinLogLevelLive` Layers — replace Effect's default Logger |
 
-Repos / procedures composition lives in `app/runtime.ts` (`AppServices` union: `Database | Bucket | AuthApi | Workflows | YouTube | UserRepository | AnalyticsRepository | BucketRepository | RoomRepository | SongRepository`).
+Repos / procedures composition lives in `app/runtime.ts` (`AppServices` union: `Database | Bucket | AuthApi | Workflows | YouTube | KaraokeRooms | UserRepository | AnalyticsRepository | BucketRepository | RoomRepository | SongRepository`).
 
 > **Not present in this repo:** Stripe, PostHog, Resend, external AI SDKs. If a feature needs one, follow "Adding a new service" below and document under [`../high-level-architecture/integrations.md`](../high-level-architecture/integrations.md).
 

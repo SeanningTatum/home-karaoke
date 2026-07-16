@@ -61,6 +61,13 @@ export interface UseRoomSocketResult {
   readonly state: RoomSocketState;
   readonly send: (message: ClientMessage) => boolean;
   readonly connectionStatus: ConnectionStatus;
+  /**
+   * True once the server broadcast `room.closed` (host ended the party).
+   * Terminal for this room: the hook stops reconnecting, and consumers
+   * should re-resolve the room (revalidate their loader) to render the
+   * closed state.
+   */
+  readonly roomClosed: boolean;
 }
 
 export function useRoomSocket({
@@ -71,8 +78,13 @@ export function useRoomSocket({
   const [state, setState] = useState<RoomSocketState>(INITIAL_STATE);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("connecting");
+  const [roomClosed, setRoomClosed] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const backoffRef = useRef(MIN_BACKOFF_MS);
+  // Mirrors `roomClosed` for the socket "close" handler, which fires after
+  // the server hangs up and must decide synchronously whether to reconnect —
+  // state would be stale inside that listener's closure.
+  const roomClosedRef = useRef(false);
 
   useEffect(() => {
     // SSR guard — this hook only ever runs client-side, but be explicit.
@@ -89,6 +101,11 @@ export function useRoomSocket({
     let cancelled = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // A room-closed verdict belongs to one room — reset when `code` changes
+    // so a remount/renavigation to a different room connects normally.
+    roomClosedRef.current = false;
+    setRoomClosed(false);
+
     const connect = () => {
       if (cancelled) return;
       const ws = new WebSocket(wsUrlFor(code, nickname));
@@ -104,6 +121,12 @@ export function useRoomSocket({
         const decoded = decodeServerMessage(event.data);
         if (Either.isLeft(decoded)) return;
         const message = decoded.right;
+
+        if (message.type === "room.closed") {
+          roomClosedRef.current = true;
+          setRoomClosed(true);
+          return;
+        }
 
         setState((prev): RoomSocketState => {
           switch (message.type) {
@@ -131,6 +154,13 @@ export function useRoomSocket({
       ws.addEventListener("close", () => {
         if (wsRef.current === ws) wsRef.current = null;
         if (cancelled) return;
+
+        // Server ended the room — terminal, don't reconnect (the upgrade
+        // route would reject a closed room with 409 anyway).
+        if (roomClosedRef.current) {
+          setConnectionStatus("closed");
+          return;
+        }
 
         setConnectionStatus("reconnecting");
         const delay = backoffRef.current;
@@ -165,5 +195,5 @@ export function useRoomSocket({
     return true;
   }, []);
 
-  return { state, send, connectionStatus };
+  return { state, send, connectionStatus, roomClosed };
 }
