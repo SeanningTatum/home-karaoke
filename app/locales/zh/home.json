@@ -1,6 +1,28 @@
 {
-  "brand": "居家卡拉OK",
-  "tagline": "卡拉OK之夜,就在你的浏览器里",
-  "cta_sign_up": "注册",
-  "cta_sign_in": "登录"
+  "hero": {
+    "headline": "你的客厅就是舞台",
+    "subline": "在电视上开一个房间,分享房间码,让大家用手机点歌加入队列。"
+  },
+  "join": {
+    "label": "有房间码吗?",
+    "code_placeholder": "AB3-XY9",
+    "submit": "加入派对",
+    "error_incomplete": "请输入完整的 6 位房间码"
+  },
+  "host_cta": "主持一场派对",
+  "how_it_works": {
+    "title": "使用方法",
+    "step_1": {
+      "title": "主持人在电视上开房间",
+      "body": "轻轻一点即可开房,并打开大屏播放器。"
+    },
+    "step_2": {
+      "title": "朋友们扫描二维码",
+      "body": "客人用手机扫描屏幕上的二维码即可加入 —— 无需下载 App,无需账号。"
+    },
+    "step_3": {
+      "title": "大家一起点歌排队",
+      "body": "任何人都可以搜索歌曲,加入共享的排队列表。"
+    }
+  }
 }

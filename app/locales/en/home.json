@@ -1,6 +1,28 @@
 {
-  "brand": "Home Karaoke",
-  "tagline": "Karaoke night, in your browser",
-  "cta_sign_up": "Sign up",
-  "cta_sign_in": "Sign in"
+  "hero": {
+    "headline": "Your living room is the stage",
+    "subline": "Open a room on the TV, share the code, and let everyone queue up songs from their phone."
+  },
+  "join": {
+    "label": "Got a room code?",
+    "code_placeholder": "AB3-XY9",
+    "submit": "Join the party",
+    "error_incomplete": "Enter the full 6-character room code"
+  },
+  "host_cta": "Host a party",
+  "how_it_works": {
+    "title": "How it works",
+    "step_1": {
+      "title": "Host opens a room on the TV",
+      "body": "One tap starts a room and puts the big-screen player up."
+    },
+    "step_2": {
+      "title": "Friends scan the QR",
+      "body": "Guests scan the on-screen code with their phone — no app, no account."
+    },
+    "step_3": {
+      "title": "Everybody queues songs",
+      "body": "Anyone can search and add a song to the shared queue."
+    }
+  }
 }

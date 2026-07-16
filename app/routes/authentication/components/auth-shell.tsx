@@ -2,15 +2,13 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   IconArrowLeft,
-  IconShieldLock,
-  IconLockSquareRounded,
-  IconDatabase,
-  IconCloud,
+  IconMicrophone2,
+  IconQrcode,
+  IconPlaylistAdd,
 } from "@tabler/icons-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { StackBadge } from "@/components/stack-badge";
 
 interface AuthShellProps {
   /** Form column content (the sign-in / sign-up card). */
@@ -64,7 +62,7 @@ export function AuthShell({ children }: AuthShellProps) {
       {/* Context column */}
       <aside
         aria-hidden="true"
-        className="relative hidden flex-col justify-between border-l border-border bg-muted/30 p-12 md:flex"
+        className="relative hidden flex-col border-l border-border bg-muted/30 p-12 md:flex"
       >
         <div className="absolute inset-0 -z-0 bg-[radial-gradient(circle_at_top_right,_var(--color-muted),_transparent_60%)]" />
         <div className="relative z-10 flex flex-col gap-10">
@@ -83,32 +81,21 @@ export function AuthShell({ children }: AuthShellProps) {
 
           <ul className="flex flex-col gap-4">
             <ContextRow
-              icon={<IconShieldLock className="size-5" />}
-              title={t("shell.points.session.title")}
-              body={t("shell.points.session.body")}
+              icon={<IconMicrophone2 className="size-5" />}
+              title={t("shell.points.host.title")}
+              body={t("shell.points.host.body")}
             />
             <ContextRow
-              icon={<IconLockSquareRounded className="size-5" />}
-              title={t("shell.points.password.title")}
-              body={t("shell.points.password.body")}
+              icon={<IconQrcode className="size-5" />}
+              title={t("shell.points.guests.title")}
+              body={t("shell.points.guests.body")}
             />
             <ContextRow
-              icon={<IconDatabase className="size-5" />}
-              title={t("shell.points.storage.title")}
-              body={t("shell.points.storage.body")}
-            />
-            <ContextRow
-              icon={<IconCloud className="size-5" />}
-              title={t("shell.points.runtime.title")}
-              body={t("shell.points.runtime.body")}
+              icon={<IconPlaylistAdd className="size-5" />}
+              title={t("shell.points.queue.title")}
+              body={t("shell.points.queue.body")}
             />
           </ul>
-        </div>
-
-        <div className="relative z-10 flex flex-wrap gap-2">
-          {["Better Auth", "Drizzle", "D1", "Workers", "Effect TS"].map((s) => (
-            <StackBadge key={s}>{s}</StackBadge>
-          ))}
         </div>
       </aside>
     </div>

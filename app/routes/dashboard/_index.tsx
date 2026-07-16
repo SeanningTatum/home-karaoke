@@ -62,23 +62,28 @@ export default function DashboardIndex() {
 
       {/* Host a karaoke room */}
       <section className="mb-12">
-        <Card data-testid="dashboard-host-room">
-          <CardHeader className="gap-2">
-            <div className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-md border border-border bg-muted/40 text-foreground">
-                <IconMicrophone className="size-5" />
-              </span>
-              <CardTitle className="text-base">
-                {t("host_room.title")}
-              </CardTitle>
-            </div>
-            <CardDescription>{t("host_room.description")}</CardDescription>
+        <Card
+          data-testid="dashboard-host-room"
+          className="border-primary/20 bg-gradient-to-br from-card to-primary/5"
+        >
+          <CardHeader className="gap-3">
+            <span className="flex size-12 items-center justify-center rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent">
+              <IconMicrophone className="size-6" />
+            </span>
+            <CardTitle className="font-display text-xl">
+              {t("host_room.title")}
+            </CardTitle>
+            <CardDescription className="max-w-md">
+              {t("host_room.description")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
+              size="lg"
               data-testid="dashboard-host-room-button"
               disabled={createRoom.isPending}
               onClick={() => createRoom.mutate({})}
+              className="bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
             >
               {createRoom.isPending ? (
                 <IconLoader2 className="size-4 animate-spin" />

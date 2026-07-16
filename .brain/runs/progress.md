@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — feat-008 Phase 3 COMPLETE (sonnet builder): landing rebuilt (hero + JoinRoomCard 6-char XXX-XXX code input + how-it-works), AuthShell karaoke reskin (StackBadge deleted), dashboard host-hub polish. room-code helpers extended +11 tests. typecheck 0 / 373 tests / build PASS / SSR smoke pass. Phases 1-2 committed f44c013 + 4b1998e; per-phase commits authorized. After ship: /create-pr-with-review to main (user directive).
+- branch: `beaver/6f474634`
+- in-progress feature: none
+- run note: none
+- next: Enforcer Phase 3 → commit → Phase 4 host TV screen reskin
+
+---
+
 ## 2026-07-16 — feat-008 Phase 2 COMPLETE (sonnet builder): file-upload feature + analytics chain deleted (14 files; AnalyticsRepository had no other consumer), home stubbed dark-minimal, dashboard slimmed, /admin redirects to users, Acme→Home Karaoke (en+zh), feat-003/feat-004 flipped to cut. Purge greps clean. typecheck 0 / 362 tests / build PASS.
 - branch: `beaver/6f474634`
 - in-progress feature: none

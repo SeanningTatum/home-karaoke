@@ -189,3 +189,77 @@ Touched two features per the plan's own scope (feat-003 file-upload, feat-004 an
 
 _Status: Phase 2 complete — boilerplate stripped, all three verify-done gates green._
 
+## Step: Phase 3 — landing + auth + dashboard rebuild (Sonnet builder)
+
+### What changed
+
+**Room-code helper reuse** — checked `app/lib/room-code.ts` first per instruction (feat-007 already builds real codes as `KQ7-3FP`: 6 chars from `ROOM_CODE_ALPHABET`, hyphen after the 3rd — **not** the 4-char format the task brief assumed). Added two pure helpers there rather than duplicating logic in the landing component:
+- `ROOM_CODE_PATTERN` — same regex shape as `app/lib/schemas/room.ts`'s `RoomCode` Effect Schema, kept as a plain `RegExp` copy (not imported from the schema) so the landing page doesn't need to pull in `effect` client-side.
+- `normalizeRoomCodeInput(raw)` — uppercases, strips non-alphabet chars, caps at 6, auto-inserts the group hyphen as you type.
+- `isCompleteRoomCode(code)` — full-pattern match for the client-side "is this submittable" check.
+- 11 new unit tests in `app/lib/__tests__/room-code.test.ts` (16 total in that file, up from 5).
+
+**Landing `/`** (`app/routes/home.tsx`, `app/locales/{en,zh}/home.json`) — full rebuild:
+- Full-viewport hero: small app-name eyebrow pill (mic icon + `common.app_name`, so a rename stays one-file), `font-display` headline "Your living room is the stage", one-line subline, a soft `bg-gradient-accent` blur glow behind the hero (decorative, `aria-hidden`, respects the global `prefers-reduced-motion` rule already in `app.css` since it's a static blur not an animation).
+- `JoinRoomCard` (local component): controlled input using `normalizeRoomCodeInput` on every keystroke (auto-uppercase + auto-hyphenate), submit validates with `isCompleteRoomCode` and shows an i18n'd inline error (`join.error_incomplete`) instead of calling the server — `navigate(`/join/${code}`)` on success, so the existing `/join/:code` loader's own not-found/closed handling is the single source of truth for bad codes. `data-testid="landing-code-input"` / `"landing-join-button"`. Join button is the one CTA using `bg-gradient-accent` + `shadow-glow-accent` per design.md's "gradient is rare" rule.
+- Secondary CTA "Host a party" → `/login` (simplest correct choice: `redirectIfAuthenticated` in both `/` and `/login` loaders already bounces a signed-in host straight to `/dashboard`, so `/login` doubles as the host entry point with no extra redirect logic needed).
+- "How it works" 3-step strip (`IconDeviceTv` / `IconQrcode` / `IconPlaylistAdd` from `@tabler/icons-react`, all confirmed present in the installed package before use).
+- `meta()` now emits title/description/og:title/og:description/og:type. Locale-prefixed `:lng` route variant untouched (`routes.ts` not touched).
+- `home.json` restructured: dropped the old `brand`/`tagline`/`cta_*` keys (brand wordmark now reads from `common.app_name` instead of a home-local copy, per instruction), added `hero.*`, `join.*`, `host_cta`, `how_it_works.*` — en/zh in lockstep.
+
+**Auth shell** (`app/routes/authentication/components/auth-shell.tsx`, `app/locales/{en,zh}/auth.json`) — reskinned:
+- `shell.heading` → "The party's waiting", `shell.description` → "Hosts sign in to open a room — guests never need an account." `shell.eyebrow` → "For hosts".
+- Replaced the 4 boilerplate `ContextRow`s (sessions/roles, email+password, Drizzle/D1, Workers-native) with 3 on-brand rows: Host a room / Guests join by QR / Queue together (`IconMicrophone2` / `IconQrcode` / `IconPlaylistAdd`).
+- Deleted the bottom `StackBadge` row (`["Better Auth", "Drizzle", ...]`) entirely — no replacement needed, the aside now ends after the 3 rows.
+- Grepped: `StackBadge` had exactly one remaining consumer (`auth-shell.tsx`, per Phase 2's note that it was "kept" pending this phase). With that import removed, `app/components/stack-badge.tsx` had zero consumers left, so **deleted the component file**. Checked `.brain/rules/frontend.md` for a `StackBadge` bullet to remove — none exists there (Phase 2 had already pulled the `FeatureCard` bullet; `StackBadge` was never listed in that doc), so no brain edit was needed on that front.
+- Login/signup form fields untouched (Better Auth flow, RHF wiring, `effectResolver` all identical) — only lightly retouched the boilerplate-flavored `login.description` ("Sign in to your account to continue." → "Sign in to open your room and start the show.") and `signup.description` ("Sign up to explore the boilerplate from a logged-in perspective." → "Create a host account — you'll be ready to open a room in seconds.") since those phrases directly referenced "the boilerplate" and were the most jarring leftover off-brand copy in the auth surface.
+
+**Dashboard** (`app/routes/dashboard/_index.tsx`, `app/locales/{en,zh}/dashboard.json`) — host hub polish, `api.room.create` mutation wiring untouched byte-for-byte:
+- Host card: bigger (`bg-gradient-to-br from-card to-primary/5`, `border-primary/20`), circular gradient mic badge (`bg-gradient-accent` + `shadow-glow-accent`), `font-display` title, `size="lg"` CTA button now `bg-gradient-accent` + `shadow-glow-accent`.
+- Welcome header copy → playful: `welcome` key "Welcome, {{name}}" → "Ready to host, {{name}}?" (en) / "欢迎,{{name}}" → "准备好主持了吗,{{name}}?" (zh).
+- Account section left minimal/unchanged structurally per instruction.
+
+### Copy highlights (en)
+
+- Landing headline: "Your living room is the stage"
+- Landing subline: "Open a room on the TV, share the code, and let everyone queue up songs from their phone."
+- Join card label/CTA: "Got a room code?" / "Join the party"
+- Auth heading/description: "The party's waiting" / "Hosts sign in to open a room — guests never need an account."
+- Dashboard welcome: "Ready to host, {{name}}?"
+
+### Deletions
+
+- `app/components/stack-badge.tsx` (dead after auth-shell rewrite, confirmed zero remaining importers via `grep -rln`).
+- `home.json`'s old `brand`/`tagline`/`cta_sign_up`/`cta_sign_in` keys (superseded by `common.app_name` + the new hero/join/how-it-works key tree).
+- `auth.json`'s old `shell.points.{session,password,storage,runtime}` keys (superseded by `shell.points.{host,guests,queue}`).
+
+### Verify (paste tails)
+
+```
+$ bun run typecheck
+✨ Types written to worker-configuration.d.ts
+(tsc -b — no errors, exit 0)
+
+$ bun run test
+ Test Files  29 passed (29)
+      Tests  373 passed (373)
+
+$ bun run build
+[client]  ✓ built in 6.74s
+[ssr]     ✓ 10632 modules transformed, ✓ built in 6.03s
+```
+
+Smoke (manual `bun run dev`, then killed):
+```
+$ curl -s http://localhost:5173/ | grep -o "Your living room is the stage" → match (SSR'd)
+$ curl -s http://localhost:5173/ | grep -o "landing-code-input\|landing-join-button" → both present
+$ curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/login → 200
+$ curl -s http://localhost:5173/login | grep -o "party&#x27;s waiting" → match (SSR'd, HTML-entity-encoded apostrophe)
+```
+
+### Scope notes
+
+Three surfaces touched (`home.tsx`, `authentication/components/auth-shell.tsx` + its two locale files, `dashboard/_index.tsx`), all owned directly by feat-008 per its own plan (no other feature's files touched) — plus the shared `room-code.ts` helper (feat-007-owned file, but instructed to reuse/extend rather than fork logic, and additive-only: no existing export changed shape). No new persistence, no new tagged errors, no `throw`/`try-catch` outside Effect, no Zod, no `process.env`, no hardcoded hex in JSX (all new color usage goes through `bg-gradient-accent` / `shadow-glow-accent` / semantic tokens). i18n kept en/zh in lockstep for every touched namespace. Left uncommitted in the working tree per instruction — nothing staged or committed.
+
+_Status: Phase 3 complete — landing, auth, and dashboard rebuilt; all three verify-done gates green; smoke-tested against a live dev server._
+

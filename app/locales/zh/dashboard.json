@@ -1,12 +1,12 @@
 {
   "eyebrow": "登录成功",
-  "welcome": "欢迎,{{name}}",
+  "welcome": "准备好主持了吗,{{name}}?",
   "actions": {
     "open_admin": "管理后台"
   },
   "host_room": {
     "title": "主持一个卡拉OK房间",
-    "description": "创建一个房间,打开大屏播放器,分享二维码,让大家用手机添加歌曲。",
+    "description": "打开大屏播放器,分享房间码,让大家用手机点歌加入队列。",
     "cta": "主持一个卡拉OK房间",
     "error": "创建房间失败 —— 请重试"
   },

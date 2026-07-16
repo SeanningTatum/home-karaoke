@@ -1,12 +1,12 @@
 {
   "eyebrow": "You're in",
-  "welcome": "Welcome, {{name}}",
+  "welcome": "Ready to host, {{name}}?",
   "actions": {
     "open_admin": "Admin"
   },
   "host_room": {
     "title": "Host a karaoke room",
-    "description": "Create a room, put the big-screen player up, and share the QR code so everyone can add songs from their phone.",
+    "description": "Open the big-screen player and share the code — everyone else queues songs from their phone.",
     "cta": "Host a karaoke room",
     "error": "Couldn't create the room — try again"
   },
