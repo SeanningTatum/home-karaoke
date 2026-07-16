@@ -101,7 +101,7 @@
         "feat-001"
       ],
       "status": "shipped",
-      "evidence": "Phases 1-6 complete 2026-07-16. Plan plans/group-karaoke.html (reviewed, 4 decisions). Verification .brain/features/group-karaoke/verifications/2026-07-16.md PASS (11/11 golden steps, friendly error path, 0 app-origin errors). verify-done: typecheck PASS, 400 unit tests PASS (33 files), e2e smoke 2/2, build PASS (prod+preview), harness-check 11/11. Enforcer-reviewed all 5 phases (all findings fixed). Known gaps: YOUTUBE_API_KEY unset (paste-link fallback verified), drag-reorder headless-untestable (reducers unit-tested). Post-review (2026-07-16): all Greptile threads resolved incl. P1 r3593261839 (guest-reorder made single-writer — DO owns live+D1, client WS-only; dead tRPC/repo/schema removed); 401 tests. PR #1 merged to main. Feature wall-clock ~1h 55m (first commit → merge).",
+      "evidence": "Phases 1-6 complete 2026-07-16. Plan plans/group-karaoke.html (reviewed, 4 decisions). Verification .brain/features/group-karaoke/verifications/2026-07-16.md PASS (11/11 golden steps, friendly error path, 0 app-origin errors). verify-done: typecheck PASS, 400 unit tests PASS (33 files), e2e smoke 2/2, build PASS (prod+preview), harness-check 11/11. Enforcer-reviewed all 5 phases (all findings fixed). Known gaps: YOUTUBE_API_KEY unset (paste-link fallback verified), drag-reorder headless-untestable (reducers unit-tested). Post-review (2026-07-16): all Greptile threads resolved incl. P1 r3593261839 (guest-reorder made single-writer — DO owns live+D1, client WS-only; dead tRPC/repo/schema removed); 401 tests. PR #1 squash-merged to main (e7004f5). Feature wall-clock ~2h 1m (first commit fb24f09 → merge).",
       "owners": [
         "sean"
       ]

@@ -29,4 +29,4 @@ Greptile re-review surfaced a new P1: the T5-A fix (desync toast in `onError`) d
 Verify: typecheck 0 / 401 tests / build (prod) ok / effect-ts-enforcer 0 findings.
 
 ## Feature timing — group-karaoke
-Wall-clock from first feature commit (`fb24f09` 2026-07-15 23:26) to PR #1 merge (`2026-07-16 01:21`): **~1h 55m** across 9 branch commits (feature build → pre-PR Greptile fixes → verification walks → P2 resolution → this P1). Prior plan-review session (plans/group-karaoke.html, 4 decisions) not counted.
+Wall-clock from first feature commit (`fb24f09` 2026-07-15 23:26:42) to PR #1 merge (squash `e7004f5`, 2026-07-16 01:27:36 local / 07:27:36Z): **~2h 1m** across 10 branch commits (feature build → pre-PR Greptile fixes → verification walks → P2 resolution → this P1). PR #1 squash-merged to main (branch SHAs collapse into `e7004f5`; content — incl. this P1 fix — verified present on origin/main). Prior plan-review session (plans/group-karaoke.html, 4 decisions) not counted.

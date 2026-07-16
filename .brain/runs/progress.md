@@ -21,8 +21,8 @@
 
 ---
 
-## 2026-07-16 — PR #1 P1 (r3593261839) resolved via Option B + merged. Guest-reorder now single-writer: DO owns both live toggle + D1 persist (persistGuestReorderInD1, raw drizzle like closeRoomInD1); client sends WS only. Removed dead tRPC setGuestReorder / repo updateGuestReorder / UpdateGuestReorderInput + tests; i18n 2 stale keys → guest_reorder_offline. typecheck 0 / 401 tests / build ok / enforcer 0. Thread replied+resolved, PR #1 merged to main. Feature wall-clock: ~1h 55m (fb24f09 → merge, 9 commits).
-- branch: `feat/group-karaoke` → merged `main`
+## 2026-07-16 — PR #1 P1 (r3593261839) resolved via Option B + merged. Guest-reorder now single-writer: DO owns both live toggle + D1 persist (persistGuestReorderInD1, raw drizzle like closeRoomInD1); client sends WS only. Removed dead tRPC setGuestReorder / repo updateGuestReorder / UpdateGuestReorderInput + tests; i18n 2 stale keys → guest_reorder_offline. typecheck 0 / 401 tests / build ok / enforcer 0. Thread replied+resolved, PR #1 squash-merged to main (e7004f5; fix content verified on origin/main). Feature wall-clock: ~2h 1m (fb24f09 23:26 → merge 01:27, 10 commits).
+- branch: `feat/group-karaoke` → squash-merged `main` (e7004f5)
 - in-progress feature: none
 - run note: `.brain/runs/2026-07-16-pr1-greptile-p2-resolve.md` (P1 follow-up appended)
 - next: prod deploy path — remote D1 migrations + `bun run deploy` + confirm YOUTUBE_API_KEY prod secret
