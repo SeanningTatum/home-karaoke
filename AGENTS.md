@@ -4,9 +4,11 @@
 
 ## Overview
 
-**home-karaoke** — an open-source karaoke app where people join a room via a code and sing together.
+**home-karaoke** — an open-source group karaoke app. A host opens a room on the big screen (full-screen YouTube player + live queue + join QR); guests scan the QR on their phones, get an anonymous Better Auth session + nickname (no signup), search YouTube (karaoke-biased, keyless paste-a-link fallback), and add songs to a shared queue that syncs live. Host controls play/pause/skip/volume/reorder; per-room `allowGuestReorder` toggle gates guest reorder; rooms auto-close after 1h idle.
 
-Built on the Cloudflare SaaS stack: **Cloudflare Workers + React Router v7 + tRPC + D1/Drizzle + Better Auth + Effect TS + ShadCN/Tailwind**.
+Live room state (queue/playback/roster) lives in the `KaraokeRoom` raw **Durable Object** (SQLite storage + WebSocket Hibernation; state transitions are pure functions in [`app/lib/room-state.ts`](app/lib/room-state.ts)). D1 keeps the durable room records + played-song history. Flagship feature: [`.brain/features/group-karaoke/group-karaoke.md`](.brain/features/group-karaoke/group-karaoke.md).
+
+Built on the Cloudflare SaaS stack: **Cloudflare Workers + React Router v7 + tRPC + D1/Drizzle + Better Auth + Effect TS + ShadCN/Tailwind** + raw Durable Objects for live state + YouTube Data API v3.
 
 > **Retrieval over recall.** Read the relevant `.brain/<folder>/index.md` before any task. The index points to the right doc(s). Do not rely on training data for project-specific patterns.
 

@@ -1,19 +1,19 @@
-# cf-saas-starter-react-router
+# 🎤 home-karaoke
 
-[![Release](https://img.shields.io/github/v/release/SeanningTatum/cf-saas-starter-react-router?label=release&color=blue)](https://github.com/SeanningTatum/cf-saas-starter-react-router/releases/latest)
 [![Cloudflare Workers](https://img.shields.io/badge/runtime-Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![React Router](https://img.shields.io/badge/framework-React%20Router%20v7-CA4245?logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Effect TS](https://img.shields.io/badge/typed-Effect%20TS-1E1E2C)](https://effect.website/)
 [![TypeScript](https://img.shields.io/badge/typescript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-> **The harness-first, AI-first SaaS starter.** Cloudflare Workers + React Router v7 + tRPC + D1 + Drizzle + Better Auth + Effect TS + ShadCN. Same runtime on your laptop and at the edge. Drop in any agent (Claude Code, Cursor, Codex) and ship real features by following retrieval-based docs, paste-able recipes, and deterministic verification gates.
+> **Open-source group karaoke for your living room.** One person hosts a room on the big screen; everyone else scans a QR code, searches YouTube from their phone, and drops songs into a shared queue that syncs live. No app install, no accounts — guests just pick a nickname and sing.
 
-**Three pillars:**
-1. **Harness-first** — agents stay coherent across sessions via the [5-subsystem framework](.brain/HARNESS.md): instructions, state, verification, scope, lifecycle.
-2. **AI-first** — five project-local sub-agents, eight paste-able recipes, four deterministic slash commands, five grep-checkable non-negotiables.
-3. **DX that just works** — `bun install` + `bun run dev` and you're live. `bun run scripts/first-time-setup.ts` gets you from zero to deployed Worker in ~3 minutes. Local dev runs the same Workers runtime that ships to production.
+**How it works**
+- **Host** signs in → creates a room → lands on `/room/:code`: a full-screen YouTube player, the live queue, playback controls, and a join QR code. Controls play/pause/skip/volume, drag-reorders the queue, toggles whether guests may reorder, ends the party.
+- **Guests** scan the QR → `/join/:code` → pick a nickname (anonymous session, no signup) → search YouTube (karaoke-biased, or paste a link) and add to the shared queue. The queue, playback, and roster sync live over one WebSocket per room; rooms auto-close after 1h idle.
 
-📦 **Latest release:** [`v1.0.0` — The Agent-First SaaS Starter](https://github.com/SeanningTatum/cf-saas-starter-react-router/releases/latest)
+Live room state lives in the `KaraokeRoom` raw **Durable Object** (SQLite storage + WebSocket Hibernation; transitions are pure functions in [`app/lib/room-state.ts`](app/lib/room-state.ts)). D1 keeps durable room records + played-song history. Full feature memo: [`.brain/features/group-karaoke/group-karaoke.md`](.brain/features/group-karaoke/group-karaoke.md).
+
+Built on a **harness-first, AI-first** Cloudflare stack — retrieval-based docs, paste-able recipes, and deterministic verification gates so any agent (Claude Code, Cursor, Codex) can ship real features. The rest of this README is that developer/agent guide.
 
 If you're a human, scroll to [Quick Start](#quick-start). If you're an agent, scroll to [How To Work In This Repo](#how-to-work-in-this-repo) — it tells you which docs to open before writing code.
 
@@ -25,7 +25,9 @@ If you're a human, scroll to [Quick Start](#quick-start). If you're an agent, sc
 - **Runtime:** Cloudflare Workers (no Node), React Router v7 SSR
 - **Server logic:** tRPC v11 procedures wrapped in Effect TS
 - **Persistence:** D1 (SQLite) via Drizzle ORM 0.45, R2 for files
-- **Auth:** Better Auth 1.4 with Drizzle adapter + admin plugin (RBAC)
+- **Live state:** raw Durable Object (`KaraokeRoom`) — SQLite storage + WebSocket Hibernation
+- **Auth:** Better Auth 1.4 with Drizzle adapter + admin plugin (RBAC) + anonymous plugin (guests)
+- **External:** YouTube Data API v3 (karaoke-biased search) + keyless oEmbed paste-a-link fallback
 - **Validation:** Effect Schema everywhere — no Zod
 - **Errors:** `Data.TaggedError` mapped to tRPC codes via `tagToTRPC`
 - **UI:** ShadCN/Radix + Tailwind v4 (oklch), next-themes, react-hook-form + Effect resolver
