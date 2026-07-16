@@ -5,7 +5,6 @@ import {
   CreateRoomInput,
   GetRoomByCodeInput,
   CloseRoomInput,
-  UpdateGuestReorderInput,
   RecordPlayedInput,
   Nickname,
   JoinNicknameInput,
@@ -79,28 +78,6 @@ describe("CloseRoomInput", () => {
 
   it("rejects a missing roomId", () => {
     expect(decode(CloseRoomInput)({})._tag).toBe("Left");
-  });
-});
-
-describe("UpdateGuestReorderInput", () => {
-  it("accepts a roomId + allowGuestReorder", () => {
-    expect(
-      decode(UpdateGuestReorderInput)({ roomId: "r1", allowGuestReorder: true })
-        ._tag
-    ).toBe("Right");
-  });
-
-  it("rejects a missing allowGuestReorder", () => {
-    expect(decode(UpdateGuestReorderInput)({ roomId: "r1" })._tag).toBe(
-      "Left"
-    );
-  });
-
-  it("rejects a non-boolean allowGuestReorder", () => {
-    expect(
-      decode(UpdateGuestReorderInput)({ roomId: "r1", allowGuestReorder: "yes" })
-        ._tag
-    ).toBe("Left");
   });
 });
 

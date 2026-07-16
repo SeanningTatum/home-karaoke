@@ -229,6 +229,20 @@ export class KaraokeRoom extends DurableObject<Env> {
     });
     await this.persist();
 
+    // `room.setGuestReorder` is the one WS message whose effect must outlive
+    // this DO instance: a reopened (evicted-then-fresh) room seeds its live
+    // setting from the D1 `allow_guest_reorder` flag via the
+    // `x-allow-guest-reorder` header. This DO is the *single* writer of that
+    // flag — the client no longer persists it over tRPC — so a dropped WS
+    // message can't leave D1 ahead of the DO. Best-effort, same as
+    // `closeRoomInD1`: the live toggle already broadcast; D1 is durability.
+    if (clientMessage.type === "room.setGuestReorder" && this.roomId) {
+      await this.persistGuestReorderInD1(
+        this.roomId,
+        this.liveState.settings.allowGuestReorder
+      );
+    }
+
     for (const outgoing of broadcastsForMessage(clientMessage, this.liveState)) {
       this.broadcast(outgoing);
     }
@@ -300,6 +314,24 @@ export class KaraokeRoom extends DurableObject<Env> {
     } catch (error) {
       console.error(
         "karaoke-room: failed to close room in D1 on idle timeout",
+        error
+      );
+    }
+  }
+
+  private async persistGuestReorderInD1(
+    roomId: string,
+    allowGuestReorder: boolean
+  ): Promise<void> {
+    try {
+      const db = drizzleD1(this.env.DATABASE, { schema });
+      await db
+        .update(schema.room)
+        .set({ allowGuestReorder })
+        .where(eq(schema.room.id, roomId));
+    } catch (error) {
+      console.error(
+        "karaoke-room: failed to persist guest-reorder setting to D1",
         error
       );
     }

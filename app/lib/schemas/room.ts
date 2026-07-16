@@ -31,12 +31,6 @@ export const CloseRoomInput = Schema.Struct({
 });
 export type CloseRoomInput = typeof CloseRoomInput.Type;
 
-export const UpdateGuestReorderInput = Schema.Struct({
-  roomId: Schema.String,
-  allowGuestReorder: Schema.Boolean,
-});
-export type UpdateGuestReorderInput = typeof UpdateGuestReorderInput.Type;
-
 // Persists a played (or skipped) song to `room_song` history — see
 // `SongRepository.recordRoomSong` + `markPlayed`. Called by the host client
 // right before it sends `playback.videoEnded` / `playback.skip` over the

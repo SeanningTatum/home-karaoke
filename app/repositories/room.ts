@@ -5,11 +5,7 @@ import { Database } from "@/services/database";
 import { tryQuery, tryCreate, tryUpdate, requireFoundOrFail } from "@/lib/effect-utils";
 import { RoomNotFoundError, RoomClosedError } from "@/models/errors/room";
 import { generateRoomCode } from "@/lib/room-code";
-import type {
-  CreateRoomInput,
-  CloseRoomInput,
-  UpdateGuestReorderInput,
-} from "@/lib/schemas/room";
+import type { CreateRoomInput, CloseRoomInput } from "@/lib/schemas/room";
 
 const MAX_CODE_COLLISION_RETRIES = 3;
 
@@ -109,24 +105,11 @@ export class RoomRepository extends Effect.Service<RoomRepository>()(
           return yield* getRoomById({ roomId: input.roomId });
         });
 
-      const updateGuestReorder = (input: UpdateGuestReorderInput) =>
-        Effect.gen(function* () {
-          yield* getRoomById({ roomId: input.roomId });
-          yield* tryUpdate("room", () =>
-            db
-              .update(room)
-              .set({ allowGuestReorder: input.allowGuestReorder })
-              .where(eq(room.id, input.roomId))
-          );
-          return yield* getRoomById({ roomId: input.roomId });
-        });
-
       return {
         createRoom,
         getRoomByCode,
         getRoomById,
         closeRoom,
-        updateGuestReorder,
       } as const;
     }),
   }

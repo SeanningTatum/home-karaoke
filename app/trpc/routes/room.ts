@@ -8,7 +8,6 @@ import {
   CreateRoomInput,
   GetRoomByCodeInput,
   CloseRoomInput,
-  UpdateGuestReorderInput,
   RecordPlayedInput,
 } from "@/lib/schemas/room";
 
@@ -81,32 +80,6 @@ export const roomRouter = createTRPCRouter({
             );
           }
           return yield* repo.closeRoom(input);
-        })
-      )
-    ),
-
-  // Host-only, same authorization shape as `close` above — a TRPCError
-  // built directly for the FORBIDDEN branch, not a domain tagged error.
-  // Persists the live `room.setGuestReorder` WS toggle to D1 so a reopened
-  // (reconnected) room keeps the setting (see `karaoke-room.ts` seeding its
-  // initial settings from the `x-allow-guest-reorder` header on connect).
-  setGuestReorder: protectedProcedure
-    .input(Schema.standardSchemaV1(UpdateGuestReorderInput))
-    .mutation(({ ctx, input }) =>
-      runProcedure(
-        ctx.runtime,
-        Effect.gen(function* () {
-          const repo = yield* RoomRepository;
-          const existing = yield* repo.getRoomById({ roomId: input.roomId });
-          if (existing.hostUserId !== ctx.auth.user.id) {
-            return yield* Effect.fail(
-              new TRPCError({
-                code: "FORBIDDEN",
-                message: "Only the host can change this setting",
-              })
-            );
-          }
-          return yield* repo.updateGuestReorder(input);
         })
       )
     ),

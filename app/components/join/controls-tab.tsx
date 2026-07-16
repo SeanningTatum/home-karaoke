@@ -59,28 +59,6 @@ export function ControlsTab({
     },
   });
 
-  const setGuestReorder = api.room.setGuestReorder.useMutation({
-    onError: (error, variables) => {
-      // Unlike recordPlayed this is real settings persistence: revert the
-      // optimistic live toggle so the switch matches what D1 still holds,
-      // and tell the host it didn't stick.
-      console.error("room.setGuestReorder failed", error);
-      const reverted = send({
-        type: "room.setGuestReorder",
-        allowed: !variables.allowGuestReorder,
-      });
-      // If the socket was closed the revert never went out, so the live
-      // switch stays in its new position while D1 holds the old value —
-      // don't pretend it merely failed to save. Tell the host the UI is
-      // out of sync until they reconnect.
-      toast.error(
-        reverted
-          ? t("controls.guest_reorder_error")
-          : t("controls.guest_reorder_desync")
-      );
-    },
-  });
-
   const recordCurrentIfPlaying = () => {
     const current = playback?.currentItem;
     if (!current) return;
@@ -101,8 +79,13 @@ export function ControlsTab({
   };
 
   const handleGuestReorderChange = (checked: boolean) => {
-    send({ type: "room.setGuestReorder", allowed: checked });
-    setGuestReorder.mutate({ roomId, allowGuestReorder: checked });
+    // Single write path: the room DO applies this live AND persists it to D1
+    // (see `karaoke-room.ts`). If the socket is closed the message never
+    // leaves, so nothing changes anywhere — the switch stays put (it's driven
+    // by the DO's broadcast `settings`) and D1 can't drift ahead. Just tell
+    // the host it didn't apply while they're offline.
+    const delivered = send({ type: "room.setGuestReorder", allowed: checked });
+    if (!delivered) toast.error(t("controls.guest_reorder_offline"));
   };
 
   return (

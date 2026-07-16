@@ -21,6 +21,22 @@
 
 ---
 
+## 2026-07-16 — PR #1 P1 (r3593261839) resolved via Option B + merged. Guest-reorder now single-writer: DO owns both live toggle + D1 persist (persistGuestReorderInD1, raw drizzle like closeRoomInD1); client sends WS only. Removed dead tRPC setGuestReorder / repo updateGuestReorder / UpdateGuestReorderInput + tests; i18n 2 stale keys → guest_reorder_offline. typecheck 0 / 401 tests / build ok / enforcer 0. Thread replied+resolved, PR #1 merged to main. Feature wall-clock: ~1h 55m (fb24f09 → merge, 9 commits).
+- branch: `feat/group-karaoke` → merged `main`
+- in-progress feature: none
+- run note: `.brain/runs/2026-07-16-pr1-greptile-p2-resolve.md` (P1 follow-up appended)
+- next: prod deploy path — remote D1 migrations + `bun run deploy` + confirm YOUTUBE_API_KEY prod secret
+
+---
+
+## 2026-07-16 — Live-search re-walk PASS 8/8 w/ valid key (real search, cache hit source:cache, paste-URL; doc 2026-07-16-live-search-rerun.md, evidence pushed 88c078d). Parallel Opus session fixed the 4 escalated P1s (79060c5) + CI preview deploy (fc79589); all 5 Greptile threads now resolved. PR #1 body: screenshots in 3-per-row tables per flow + new live-search section; verification flipped to PASS; 406 tests green.
+- branch: `feat/group-karaoke`
+- in-progress feature: none
+- run note: none
+- next: User: confirm prod YOUTUBE_API_KEY secret re-put; then merge path — remote migrations + deploy
+
+---
+
 ## 2026-07-16 — PR #1 finalized: resolve-comments (1 P2 fixed 7c88866, 4 P1s escalated w/ thread replies, Greptile re-review triggered); verifier findings fixed 5224bc6 (getVideo oEmbed fallback on keyed failure +2 tests, honest paste toast — 404 tests); brain evidence committed 82d77c8; PR body updated w/ screenshots-by-path (blob links, private repo). BLOCKED: live-search re-walk needs real AIza key (current = cfut_ Cloudflare token, local + secret both wrong).
 - branch: `feat/group-karaoke`
 - in-progress feature: none
