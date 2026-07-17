@@ -1,7 +1,6 @@
 {
   "player": {
     "start_party": "Start the party",
-    "resume": "Resume",
     "error_skipping": "That video can't be played — skipping to the next song"
   },
   "banner": {
