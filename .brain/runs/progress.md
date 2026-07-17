@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-17 — PR #5 SQUASH-MERGED to main (f03313a): feat-009 tv-beta-polish complete end-to-end. Post-open cycle: overlay animationend bubbling guard (bcebf47), main merged back in (room.closed #4 wiring intact, conflict in progress.md unioned), PR body screenshot tables (SHA-pinned raw URLs), 9 user pin-annotations fixed via opus (lobby participants-1/3 + always-visible queue, full-height QR card, navbar title, TV mute button removed, phone Controls PARTY start/end section + confirm dialog, tap-reorder arrows dropped, rail 280px full-height, vertical queue cards) — all superseded by re-captured shots. CI green all 5 checks pre-merge, 429 tests. Branch deleted.
+- branch: `main`
+- in-progress feature: none
+- run note: none
+- next: Prod deploy still pending (remote migrations + bun run deploy + YOUTUBE_API_KEY). Follow-up candidates: host-first control QR (re-auth friction), fun app name swap.
+
+---
+
 ## 2026-07-17 — feat-009 tv-beta-polish PR #5 opened (feat/tv-beta-polish → main, 8 commits). Full cycle: plan reviewed round 1 (3 decisions) → 4 builder phases (sonnet 1/3/4, opus 2) → enforcer clean → verify-done all gates → shipped → user beta-screenshot fix pass (opus: lobby alignment, queue-on-right, readable 320px-rail queue rows) → screenshots refreshed + verification addendum → Greptile pre-PR review (2 P2: 1 auto-fixed 291f3c5 overlay animationend functional updater, 1 verified-no-change) → PR #5.
 - branch: `feat/tv-beta-polish`
 - in-progress feature: none
