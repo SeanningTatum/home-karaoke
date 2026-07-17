@@ -158,81 +158,13 @@ function RoomHostView({
   // data instead of firing for everyone already in the room on connect.
   const hasReceivedSnapshot = state.settings !== null;
 
-  // "Room goes live" is the lobby -> playing transition: the moment a
-  // `currentItem` first appears this session. Playback status can bounce
-  // between "playing"/"paused" afterwards without re-triggering — only the
-  // null -> non-null edge counts, and only once per mount (see
-  // CelebrationBurst's own doc comment for the reduced-motion handling).
-  const hasCurrentItem = Boolean(playback?.currentItem);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const hasCelebratedRef = useRef(false);
-  const prevHasCurrentItemRef = useRef<boolean | null>(null);
-
-  useEffect(() => {
-    const previouslyHadItem = prevHasCurrentItemRef.current;
-    prevHasCurrentItemRef.current = hasCurrentItem;
-
-    if (previouslyHadItem !== false || !hasCurrentItem) return;
-    if (hasCelebratedRef.current) return;
-    hasCelebratedRef.current = true;
-
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!prefersReducedMotion) setShowCelebration(true);
-  }, [hasCurrentItem]);
-
-  // "You're up, {nickname}!" name card — every subsequent singer change,
-  // as opposed to CelebrationBurst's one-time "room goes live" moment
-  // above. Tracks the previous item id in a ref (same latching discipline):
-  // seeded from whatever's current at mount so a page reload mid-song never
-  // fires it, then a `null -> item` edge is suppressed exactly once (the
-  // lobby -> playing transition CelebrationBurst already owns) via
-  // `hasSeenFirstItemRef`, but every `item -> different item` edge — and any
-  // LATER `null -> item` edge (queue idled out mid-party, then resumed) —
-  // shows the card. Pause/resume never changes `currentItem.id`, so it never
-  // re-triggers this.
-  const [nowUpSinger, setNowUpSinger] = useState<{ nickname: string } | null>(null);
-  const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
-  const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
-  const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const currentItem = playback?.currentItem ?? null;
-    const currentId = currentItem?.id ?? null;
-    const previousId = prevNowUpItemIdRef.current;
-    prevNowUpItemIdRef.current = currentId;
-
-    if (currentId === null || currentId === previousId) return;
-
-    if (previousId === null) {
-      if (!hasSeenFirstItemRef.current) {
-        hasSeenFirstItemRef.current = true;
-        return;
-      }
-    }
-
-    // No reduced-motion gate here: the singer announcement must reach every
-    // viewer either way — NowUpOverlay's visual card renders regardless of
-    // motion preference too (just statically, via the global CSS collapse),
-    // and its always-mounted aria-live region announces on top of that.
-    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
-    setNowUpSinger({ nickname: currentItem!.singerNickname });
-    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playback?.currentItem?.id]);
-
-  useEffect(
-    () => () => {
-      if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
-    },
-    []
-  );
-
-  // Host mute toggle for the tiny WebAudio pop sounds below — default
-  // unmuted, persisted so it survives a page reload. Starts `false` (SSR
-  // and first client paint agree) and only flips after mount reading
-  // localStorage, same pattern as `NicknameForm`'s stored-nickname prefill.
+  // Host mute toggle for the WebAudio party sounds below (join/add jingles +
+  // the "you're up!" fanfare) — default unmuted, persisted so it survives a
+  // page reload. Starts `false` (SSR and first client paint agree) and only
+  // flips after mount reading localStorage, same pattern as `NicknameForm`'s
+  // stored-nickname prefill. Declared up here (ahead of the celebration/
+  // now-up effects below) so `partySoundsRef` exists before the fanfare
+  // trigger needs it.
   const [soundsMuted, setSoundsMuted] = useState(false);
   const soundsMutedRef = useRef(soundsMuted);
   useEffect(() => {
@@ -268,6 +200,83 @@ function RoomHostView({
   useEffect(() => {
     return () => partySoundsRef.current?.dispose();
   }, []);
+
+  // "Room goes live" is the lobby -> playing transition: the moment a
+  // `currentItem` first appears this session. Playback status can bounce
+  // between "playing"/"paused" afterwards without re-triggering — only the
+  // null -> non-null edge counts, and only once per mount (see
+  // CelebrationBurst's own doc comment for the reduced-motion handling).
+  const hasCurrentItem = Boolean(playback?.currentItem);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const hasCelebratedRef = useRef(false);
+  const prevHasCurrentItemRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    const previouslyHadItem = prevHasCurrentItemRef.current;
+    prevHasCurrentItemRef.current = hasCurrentItem;
+
+    if (previouslyHadItem !== false || !hasCurrentItem) return;
+    if (hasCelebratedRef.current) return;
+    hasCelebratedRef.current = true;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!prefersReducedMotion) setShowCelebration(true);
+  }, [hasCurrentItem]);
+
+  // "You're up, {nickname}!" name card — every subsequent singer change,
+  // as opposed to CelebrationBurst's one-time "room goes live" moment
+  // above. Tracks the previous item id in a ref (same latching discipline):
+  // seeded from whatever's current at mount so a page reload mid-song never
+  // fires it, then a `null -> item` edge is suppressed exactly once (the
+  // lobby -> playing transition CelebrationBurst already owns) via
+  // `hasSeenFirstItemRef`, but every `item -> different item` edge — and any
+  // LATER `null -> item` edge (queue idled out mid-party, then resumed) —
+  // shows the card. Pause/resume never changes `currentItem.id`, so it never
+  // re-triggers this.
+  //
+  // The "you're up!" fanfare (Phase 4) hooks into this SAME edge — not a
+  // separate observer of `playback.currentItem` — so it inherits the exact
+  // same first-connect suppression as the overlay: both the visual card and
+  // the sound only ever fire together, on a real singer CHANGE.
+  const [nowUpSinger, setNowUpSinger] = useState<{ nickname: string } | null>(null);
+  const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
+  const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
+  const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const currentItem = playback?.currentItem ?? null;
+    const currentId = currentItem?.id ?? null;
+    const previousId = prevNowUpItemIdRef.current;
+    prevNowUpItemIdRef.current = currentId;
+
+    if (currentId === null || currentId === previousId) return;
+
+    if (previousId === null) {
+      if (!hasSeenFirstItemRef.current) {
+        hasSeenFirstItemRef.current = true;
+        return;
+      }
+    }
+
+    // No reduced-motion gate here: the singer announcement must reach every
+    // viewer either way — NowUpOverlay's visual card renders regardless of
+    // motion preference too (just statically, via the global CSS collapse),
+    // and its always-mounted aria-live region announces on top of that.
+    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+    setNowUpSinger({ nickname: currentItem!.singerNickname });
+    partySoundsRef.current?.playFanfare();
+    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback?.currentItem?.id]);
+
+  useEffect(
+    () => () => {
+      if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+    },
+    []
+  );
 
   // Join pop — fires once per guest who joins the roster AFTER this screen
   // is already mounted. Seeded from whatever's already in the roster on the
