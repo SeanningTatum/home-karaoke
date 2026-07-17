@@ -9,37 +9,31 @@ import { computeCoverCrop } from "@/lib/image/crop";
 /**
  * Center-crops `file` to a square and re-encodes it as a `size`x`size` JPEG
  * `Blob` for avatar upload. Runs entirely client-side via the Canvas 2D API.
+ * Resolves `null` when the browser can't decode or encode the image (corrupt
+ * file, missing 2D context) — callers treat that as "no photo".
  */
 export async function downscaleAvatar(
   file: File,
   size = 512,
   quality = 0.85
-): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const { sx, sy, sw, sh } = computeCoverCrop(
-      bitmap.width,
-      bitmap.height,
-      size
-    );
+): Promise<Blob | null> {
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) return null;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Canvas 2D context unavailable");
-    }
-    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, size, size);
+  const { sx, sy, sw, sh } = computeCoverCrop(bitmap.width, bitmap.height, size);
 
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", quality);
-    });
-    if (!blob) {
-      throw new Error("Failed to encode avatar image");
-    }
-    return blob;
-  } finally {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
     bitmap.close();
+    return null;
   }
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, size, size);
+  bitmap.close();
+
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", quality);
+  });
 }

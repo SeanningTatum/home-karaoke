@@ -8,17 +8,32 @@ import { UserRepository } from "@/repositories/user";
 import { ValidationError } from "@/models/errors/repository";
 import { BucketValidationError } from "@/models/errors/bucket";
 import {
+  MAX_AVATAR_BYTES,
   isAllowedAvatarType,
   isWithinAvatarSize,
   avatarKey,
   avatarImageUrl,
 } from "@/lib/avatar";
+
+// Multipart framing overhead margin on top of the raw file cap — lets a
+// legitimate MAX_AVATAR_BYTES file through while still rejecting oversized
+// bodies before `request.formData()` buffers them.
+const MAX_UPLOAD_BODY_BYTES = MAX_AVATAR_BYTES + 64 * 1024;
 import type { Route } from "./+types/avatar";
 
 export async function action({ request, context }: Route.ActionArgs) {
   const session = await context.auth.api.getSession({ headers: request.headers });
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Reject oversized (or unsized — e.g. chunked) bodies before `formData()`
+  // buffers them into Worker memory — the exact per-file guard below still
+  // uses `file.size`. Browser fetch always sets Content-Length for FormData.
+  const contentLengthHeader = request.headers.get("content-length");
+  const contentLength = contentLengthHeader === null ? NaN : Number(contentLengthHeader);
+  if (!Number.isFinite(contentLength) || contentLength > MAX_UPLOAD_BODY_BYTES) {
+    return new Response("Payload Too Large", { status: 413 });
   }
 
   const formData = await request.formData();

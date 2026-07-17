@@ -116,14 +116,14 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
       setPhotoError(t("join.avatar.error_size"));
       return;
     }
-    try {
-      const downscaled = await downscaleAvatar(file);
-      setPreview(downscaled);
-    } catch {
+    const downscaled = await downscaleAvatar(file);
+    if (!downscaled) {
       // Weird/corrupt file the browser can't decode — keep no photo, join
       // is never blocked on this.
       setPhotoError(t("join.avatar.error_type"));
+      return;
     }
+    setPreview(downscaled);
   }
 
   const handleRemovePhoto = () => {
