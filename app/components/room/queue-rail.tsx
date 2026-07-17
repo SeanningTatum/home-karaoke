@@ -195,7 +195,7 @@ export function QueueRail({
             // type scale) from plain Tailwind utilities here instead so
             // the override actually applies.
             isTv
-              ? "px-3 py-1 text-xl font-semibold uppercase tracking-[0.04em]"
+              ? "px-2.5 py-0.5 text-sm font-semibold uppercase tracking-[0.04em]"
               : undefined
           }
         >
@@ -319,7 +319,7 @@ function QueueRow({
       data-own={isOwn ? "true" : undefined}
       className={cn(
         "flex items-center rounded-md border border-border bg-card",
-        isTv ? "gap-4 rounded-xl p-4" : "gap-2 p-2",
+        isTv ? "gap-3 rounded-xl p-3" : "gap-2 p-2",
         isOwn && "border-primary/50 bg-primary/5",
         isDragging && "z-10 opacity-70 shadow-md",
         isTv && entered && "animate-queue-row-in"
@@ -332,12 +332,12 @@ function QueueRow({
           aria-label={t("queue.drag_handle")}
           className={cn(
             "flex shrink-0 touch-none items-center justify-center rounded text-muted-foreground hover:text-foreground active:cursor-grabbing",
-            isTv ? "p-2" : "p-1"
+            isTv ? "p-1.5" : "p-1"
           )}
           {...attributes}
           {...listeners}
         >
-          <IconGripVertical className={isTv ? "size-6" : "size-4"} />
+          <IconGripVertical className={isTv ? "size-5" : "size-4"} />
         </button>
       )}
       {showMoveButtons && (
@@ -374,26 +374,30 @@ function QueueRow({
           alt=""
           className={cn(
             "shrink-0 rounded object-cover",
-            isTv ? "size-20 rounded-lg" : "size-12"
+            isTv ? "size-14 rounded-lg" : "size-12"
           )}
         />
       ) : (
         <span
           className={cn(
             "flex shrink-0 items-center justify-center rounded bg-muted",
-            isTv ? "size-20 rounded-lg" : "size-12"
+            isTv ? "size-14 rounded-lg" : "size-12"
           )}
         >
           <IconMusic
-            className={cn("text-muted-foreground", isTv ? "size-8" : "size-5")}
+            className={cn("text-muted-foreground", isTv ? "size-6" : "size-5")}
           />
         </span>
       )}
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "truncate font-medium leading-tight",
-            isTv ? "tv-body" : "text-sm"
+            "font-semibold leading-tight",
+            // Narrow (~320px) TV rail: `tv-body` (28px) truncated a real
+            // title down to a couple of glyphs. A 16px 2-line clamp shows
+            // meaningful text instead — beta feedback overrides the 10-foot
+            // "nothing under 24px" rule for this cramped rail specifically.
+            isTv ? "line-clamp-2 text-base" : "truncate text-sm"
           )}
         >
           {item.title}
@@ -403,13 +407,17 @@ function QueueRow({
             `karaoke-room.ts`'s `x-nickname` header), never client-reported,
             so it already IS "who added this" data end-to-end. */}
         {isTv ? (
-          <div className="mt-2 flex items-center gap-2">
-            <InitialsAvatar name={item.singerNickname} size="sm" />
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <InitialsAvatar
+              name={item.singerNickname}
+              size="sm"
+              className="size-6 text-[0.65rem]"
+            />
             <p
-              // Not `tv-label`: that utility is uppercase, which reads
-              // oddly on a person's nickname — a plain 24px/semibold
-              // size still clears the "nothing under 24px" TV rule.
-              className="truncate text-2xl font-semibold text-muted-foreground"
+              // Sized down for the narrow TV rail (was 24px, which forced
+              // the nickname to a single initial). 14px keeps the full
+              // name readable alongside the 2-line title above.
+              className="truncate text-sm font-medium text-muted-foreground"
             >
               {t("queue.singer", { name: item.singerNickname })}
             </p>
@@ -430,8 +438,9 @@ function QueueRow({
           className={cn(
             "shrink-0",
             // See the queue-count Badge above for why this is composed
-            // from plain Tailwind utilities rather than `tv-label`.
-            isTv && "px-3 py-1 text-2xl font-semibold uppercase tracking-[0.04em]"
+            // from plain Tailwind utilities rather than `tv-label`. Sized
+            // for the narrow rail (was 24px) so it doesn't crowd the row.
+            isTv && "px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.04em]"
           )}
         >
           {t("queue.you")}
@@ -441,13 +450,13 @@ function QueueRow({
         <Button
           type="button"
           variant="ghost"
-          size={isTv ? "icon-lg" : "icon"}
+          size="icon"
           data-testid="room-queue-remove"
           aria-label={t("queue.remove")}
           className="shrink-0 text-muted-foreground hover:text-destructive"
           onClick={() => onRemove?.(item.id)}
         >
-          <IconX className={isTv ? "size-6" : "size-4"} />
+          <IconX className={isTv ? "size-5" : "size-4"} />
         </Button>
       )}
     </li>

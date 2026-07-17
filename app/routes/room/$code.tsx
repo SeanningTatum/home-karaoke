@@ -531,77 +531,90 @@ function RoomHostView({
       {!hasCurrentItem && (
         <div
           data-testid="room-lobby"
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:overflow-hidden"
+          className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto lg:overflow-hidden"
         >
-          <p
-            data-testid="room-lobby-heading"
-            className="tv-label shrink-0 text-center text-muted-foreground"
-          >
-            {t("lobby.heading")}
-          </p>
+          {/* Page-level header row above BOTH columns (was a lone label
+              centered over just the right panel, which read as orphaned).
+              Left-aligned so it clearly titles the whole lobby page. */}
+          <header className="shrink-0">
+            <h1
+              data-testid="room-lobby-heading"
+              className="tv-title-sm uppercase tracking-[0.12em] text-muted-foreground"
+            >
+              {t("lobby.heading")}
+            </h1>
+          </header>
 
           {/* Wider than the old `max-w-6xl` (1152px) — at 1920px wide a TV
               has plenty of room for a much wider two-column split before
-              the QR/roster columns feel cramped. */}
-          <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(420px,560px)_1fr]">
-            <div className="flex min-h-0 flex-col items-center gap-4 overflow-y-auto lg:justify-center">
+              the QR/roster columns feel cramped. LEFT = QR hero only;
+              RIGHT = roster board + (when songs are queued) a queue preview. */}
+          <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(420px,540px)_1fr]">
+            <div className="flex min-h-0 flex-col items-center overflow-y-auto lg:justify-center">
               <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
-              <p
-                data-testid="room-lobby-playback-hint"
-                className="tv-label text-center text-muted-foreground"
-              >
-                {t("lobby.playback_hint")}
-              </p>
+            </div>
 
-              {/* Read-only preview of what's queued while the room is still
-                  in the lobby. Playback is no longer startable from the TV
-                  (beta decision: the phone Controls tab is the only playback
-                  surface — see `playback_hint` above), so this is purely
-                  informational now. Shown only once something's queued; an
-                  empty queue leaves the left column as just QR + hint. */}
+            {/* Right column: "who's here" board (fills + scrolls internally)
+                plus a read-only queue preview pinned below it once songs are
+                queued. Playback is no longer startable from the TV (beta
+                decision: the phone Controls tab is the only playback surface
+                — see `lobby.playback_hint` in the QR card), so the preview is
+                purely informational. */}
+            <div className="flex min-h-0 flex-col gap-5">
+              <div
+                data-testid="room-lobby-roster-panel"
+                className="flex min-h-0 flex-1 overflow-hidden rounded-3xl border border-border/70 bg-card/40"
+              >
+                <RosterStrip roster={roster} />
+              </div>
+
               {queue.length > 0 && (
                 <div
                   data-testid="room-lobby-queue"
-                  className="flex w-full max-w-md flex-col items-center gap-4"
+                  className="flex shrink-0 flex-col rounded-3xl border border-border/70 bg-card/40 p-6"
                 >
                   <div
                     data-testid="room-lobby-queue-summary"
-                    className="max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card/60 p-4"
+                    className="flex min-h-0 flex-col"
                   >
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h2 className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                        <IconPlaylist className="size-4" />
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h2 className="tv-title-sm flex items-center gap-2 text-foreground">
+                        <IconPlaylist className="size-6 text-primary" />
                         {t("queue.title")}
                       </h2>
-                      <Badge variant="secondary" data-testid="room-lobby-queue-count">
+                      <Badge
+                        variant="secondary"
+                        data-testid="room-lobby-queue-count"
+                        className="px-3 py-1 text-base font-semibold uppercase tracking-[0.04em]"
+                      >
                         {t("queue.count", { count: queue.length })}
                       </Badge>
                     </div>
-                    <ul className="flex flex-col gap-2">
-                      {queue.slice(0, 3).map((item) => (
+                    <ul className="flex max-h-52 flex-col gap-2 overflow-y-auto pr-1">
+                      {queue.slice(0, 4).map((item) => (
                         <li
                           key={item.id}
                           data-testid="room-lobby-queue-item"
-                          className="flex items-center gap-3 rounded-lg bg-card p-2"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
                         >
                           {item.thumbnailUrl ? (
                             <img
                               src={item.thumbnailUrl}
                               alt=""
-                              className="size-12 shrink-0 rounded object-cover"
+                              className="size-12 shrink-0 rounded-lg object-cover"
                             />
                           ) : (
-                            <span className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
+                            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
                               <IconMusic className="size-5 text-muted-foreground" />
                             </span>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">
+                            <p className="truncate text-base font-semibold">
                               {item.title}
                             </p>
                             <div className="mt-1 flex items-center gap-1.5">
                               <InitialsAvatar name={item.singerNickname} size="sm" />
-                              <p className="truncate text-xs text-muted-foreground">
+                              <p className="truncate text-sm text-muted-foreground">
                                 {t("queue.singer", { name: item.singerNickname })}
                               </p>
                             </div>
@@ -612,17 +625,6 @@ function RoomHostView({
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* "Who's here" board — fills the entire right column.
-                RosterStrip owns its own internal `overflow-y-auto` on the
-                chip grid, so this panel never grows taller than the grid
-                row it's stretched to. */}
-            <div
-              data-testid="room-lobby-roster-panel"
-              className="min-h-0 overflow-hidden rounded-3xl border border-border bg-card/40"
-            >
-              <RosterStrip roster={roster} />
             </div>
           </div>
         </div>

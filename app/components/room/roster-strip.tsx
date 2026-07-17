@@ -72,11 +72,16 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
 
   if (guests.length === 0) {
     return (
-      <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-3 p-6 text-center">
-        <IconUsers className="size-10 text-muted-foreground/50" aria-hidden />
+      <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-5 p-8 text-center">
+        <span
+          aria-hidden
+          className="flex size-24 items-center justify-center rounded-full border border-border/60 bg-muted/40"
+        >
+          <IconUsers className="size-12 text-muted-foreground/60" />
+        </span>
         <p
           data-testid="room-roster-empty"
-          className="tv-body text-muted-foreground"
+          className="tv-body max-w-sm text-muted-foreground"
         >
           {t("lobby.roster_empty")}
         </p>
@@ -87,12 +92,12 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
   return (
     <div
       data-testid="room-roster-strip"
-      className="flex h-full min-h-0 w-full flex-col gap-4 p-6 lg:p-8"
+      className="flex h-full min-h-0 w-full flex-col gap-5 p-6 lg:p-8"
     >
       <p className="tv-label shrink-0 text-muted-foreground">
         {t("lobby.roster_title", { count: guests.length })}
       </p>
-      <ul className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-4 gap-y-6 overflow-y-auto pr-1">
+      <ul className="grid min-h-0 flex-1 content-start auto-rows-min grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-4 gap-y-6 overflow-y-auto pr-1">
         {guests.map((entry) => (
           <li
             key={entry.userId}

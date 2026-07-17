@@ -55,7 +55,7 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
           <div
             className={cn(
               "flex flex-col gap-1",
-              isLarge && "items-center gap-3"
+              isLarge && "items-center gap-3 text-center"
             )}
           >
             <span
@@ -72,9 +72,9 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
             <span
               data-testid="room-code-text"
               className={cn(
-                "font-bold text-foreground",
+                "font-bold whitespace-nowrap text-foreground",
                 isLarge
-                  ? "tv-display tracking-[0.12em]"
+                  ? "tv-code"
                   : "font-mono text-2xl tracking-wider"
               )}
             >
@@ -82,12 +82,24 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
             </span>
           </div>
           {isLarge && (
-            <p
-              data-testid="room-lobby-prompt"
-              className="tv-body text-center text-muted-foreground"
-            >
-              {t("lobby.prompt")}
-            </p>
+            <div className="flex flex-col items-center gap-2 text-center">
+              <p
+                data-testid="room-lobby-prompt"
+                className="tv-body text-muted-foreground"
+              >
+                {t("lobby.prompt")}
+              </p>
+              {/* Calm fine-print footer (was a shouty uppercase banner
+                  orphaned below the card). Kept inside the QR card so the
+                  "how to control playback" note reads as part of the join
+                  affordance, not a floating label. */}
+              <p
+                data-testid="room-lobby-playback-hint"
+                className="max-w-xs text-lg leading-snug text-muted-foreground/70"
+              >
+                {t("lobby.playback_hint")}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
