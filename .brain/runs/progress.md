@@ -21,6 +21,28 @@
 
 ---
 
+## 2026-07-17 — feat-009 tv-beta-polish PR #5 opened (feat/tv-beta-polish → main, 8 commits). Full cycle: plan reviewed round 1 (3 decisions) → 4 builder phases (sonnet 1/3/4, opus 2) → enforcer clean → verify-done all gates → shipped → user beta-screenshot fix pass (opus: lobby alignment, queue-on-right, readable 320px-rail queue rows) → screenshots refreshed + verification addendum → Greptile pre-PR review (2 P2: 1 auto-fixed 291f3c5 overlay animationend functional updater, 1 verified-no-change) → PR #5.
+- branch: `feat/tv-beta-polish`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #5 after human review. Follow-ups logged: host-first control QR (re-auth friction, own feature), feat-007 room.close DO broadcast gap.
+
+---
+
+## 2026-07-17 — PR opened for tv-beta-polish: https://github.com/SeanningTatum/home-karaoke/pull/5
+- branch: `feat/tv-beta-polish`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-17 — shipped tv-beta-polish: Shipped 2026-07-17. Plan plans/tv-beta-feedback.html (reviewed 2026-07-16 round 1, 3 decisions). 4 build commits on feat
+- branch: `feat/tv-beta-polish`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-16 — PR #4 SQUASH-MERGED to main (346c253): room-close live broadcast fix complete. Rebase onto post-PR-#3 main (2 conflicts: progress.md log union, room/$code.tsx reskin vs roomClosed wiring — resolved, 409 tests). resolve-comments: 1 Greptile P2 fixed bd96562 (best-effort catchAll now covers the `yield* KaraokeRooms` lookup, not just the call), 0 P1s; thread replied, re-review clean. Remote branch deleted.
 - branch: `fix/room-close-live-notify` → merged `main`
 - in-progress feature: none

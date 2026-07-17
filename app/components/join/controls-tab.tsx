@@ -1,11 +1,28 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { IconVolume2 } from "@tabler/icons-react";
+import {
+  IconDoorExit,
+  IconPlayerPlayFilled,
+  IconVolume2,
+} from "@tabler/icons-react";
 
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { HostControls } from "@/components/room/host-controls";
 import { QueueRail } from "@/components/room/queue-rail";
 import { api } from "@/trpc/client";
@@ -45,11 +62,32 @@ export function ControlsTab({
   send,
 }: ControlsTabProps) {
   const { t } = useTranslation("room");
+  const navigate = useNavigate();
   const [localVolume, setLocalVolume] = useState(playback?.volume ?? 80);
 
   useEffect(() => {
     if (playback) setLocalVolume(playback.volume);
   }, [playback?.volume]);
+
+  // End party = the SAME room-close flow the TV's "End party" button uses
+  // (tRPC `room.close`); the DO then broadcasts `room.closed`, which flips
+  // every connected screen to the closed state. Host lands back on the
+  // dashboard, matching the TV route. Guarded behind an AlertDialog confirm
+  // so a fat-finger can't kill the room.
+  const closeRoom = api.room.close.useMutation({
+    onSuccess: () => navigate("/dashboard"),
+    onError: (error) => {
+      toast.error(error.message || t("controls.end_party_error"));
+    },
+  });
+
+  // Start party = kick off playback on the big screen (reuses the existing
+  // `playback.play` WS path — no new protocol). Only meaningful while idle:
+  // disabled once something is already playing or there's nothing queued.
+  const isPlaying = playback?.status === "playing";
+  const canStart =
+    !isPlaying && (Boolean(playback?.currentItem) || queue.length > 0);
+  const handleStartParty = () => send({ type: "playback.play" });
 
   const recordPlayed = api.room.recordPlayed.useMutation({
     onError: (error) => {
@@ -90,6 +128,64 @@ export function ControlsTab({
 
   return (
     <div data-testid="join-controls-tab" className="flex flex-col gap-6">
+      {/* Party lifecycle — start playback on the big screen, or end the room
+          entirely. Sits at the top of the Controls tab (beta feedback: the
+          host needs a clear place to start/end the party from their phone). */}
+      <section
+        data-testid="controls-party-lifecycle"
+        className="flex flex-col gap-3"
+      >
+        <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          {t("controls.party_heading")}
+        </h3>
+        <Button
+          type="button"
+          data-testid="controls-start-party"
+          disabled={!canStart}
+          onClick={handleStartParty}
+          className="w-full gap-2 bg-gradient-accent text-primary-foreground hover:opacity-90"
+        >
+          <IconPlayerPlayFilled className="size-4" />
+          {t("controls.start_party")}
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="destructive"
+              data-testid="controls-end-party"
+              className="w-full gap-2"
+            >
+              <IconDoorExit className="size-4" />
+              {t("controls.end_party")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent data-testid="controls-end-party-dialog">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {t("controls.end_party_confirm_title")}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {t("controls.end_party_confirm_description")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-testid="controls-end-party-cancel">
+                {t("controls.end_party_cancel")}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                data-testid="controls-end-party-confirm"
+                disabled={closeRoom.isPending}
+                onClick={() => closeRoom.mutate({ roomId })}
+              >
+                {t("controls.end_party_confirm_action")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </section>
+
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           {t("controls.playback_heading")}

@@ -28,16 +28,19 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
   const card = (
       <Card
         className={cn(
-          "w-fit",
           isLarge
-            ? "border-primary/30 bg-card/80 shadow-glow-accent"
-            : className
+            // Lobby hero fills its grid column so it matches the height of
+            // the roster/queue board in the right column (beta feedback:
+            // the QR card used to be `w-fit` and floated, leaving the two
+            // lobby columns visibly mismatched in height).
+            ? "h-full w-full border-primary/30 bg-card/80 shadow-glow-accent"
+            : cn("w-fit", className)
         )}
       >
         <CardContent
           className={cn(
             "flex items-center gap-4 p-4",
-            isLarge && "flex-col gap-6 p-10"
+            isLarge && "h-full flex-col justify-center gap-6 p-10"
           )}
         >
           {/* Literal white, not a theme token: QR scanners need a light quiet
@@ -55,7 +58,7 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
           <div
             className={cn(
               "flex flex-col gap-1",
-              isLarge && "items-center gap-3"
+              isLarge && "items-center gap-3 text-center"
             )}
           >
             <span
@@ -72,9 +75,9 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
             <span
               data-testid="room-code-text"
               className={cn(
-                "font-bold text-foreground",
+                "font-bold whitespace-nowrap text-foreground",
                 isLarge
-                  ? "tv-display tracking-[0.12em]"
+                  ? "tv-code"
                   : "font-mono text-2xl tracking-wider"
               )}
             >
@@ -82,12 +85,24 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
             </span>
           </div>
           {isLarge && (
-            <p
-              data-testid="room-lobby-prompt"
-              className="tv-body text-center text-muted-foreground"
-            >
-              {t("lobby.prompt")}
-            </p>
+            <div className="flex flex-col items-center gap-2 text-center">
+              <p
+                data-testid="room-lobby-prompt"
+                className="tv-body text-muted-foreground"
+              >
+                {t("lobby.prompt")}
+              </p>
+              {/* Calm fine-print footer (was a shouty uppercase banner
+                  orphaned below the card). Kept inside the QR card so the
+                  "how to control playback" note reads as part of the join
+                  affordance, not a floating label. */}
+              <p
+                data-testid="room-lobby-playback-hint"
+                className="max-w-xs text-lg leading-snug text-muted-foreground/70"
+              >
+                {t("lobby.playback_hint")}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -98,7 +113,12 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
   if (!isLarge) return card;
 
   return (
-    <div className={cn("relative flex flex-col items-center", className)}>
+    <div
+      className={cn(
+        "relative flex h-full w-full flex-col items-center justify-center",
+        className
+      )}
+    >
       {/* Subtle idle glow behind the hero panel — CSS-only (Tailwind's
           built-in `animate-pulse`), gated by `motion-reduce:animate-none`
           in addition to the app-wide reduced-motion duration collapse. */}

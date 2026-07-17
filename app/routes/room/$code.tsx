@@ -7,10 +7,7 @@ import {
   IconArrowLeft,
   IconDoorExit,
   IconMusic,
-  IconPlayerPlayFilled,
   IconPlaylist,
-  IconVolume,
-  IconVolumeOff,
 } from "@tabler/icons-react";
 
 import { requireSession } from "@/lib/session";
@@ -37,7 +34,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { YoutubePlayer } from "@/components/room/youtube-player";
 import { NowSingingBanner } from "@/components/room/now-singing-banner";
-import { HostControls } from "@/components/room/host-controls";
 import { QueueRail } from "@/components/room/queue-rail";
 import { JoinPanel } from "@/components/room/join-panel";
 import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
@@ -160,6 +156,44 @@ function RoomHostView({
   // data instead of firing for everyone already in the room on connect.
   const hasReceivedSnapshot = state.settings !== null;
 
+  // Party-sounds mute for the WebAudio jingles below (join/add + the
+  // "you're up!" fanfare). The on-screen TV toggle was removed per beta
+  // feedback (annotation C) — we still honor the persisted default so a
+  // room that was previously muted stays muted, but there's no longer a
+  // control surface for it on the TV. (A future home for the toggle, if one
+  // is wanted, is the phone Controls tab alongside the other host controls.)
+  // Starts `false` so SSR and first client paint agree, then flips after
+  // mount from localStorage — same pattern as `NicknameForm`'s stored
+  // nickname prefill. The play path reads `soundsMutedRef`, not this state
+  // directly, so `partySoundsRef` (below) never needs recreating.
+  const [soundsMuted, setSoundsMuted] = useState(false);
+  const soundsMutedRef = useRef(soundsMuted);
+  useEffect(() => {
+    soundsMutedRef.current = soundsMuted;
+  }, [soundsMuted]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PARTY_SOUNDS_STORAGE_KEY);
+    if (stored === "off") setSoundsMuted(true);
+  }, []);
+
+  // Lazily-created once per mount — `createPartySounds` itself never touches
+  // `AudioContext` until the first non-muted play, so it's cheap to build
+  // eagerly here. Reads the mute flag through a ref (not the `soundsMuted`
+  // closure) so a toggle takes effect immediately without recreating this.
+  const partySoundsRef = useRef<PartySounds | null>(null);
+  if (partySoundsRef.current === null) {
+    partySoundsRef.current = createPartySounds(() => soundsMutedRef.current);
+  }
+
+  // Close the lazily-created `AudioContext` (if any) on unmount — browsers
+  // cap concurrent instances (Chrome: 6), and without this, navigating to
+  // this screen repeatedly in one session (re-opening a room, testing) would
+  // leak contexts. Ref access only, so this never re-runs.
+  useEffect(() => {
+    return () => partySoundsRef.current?.dispose();
+  }, []);
+
   // "Room goes live" is the lobby -> playing transition: the moment a
   // `currentItem` first appears this session. Playback status can bounce
   // between "playing"/"paused" afterwards without re-triggering — only the
@@ -194,6 +228,11 @@ function RoomHostView({
   // LATER `null -> item` edge (queue idled out mid-party, then resumed) —
   // shows the card. Pause/resume never changes `currentItem.id`, so it never
   // re-triggers this.
+  //
+  // The "you're up!" fanfare (Phase 4) hooks into this SAME edge — not a
+  // separate observer of `playback.currentItem` — so it inherits the exact
+  // same first-connect suppression as the overlay: both the visual card and
+  // the sound only ever fire together, on a real singer CHANGE.
   const [nowUpSinger, setNowUpSinger] = useState<{ nickname: string } | null>(null);
   const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
   const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
@@ -214,13 +253,14 @@ function RoomHostView({
       }
     }
 
-    // No reduced-motion gate here: the singer announcement must reach
-    // assistive tech either way — NowUpOverlay itself suppresses only the
-    // VISUAL card under prefers-reduced-motion while its always-mounted
-    // aria-live region still announces.
+    // No reduced-motion gate here: the singer announcement must reach every
+    // viewer either way — NowUpOverlay's visual card renders regardless of
+    // motion preference too (just statically, via the global CSS collapse),
+    // and its always-mounted aria-live region announces on top of that.
     if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
     setNowUpSinger({ nickname: currentItem!.singerNickname });
-    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 2500);
+    partySoundsRef.current?.playFanfare();
+    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback?.currentItem?.id]);
 
@@ -230,46 +270,6 @@ function RoomHostView({
     },
     []
   );
-
-  // Host mute toggle for the tiny WebAudio pop sounds below — default
-  // unmuted, persisted so it survives a page reload. Starts `false` (SSR
-  // and first client paint agree) and only flips after mount reading
-  // localStorage, same pattern as `NicknameForm`'s stored-nickname prefill.
-  const [soundsMuted, setSoundsMuted] = useState(false);
-  const soundsMutedRef = useRef(soundsMuted);
-  useEffect(() => {
-    soundsMutedRef.current = soundsMuted;
-  }, [soundsMuted]);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(PARTY_SOUNDS_STORAGE_KEY);
-    if (stored === "off") setSoundsMuted(true);
-  }, []);
-
-  const toggleSounds = () => {
-    setSoundsMuted((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(PARTY_SOUNDS_STORAGE_KEY, next ? "off" : "on");
-      return next;
-    });
-  };
-
-  // Lazily-created once per mount — `createPartySounds` itself never touches
-  // `AudioContext` until the first non-muted play, so it's cheap to build
-  // eagerly here. Reads the mute flag through a ref (not the `soundsMuted`
-  // closure) so a toggle takes effect immediately without recreating this.
-  const partySoundsRef = useRef<PartySounds | null>(null);
-  if (partySoundsRef.current === null) {
-    partySoundsRef.current = createPartySounds(() => soundsMutedRef.current);
-  }
-
-  // Close the lazily-created `AudioContext` (if any) on unmount — browsers
-  // cap concurrent instances (Chrome: 6), and without this, navigating to
-  // this screen repeatedly in one session (re-opening a room, testing) would
-  // leak contexts. Ref access only, so this never re-runs.
-  useEffect(() => {
-    return () => partySoundsRef.current?.dispose();
-  }, []);
 
   // Join pop — fires once per guest who joins the roster AFTER this screen
   // is already mounted. Seeded from whatever's already in the roster on the
@@ -351,11 +351,6 @@ function RoomHostView({
     });
   };
 
-  const handleSkip = () => {
-    recordCurrentIfPlaying();
-    send({ type: "playback.skip", currentItemId: playback?.currentItem?.id });
-  };
-
   const closeRoom = api.room.close.useMutation({
     onSuccess: () => navigate("/dashboard"),
     onError: (error) => {
@@ -366,120 +361,242 @@ function RoomHostView({
   return (
     <div
       data-testid="room-host-view"
-      className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground"
+      className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground lg:flex-row"
     >
-      <div
-        className={cn(
-          "flex items-center gap-3 pb-4",
-          hasCurrentItem ? "justify-between" : "justify-end"
-        )}
-      >
-        {hasCurrentItem && (
-          <NowSingingBanner currentItem={playback?.currentItem ?? null} size="tv" />
-        )}
-        <div className="flex shrink-0 items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            data-testid="room-sounds-toggle"
-            aria-label={
-              soundsMuted ? t("sounds.unmute_label") : t("sounds.mute_label")
-            }
-            title={soundsMuted ? t("sounds.unmute_label") : t("sounds.mute_label")}
-            onClick={toggleSounds}
-          >
-            {soundsMuted ? (
-              <IconVolumeOff className="size-5" />
-            ) : (
-              <IconVolume className="size-5" />
-            )}
-          </Button>
-          <ConnectionStatusPill status={connectionStatus} />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                size="lg"
-                data-testid="room-end-party-button"
-                className="gap-2 text-2xl font-semibold"
+      {/* MAIN column — the navbar-style top bar sits INSIDE this column (not
+          spanning the rail) so the rail can extend the full viewport height
+          beside it (annotation H). Below it: the playing video (kept mounted,
+          just hidden, in the lobby so the YoutubePlayer IFrame + its
+          user-gesture "started" flag survive the lobby -> playing transition)
+          or the lobby's two-column layout. */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Top bar: "Party lobby" acts as a navbar title on the LEFT in the
+            lobby (annotation D); room-level controls on the RIGHT. The
+            party-sounds toggle was removed per beta feedback (annotation C) —
+            the persisted mute default is still honored, there's just no TV
+            control for it. */}
+        <div className="flex items-center justify-between gap-3 pb-4">
+          <div className="flex min-w-0 items-center">
+            {!hasCurrentItem && (
+              <h1
+                data-testid="room-lobby-heading"
+                className="tv-title-sm uppercase tracking-[0.12em] text-muted-foreground"
               >
-                <IconDoorExit className="size-5" />
-                {t("controls.end_party")}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent data-testid="room-end-party-dialog">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-4xl font-bold font-display">
-                  {t("controls.end_party_confirm_title")}
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
-                  {t("controls.end_party_confirm_description")}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel
-                  data-testid="room-end-party-cancel"
-                  size="lg"
-                  // `AlertDialogCancel`/`AlertDialogAction` render via
-                  // Radix's `asChild` Slot, which merges this className
-                  // onto the child by plain concatenation — NOT through
-                  // `tailwind-merge` — so a same-specificity override
-                  // (`text-2xl`) can lose to the wrapped Button's own
-                  // baked-in `text-sm` depending on generated CSS order.
-                  // `!` forces it to win regardless.
-                  className="!text-2xl !font-semibold"
-                >
-                  {t("controls.end_party_cancel")}
-                </AlertDialogCancel>
-                <AlertDialogAction
+                {t("lobby.heading")}
+              </h1>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <ConnectionStatusPill status={connectionStatus} />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
                   variant="destructive"
-                  data-testid="room-end-party-confirm"
                   size="lg"
-                  disabled={closeRoom.isPending}
-                  onClick={() => closeRoom.mutate({ roomId: room.id })}
-                  className="!text-2xl !font-semibold"
+                  data-testid="room-end-party-button"
+                  className="gap-2 text-2xl font-semibold"
                 >
-                  {t("controls.end_party_confirm_action")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-
-      {/* Playing state — kept mounted (just hidden) rather than
-          conditionally unmounted while in the lobby, so the YoutubePlayer's
-          IFrame instance and its user-gesture "started" flag survive the
-          lobby -> playing transition instead of resetting. */}
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[3fr_minmax(340px,1fr)]",
-          !hasCurrentItem && "hidden"
-        )}
-      >
-        <div className="flex min-h-0 flex-col gap-4">
-          <YoutubePlayer
-            playback={playback}
-            onVideoEnded={handleVideoEnded}
-            onVideoError={handleVideoError}
-          />
-          <div className="flex items-center justify-between gap-4">
-            <HostControls
-              playback={playback}
-              queueLength={queue.length}
-              onPlay={() => send({ type: "playback.play" })}
-              onPause={() => send({ type: "playback.pause" })}
-              onSkip={handleSkip}
-              size="tv"
-            />
-            {/* Persistent join affordance while a song is playing — always
-                visible, never hidden behind an interaction. */}
-            <JoinPanel joinUrl={joinUrl} code={code} size="sm" />
+                  <IconDoorExit className="size-5" />
+                  {t("controls.end_party")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent data-testid="room-end-party-dialog">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-4xl font-bold font-display">
+                    {t("controls.end_party_confirm_title")}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
+                    {t("controls.end_party_confirm_description")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    data-testid="room-end-party-cancel"
+                    size="lg"
+                    // `AlertDialogCancel`/`AlertDialogAction` render via
+                    // Radix's `asChild` Slot, which merges this className
+                    // onto the child by plain concatenation — NOT through
+                    // `tailwind-merge` — so a same-specificity override
+                    // (`text-2xl`) can lose to the wrapped Button's own
+                    // baked-in `text-sm` depending on generated CSS order.
+                    // `!` forces it to win regardless.
+                    className="!text-2xl !font-semibold"
+                  >
+                    {t("controls.end_party_cancel")}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    data-testid="room-end-party-confirm"
+                    size="lg"
+                    disabled={closeRoom.isPending}
+                    onClick={() => closeRoom.mutate({ roomId: room.id })}
+                    className="!text-2xl !font-semibold"
+                  >
+                    {t("controls.end_party_confirm_action")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
-        <div className="min-h-0 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+        {/* Playing video — the single largest element on the TV. `fill`
+            letterboxes it against the black surface so it's as big as the
+            leftover height allows, never overflowing the viewport. Kept
+            mounted, hidden in the lobby (see MAIN column comment). */}
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col gap-3",
+            !hasCurrentItem && "hidden"
+          )}
+        >
+          <div className="shrink-0">
+            <NowSingingBanner
+              currentItem={playback?.currentItem ?? null}
+              size="tv"
+            />
+          </div>
+          <div className="relative min-h-0 flex-1">
+            <YoutubePlayer
+              fill
+              className="absolute inset-0"
+              playback={playback}
+              onVideoEnded={handleVideoEnded}
+              onVideoError={handleVideoError}
+            />
+          </div>
+        </div>
+
+        {/* Lobby — two-column layout that fits a 1920x1080 TV with zero page
+            scroll. LEFT = QR hero, stretched to the full column height so it
+            matches the right column (annotation B). RIGHT = participants
+            board (~1/3 height, annotation A) over the queue panel (fills the
+            rest and always renders, annotation E). `min-h-0` on every nested
+            flex/grid child is required so panels become their own scroll
+            regions instead of growing past the viewport. Below `lg` (host
+            previewing on a laptop) it stacks and the lobby scrolls. */}
+        {!hasCurrentItem && (
+          <div
+            data-testid="room-lobby"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden"
+          >
+            <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(420px,540px)_1fr]">
+              {/* LEFT: QR hero, filling the full column height. */}
+              <div className="flex min-h-0">
+                <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
+              </div>
+
+              {/* RIGHT: participants (top, ~1/3) + queue (below, fills). */}
+              <div className="flex min-h-0 flex-col gap-5">
+                <div
+                  data-testid="room-lobby-roster-panel"
+                  className="flex h-1/3 min-h-0 shrink-0 overflow-hidden rounded-3xl border border-border/70 bg-card/40"
+                >
+                  <RosterStrip roster={roster} />
+                </div>
+
+                <div
+                  data-testid="room-lobby-queue"
+                  className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border/70 bg-card/40 p-6"
+                >
+                  <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+                    <h2 className="tv-title-sm flex items-center gap-2 text-foreground">
+                      <IconPlaylist className="size-6 text-primary" />
+                      {t("queue.title")}
+                    </h2>
+                    {queue.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        data-testid="room-lobby-queue-count"
+                        className="px-3 py-1 text-base font-semibold uppercase tracking-[0.04em]"
+                      >
+                        {t("queue.count", { count: queue.length })}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {queue.length === 0 ? (
+                    // Empty state — the queue panel renders even before any
+                    // song is added (annotation E) so the lobby's right
+                    // column reads as "participants + queue" from the start.
+                    <div
+                      data-testid="room-lobby-queue-empty"
+                      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center"
+                    >
+                      <span
+                        aria-hidden
+                        className="flex size-16 items-center justify-center rounded-full border border-border/60 bg-muted/40"
+                      >
+                        <IconMusic className="size-8 text-muted-foreground/60" />
+                      </span>
+                      <p className="tv-body max-w-sm text-muted-foreground">
+                        {t("queue.empty")}
+                      </p>
+                    </div>
+                  ) : (
+                    <ul
+                      data-testid="room-lobby-queue-summary"
+                      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
+                    >
+                      {queue.map((item) => (
+                        <li
+                          key={item.id}
+                          data-testid="room-lobby-queue-item"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                        >
+                          {item.thumbnailUrl ? (
+                            <img
+                              src={item.thumbnailUrl}
+                              alt=""
+                              className="size-12 shrink-0 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+                              <IconMusic className="size-5 text-muted-foreground" />
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-base font-semibold">
+                              {item.title}
+                            </p>
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <InitialsAvatar name={item.singerNickname} size="sm" />
+                              <p className="truncate text-sm text-muted-foreground">
+                                {t("queue.singer", { name: item.singerNickname })}
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* RIGHT RAIL — playing state only, spanning the full viewport height
+          (annotation H): a sibling of MAIN so it runs from the top of the
+          tv-safe content area to the bottom (top-aligned above the title),
+          rather than starting below the top bar. Slimmed 320 -> 280px
+          (annotation H) to give the video more room. Participants on top, the
+          queue filling the flex-1 middle with its own scroll, the join QR
+          pinned at the bottom so guests can keep scanning mid-session. Kept
+          mounted, hidden in the lobby. */}
+      <div
+        data-testid="room-playing-rail"
+        className={cn(
+          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[280px] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
+          !hasCurrentItem && "hidden"
+        )}
+      >
+        <div data-testid="room-playing-participants" className="shrink-0">
+          <RosterStrip roster={roster} size="compact" />
+        </div>
+
+        <div className="min-h-0 flex-1">
           <QueueRail
             queue={queue}
             viewerRole="host"
@@ -491,129 +608,11 @@ function RoomHostView({
             onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
           />
         </div>
-      </div>
 
-      {/* Lobby state — party's about to start: big room code + QR, idle
-          glow, live "who's here" roster. `min-h-0` is required alongside
-          `overflow-y-auto` here: this div is a `flex-1` child of the
-          `h-screen flex-col overflow-hidden` root above, and a flex item's
-          default `min-height: auto` refuses to shrink below its content
-          size — without `min-h-0` the lobby would just grow taller than
-          the viewport and get silently clipped by the root's
-          `overflow-hidden` instead of becoming its own scroll region. */}
-      {!hasCurrentItem && (
-        <div
-          data-testid="room-lobby"
-          className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto py-6"
-        >
-          <p
-            data-testid="room-lobby-heading"
-            className="tv-label text-muted-foreground"
-          >
-            {t("lobby.heading")}
-          </p>
-
-          {/* Two-column once a queue exists — stacking the QR panel, roster,
-              queue summary, AND start-party button in one column overflowed
-              a 1920x1080 TV viewport (JoinPanel's "lg" size alone is ~600px
-              tall). Side-by-side keeps every element on screen without
-              shrinking the QR/roster hero the empty-queue lobby keeps as
-              its centered stack below. */}
-          <div
-            className={cn(
-              "flex w-full max-w-6xl flex-col items-center gap-8",
-              queue.length > 0 && "lg:flex-row lg:items-center lg:justify-center"
-            )}
-          >
-            <div className="flex flex-col items-center gap-6">
-              <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
-              {/* Capped to a few rows regardless of how many guests are
-                  connected — `max-h` + its own `overflow-y-auto` keeps a
-                  big roster from pushing anything else off screen. */}
-              <div className="max-h-32 w-full max-w-sm overflow-y-auto">
-                <RosterStrip roster={roster} />
-              </div>
-            </div>
-
-            {/* Regression fix (feature-verifier, ui-overhaul): from a cold
-                lobby there was previously no way to start the party or see
-                what's queued — `room-play-pause-button` + `QueueRail` only
-                render once `hasCurrentItem` is true, which itself only
-                becomes true AFTER `playback.play` is sent. Shown only once
-                something's actually queued; an empty queue leaves the
-                lobby exactly as it was (QR + prompt + roster). */}
-            {queue.length > 0 && (
-              <div
-                data-testid="room-lobby-queue"
-                className="flex w-full max-w-md flex-col items-center gap-4"
-              >
-                <div
-                  data-testid="room-lobby-queue-summary"
-                  className="max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card/60 p-4"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h2 className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                      <IconPlaylist className="size-4" />
-                      {t("queue.title")}
-                    </h2>
-                    <Badge variant="secondary" data-testid="room-lobby-queue-count">
-                      {t("queue.count", { count: queue.length })}
-                    </Badge>
-                  </div>
-                  <ul className="flex flex-col gap-2">
-                    {queue.slice(0, 3).map((item) => (
-                      <li
-                        key={item.id}
-                        data-testid="room-lobby-queue-item"
-                        className="flex items-center gap-3 rounded-lg bg-card p-2"
-                      >
-                        {item.thumbnailUrl ? (
-                          <img
-                            src={item.thumbnailUrl}
-                            alt=""
-                            className="size-12 shrink-0 rounded object-cover"
-                          />
-                        ) : (
-                          <span className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
-                            <IconMusic className="size-5 text-muted-foreground" />
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {item.title}
-                          </p>
-                          <div className="mt-1 flex items-center gap-1.5">
-                            <InitialsAvatar name={item.singerNickname} size="sm" />
-                            <p className="truncate text-xs text-muted-foreground">
-                              {t("queue.singer", { name: item.singerNickname })}
-                            </p>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Sends the exact same `playback.play` message
-                    `HostControls`'s play button sends below — no new wire
-                    protocol. With no `currentItem` yet, `applyClientMessage`
-                    (`app/lib/room-state.ts`) pops the queue head into
-                    `currentItem`, which flips `hasCurrentItem` true and
-                    swaps this whole lobby for the playing-state grid. */}
-                <Button
-                  size="lg"
-                  data-testid="room-lobby-start-party"
-                  className="gap-3 rounded-full bg-gradient-accent px-10 py-7 text-2xl font-semibold text-primary-foreground shadow-glow-accent hover:opacity-90"
-                  onClick={() => send({ type: "playback.play" })}
-                >
-                  <IconPlayerPlayFilled className="size-6" />
-                  {t("player.start_party")}
-                </Button>
-              </div>
-            )}
-          </div>
+        <div data-testid="room-playing-join" className="shrink-0">
+          <JoinPanel joinUrl={joinUrl} code={code} size="sm" className="w-full" />
         </div>
-      )}
+      </div>
 
       <CelebrationBurst
         show={showCelebration}

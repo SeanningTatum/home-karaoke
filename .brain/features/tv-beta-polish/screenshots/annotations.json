@@ -1,0 +1,101 @@
+[
+  {
+    "id": "mrp5p2mebx9jm5",
+    "shot": "features/tv-beta-polish/screenshots/01-tv-lobby-empty.png",
+    "x": 46.9,
+    "y": 48.5,
+    "note": "On the right hand side we need to have the queue'd songs AND the participant list. The particpant list can be 1/3 the height",
+    "at": "2026-07-17T16:32:35.462Z",
+    "shotMtimeMs": 1784269647806.3474,
+    "shotSize": 60373,
+    "superseded": false
+  },
+  {
+    "id": "mrp5r0v975af42",
+    "shot": "features/tv-beta-polish/screenshots/01-tv-lobby-empty.png",
+    "x": 9.7,
+    "y": 24.1,
+    "note": "The container here needs to match the height of the container on the right as well",
+    "at": "2026-07-17T16:34:06.501Z",
+    "shotMtimeMs": 1784269647806.3474,
+    "shotSize": 60373,
+    "superseded": false
+  },
+  {
+    "id": "mrp5rdw3i8ebnm",
+    "shot": "features/tv-beta-polish/screenshots/01-tv-lobby-empty.png",
+    "x": 85.1,
+    "y": 6.2,
+    "note": "we don't need to show this button",
+    "at": "2026-07-17T16:34:23.379Z",
+    "shotMtimeMs": 1784269647806.3474,
+    "shotSize": 60373,
+    "superseded": false
+  },
+  {
+    "id": "mrp5ru4uldw77k",
+    "shot": "features/tv-beta-polish/screenshots/01-tv-lobby-empty.png",
+    "x": 7.3,
+    "y": 10.6,
+    "note": "this should be sticky on the top left act like a title in a navbar",
+    "at": "2026-07-17T16:34:44.430Z",
+    "shotMtimeMs": 1784269647806.3474,
+    "shotSize": 60373,
+    "superseded": false
+  },
+  {
+    "id": "mrp5t0172c3i4u",
+    "shot": "features/tv-beta-polish/screenshots/03-tv-lobby-queue-updated.png",
+    "x": 42.9,
+    "y": 82.7,
+    "note": "This queue container needs to show even if there are no songs",
+    "at": "2026-07-17T16:35:38.731Z",
+    "shotMtimeMs": 1784269647809.2903,
+    "shotSize": 82863,
+    "superseded": false
+  },
+  {
+    "id": "mrp5u3y8yov2ea",
+    "shot": "features/tv-beta-polish/screenshots/04-phone-host-controls-tab.png",
+    "x": 31.4,
+    "y": 13.4,
+    "note": "We also need a section where the host can start the party and end the party",
+    "at": "2026-07-17T16:36:30.464Z",
+    "shotMtimeMs": 1784269647809.8784,
+    "shotSize": 44196,
+    "superseded": false
+  },
+  {
+    "id": "mrp5utooglvvgi",
+    "shot": "features/tv-beta-polish/screenshots/04-phone-host-controls-tab.png",
+    "x": 18.1,
+    "y": 55.8,
+    "note": "We don't need these buttons - it's redundant",
+    "at": "2026-07-17T16:37:03.816Z",
+    "shotMtimeMs": 1784269647809.8784,
+    "shotSize": 44196,
+    "superseded": false
+  },
+  {
+    "id": "mrp5vzsg3wyokk",
+    "shot": "features/tv-beta-polish/screenshots/05-tv-playing-state.png",
+    "x": 97.9,
+    "y": 11.9,
+    "note": "we can make the layout container on the right side be smaller than the left so the our right column can extend all the way. Or just decrease the container width altogether to make more room and space",
+    "at": "2026-07-17T16:37:58.384Z",
+    "shotMtimeMs": 1784269647812.3096,
+    "shotSize": 483876,
+    "superseded": false
+  },
+  {
+    "id": "mrp5wwv3ploxu3",
+    "shot": "features/tv-beta-polish/screenshots/05-tv-playing-state.png",
+    "x": 83.2,
+    "y": 21.8,
+    "note": "Instead of having a left to right layout let's have a top to bottom layout so that it fits more. Let's re-adjust the card spacing as needed too",
+    "at": "2026-07-17T16:38:41.247Z",
+    "shotMtimeMs": 1784269647812.3096,
+    "shotSize": 483876,
+    "superseded": false
+  }
+]

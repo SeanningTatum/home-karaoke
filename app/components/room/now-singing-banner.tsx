@@ -38,7 +38,12 @@ export function NowSingingBanner({
       >
         <IconMicrophone className="size-10 shrink-0 text-primary" />
         <div className="min-w-0">
-          <p className="tv-headline text-gradient-accent truncate font-bold">
+          {/* Beta feedback: the old `tv-headline` (56px, single-line
+              truncate) was too large and clipped long song titles on a
+              1080p TV. Down to `tv-title` (36px) and allowed to wrap up to
+              two lines (`line-clamp-2` + `break-words`) so the video below
+              gets the vertical space while a long title stays readable. */}
+          <p className="tv-title text-gradient-accent line-clamp-2 break-words">
             {currentItem.title}
           </p>
           <span className="tv-label block truncate normal-case text-muted-foreground">
