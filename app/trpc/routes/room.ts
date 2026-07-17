@@ -87,8 +87,8 @@ export const roomRouter = createTRPCRouter({
           // reload. Best-effort by design: the D1 write above is the durable
           // close (the WS upgrade route rejects closed rooms), so a DO
           // failure is logged but never fails the mutation.
-          const rooms = yield* KaraokeRooms;
-          yield* rooms.notifyRoomClosed(input.roomId).pipe(
+          yield* KaraokeRooms.pipe(
+            Effect.flatMap((rooms) => rooms.notifyRoomClosed(input.roomId)),
             Effect.tapErrorCause((cause) =>
               Effect.logWarning("room.close_notify_failed").pipe(
                 Effect.annotateLogs({
