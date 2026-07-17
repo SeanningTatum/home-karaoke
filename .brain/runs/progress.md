@@ -21,6 +21,13 @@
 
 ---
 
+## 2026-07-17 — PR opened for tv-beta-polish: https://github.com/SeanningTatum/home-karaoke/pull/6
+- branch: `fix/tv-rail-annotations`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-17 — PR #5 SQUASH-MERGED to main (f03313a): feat-009 tv-beta-polish complete end-to-end. Post-open cycle: overlay animationend bubbling guard (bcebf47), main merged back in (room.closed #4 wiring intact, conflict in progress.md unioned), PR body screenshot tables (SHA-pinned raw URLs), 9 user pin-annotations fixed via opus (lobby participants-1/3 + always-visible queue, full-height QR card, navbar title, TV mute button removed, phone Controls PARTY start/end section + confirm dialog, tap-reorder arrows dropped, rail 280px full-height, vertical queue cards) — all superseded by re-captured shots. CI green all 5 checks pre-merge, 429 tests. Branch deleted.
 - branch: `main`
 - in-progress feature: none
