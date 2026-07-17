@@ -93,7 +93,11 @@ export function NowUpOverlay({ singer }: NowUpOverlayProps) {
 
   useEffect(() => clearExitTimer, []);
 
-  const handleAnimationEnd = () => {
+  const handleAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
+    // Only the container's own exit animation may finalize the unmount — a
+    // child animation's animationend would bubble here and prematurely clear
+    // the fallback timer or blank the card.
+    if (event.target !== event.currentTarget) return;
     // Functional updater: `display.isExiting` from the render closure can be
     // stale if animationend lands while a new-singer update is queued but not
     // yet committed — `prev` is always the latest committed value. The timer
