@@ -84,9 +84,13 @@ export const ReactionOverlay = forwardRef<
       for (const particle of incoming) {
         const timer = setTimeout(() => {
           timersRef.current.delete(timer);
-          setParticles((current) =>
-            current.filter((p) => p.id !== particle.id)
-          );
+          // A particle evicted early by `capParticles` is already gone when
+          // its timer fires — return the SAME array in that case so React
+          // bails out instead of re-rendering for a no-op removal.
+          setParticles((current) => {
+            const remaining = current.filter((p) => p.id !== particle.id);
+            return remaining.length === current.length ? current : remaining;
+          });
         }, particle.durationMs);
         timersRef.current.add(timer);
       }
