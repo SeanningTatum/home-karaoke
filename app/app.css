@@ -306,12 +306,13 @@ body {
   animation: room-chip-in 0.4s ease-out;
 }
 
-/* Host TV "You're up, {name}!" name card (Phase 6a) — brief fade+scale-in
-   for the full-screen overlay. Reduced-motion is primarily handled by the
-   JS trigger in app/routes/room/$code.tsx (it never sets the singer at all
-   for a reduced-motion viewer, same discipline as CelebrationBurst); this
-   keyframe's duration also collapses under the global net above as a
-   second line of defense. */
+/* Host TV "You're up, {name}!" name card (Phase 6a, exit added Phase 3 of
+   tv-beta-polish) — brief fade+scale-in for the full-screen overlay, then a
+   fade+scale-out before unmount instead of a hard cut. Unlike CelebrationBurst,
+   a reduced-motion viewer DOES see this card (it's the singer announcement,
+   not a decorative burst) — it just renders statically because the global
+   `prefers-reduced-motion` net above collapses both keyframes' durations to
+   0.01ms, so entrance/exit resolve instantly instead of animating. */
 @keyframes room-now-up-in {
   from {
     opacity: 0;
@@ -325,6 +326,21 @@ body {
 
 @utility animate-now-up {
   animation: room-now-up-in 0.3s ease-out;
+}
+
+@keyframes room-now-up-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.04) translateY(-12px);
+  }
+}
+
+@utility animate-now-up-out {
+  animation: room-now-up-out 0.45s ease-in forwards;
 }
 
 /* Host TV queue-row entrance (Phase 6a) — new rows slide up + fade in when

@@ -212,13 +212,13 @@ function RoomHostView({
       }
     }
 
-    // No reduced-motion gate here: the singer announcement must reach
-    // assistive tech either way — NowUpOverlay itself suppresses only the
-    // VISUAL card under prefers-reduced-motion while its always-mounted
-    // aria-live region still announces.
+    // No reduced-motion gate here: the singer announcement must reach every
+    // viewer either way — NowUpOverlay's visual card renders regardless of
+    // motion preference too (just statically, via the global CSS collapse),
+    // and its always-mounted aria-live region announces on top of that.
     if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
     setNowUpSinger({ nickname: currentItem!.singerNickname });
-    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 2500);
+    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback?.currentItem?.id]);
 
