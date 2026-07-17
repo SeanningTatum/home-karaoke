@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TV Beta Feedback Polish — Plan</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 72ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-draft { background: var(--surface); color: var(--muted); }
+  .chip-status-in-review { background: var(--highlight); color: var(--fg);
+    border-color: var(--highlight); }
+  .chip-high { color: var(--accent); border-color: var(--accent); }
+  .chip-med { color: var(--fg-secondary); }
+  .chip-low { color: var(--muted); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue, .btn-approve, .btn-request-changes {
+    border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em;
+  }
+  .btn-queue, .btn-approve { background: var(--fg); color: #fff; }
+  .btn-request-changes { background: transparent; color: var(--fg);
+    border: 1px solid var(--border); }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  pre.mermaid { text-align: center; }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>TV Beta Feedback Polish</h1>
+  <div>
+    <span>2026-07-16</span> ·
+    <span>feature: tv-beta-polish</span> ·
+    <span class="chip chip-status-draft">draft</span> ·
+    <span>round 0</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>First beta session surfaced 7 usability complaints, all on the TV screen
+  (<code>/room/:code</code>): the lobby scrolls instead of fitting the TV, the playing
+  layout wastes video space, the "you're up" overlay is too subtle and too short, TV-side
+  play/skip buttons are redundant with the phone host controls, and the sounds are too
+  timid. This plan restructures both TV states into fit-the-viewport horizontal layouts,
+  makes the singer announcement a 5-second full-opacity moment, gamifies the sound
+  effects, and removes playback buttons from the TV.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>Feature <strong>feat-008 ui-overhaul</strong> shipped 2026-07-16 (plan
+  <code>plans/karaoke-ui-overhaul.html</code>, reviewed round 1; PR #3 squash-merged as
+  <code>cb1ee80</code>). The 2026-07-16 checkpoint records all gates green: 401 unit tests,
+  verification 11/11 with 16 screenshots. This plan is the follow-up polish pass driven by
+  the first real beta session on a TV. No feature is currently in-progress, so
+  <strong>tv-beta-polish</strong> can start clean.</p>
+  <p>Relevant history: the feat-008 verifier found a regression where hiding the TV lobby
+  play button made it impossible to cold-start the party from the TV. That matters again
+  here — the beta feedback asks to remove TV play/skip entirely. The phone host controls
+  (<code>app/components/join/controls-tab.tsx</code>, host-gated via <code>isHost</code> on
+  <code>/join/:code</code>) already carry play/pause/skip/volume, so the phone path exists;
+  decision 1 below settles how far the TV removal goes.</p>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture</h2>
+  <p>Both TV states become two-column, viewport-locked layouts. Nothing changes in the
+  Durable Object, WebSocket protocol, or phone guest flow (except that the phone Controls
+  tab becomes the <em>only</em> playback surface).</p>
+  <pre class="mermaid">
+flowchart TD
+  subgraph TV ["/room/:code — TV (this plan)"]
+    L["Lobby: QR hero LEFT · roster RIGHT (no scroll)"]
+    P["Playing: video+title LEFT (max size) · RIGHT rail: roster / queue / QR"]
+    O["'You're up' overlay: 100% opacity · 5s · animated exit"]
+    S["Gamified WebAudio jingles"]
+  end
+  Phone["/join/:code — phone Controls tab (host)"] -->|play / pause / skip / volume via WS| DO[(KaraokeRoom DO)]
+  DO -->|playback / roster / queue updates| TV
+  </pre>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-tv-controls" data-brain-action>
+    <p><strong>1. How far do we remove play/skip from the TV?</strong>
+    <span class="chip chip-high">affects cold-start</span></p>
+    <p>Beta feedback: "hide play and skip on the main screen, leave it as host controls on
+    the phone." The phone Controls tab already does everything — but if the host never opens
+    their phone, a TV with zero controls cannot start the first song (the exact regression
+    the feat-008 verifier caught).</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-tv-controls" id="opt-remove-all"
+            value="Remove TV play/skip entirely; phone is the only control surface" checked data-brain-action></td>
+          <td><label for="opt-remove-all">Remove entirely — phone-only controls
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Exactly what the beta feedback asked; cleanest TV</td>
+          <td>Host must join from phone to start playback; lobby needs a "control from your phone" hint</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-tv-controls" id="opt-keep-lobby"
+            value="Hide during playback, keep a single Play button in the lobby for cold-start" data-brain-action></td>
+          <td><label for="opt-keep-lobby">Hide while playing, keep lobby Play</label></td>
+          <td>TV can still cold-start the party solo</td>
+          <td>Partial removal — TV still shows a control the feedback wanted gone</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-tv-controls',
+        'How far do we remove play/skip from the TV?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-tv-controls"></span>
+  </div>
+
+  <div class="decision-card" id="decision-sounds" data-brain-action>
+    <p><strong>2. How do we gamify the sound effects?</strong></p>
+    <p>Today: two ~100ms single-note synth blips (join 660Hz sine, add 880Hz triangle) at
+    low gain (0.12 peak) in <code>app/lib/party-sounds.ts</code> — beta users barely noticed
+    them. The synth engine is injectable and has 13 unit tests.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-sounds" id="opt-synth-jingles"
+            value="Richer multi-note synth jingles (arpeggios, louder gain, new 'your turn' fanfare) — no audio assets" checked data-brain-action></td>
+          <td><label for="opt-synth-jingles">Richer synth jingles + turn fanfare
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>No assets to license/load; keeps injectable-ctx test pattern; adds a fanfare synced to the 5s overlay</td>
+          <td>Synth character — chiptune-ish, not sampled "game show" audio</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-sounds" id="opt-samples"
+            value="Ship recorded sound files (game-show stingers) served as static assets" data-brain-action></td>
+          <td><label for="opt-samples">Recorded sample files</label></td>
+          <td>Full-fidelity game-show feel</td>
+          <td>Asset sourcing/licensing, bundle weight, rework of the tested synth engine</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-sounds',
+        'How do we gamify the sound effects?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-sounds"></span>
+  </div>
+
+  <div class="decision-card" id="decision-builders" data-brain-action>
+    <p><strong>3. Sub-agent model split for the build phases?</strong></p>
+    <p>You asked for sonnet + opus delegation. The playing-layout restructure (phase 2) is
+    the widest blast radius (5 components + the route grid); the rest are bounded edits.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-builders" id="opt-opus-layout"
+            value="Opus builds phase 2 (playing layout); sonnet builds phases 1, 3, 4" checked data-brain-action></td>
+          <td><label for="opt-opus-layout">Opus on layout, sonnet on the rest
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Spends the stronger model on the phase most likely to break responsive behavior</td>
+          <td>Slightly slower/pricier on phase 2</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-builders" id="opt-all-sonnet"
+            value="Sonnet builds all phases; opus only reviews" data-brain-action></td>
+          <td><label for="opt-all-sonnet">Sonnet builds, opus reviews</label></td>
+          <td>Cheapest; matches feat-008 (all sonnet builders) which worked</td>
+          <td>Layout phase gets less capable first pass</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-builders',
+        'Sub-agent model split for the build phases?')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-builders"></span>
+  </div>
+</section>
+
+<section id="plan-of-record" data-brain-section="plan-of-record">
+  <h2>Plan of record</h2>
+  <p>All phases carry the fixed feedback specs: "you're up" overlay at <mark>100% opacity,
+  5 seconds, animated exit</mark>; song title <mark>smaller with wrapping</mark>; queue
+  heading <mark>smaller text and narrower rail</mark>; video <mark>as large as
+  possible</mark>.</p>
+  <ol>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 — lobby goes horizontal.</strong>
+      <span data-item-text data-brain-action>Two-column lobby: QR hero fixed on the left,
+      joined-guest roster fills the right (grid of avatar chips, internal scroll only past
+      ~20 guests). Acceptance: at 1920×1080 the lobby renders with zero page scroll; roster
+      chips keep their entrance animation.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1"><strong>Phase 2 — playing layout maximizes the video.</strong>
+      <span data-item-text data-brain-action>Left column: video player at max size + song
+      title below it (title drops from 56px to ~36px, wraps up to 2 lines). Right rail
+      (~300–320px): participants strip on top, queue in the middle (heading shrinks from
+      36px to ~22px, internal scroll), QR card pinned at the bottom. TV play/skip removed
+      per decision 1. Acceptance: at 1920×1080 no page scroll, video is the largest element
+      on screen, a 90-char title wraps without clipping.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="2"><strong>Phase 3 — "you're up" moment.</strong>
+      <span data-item-text data-brain-action>NowUpOverlay backdrop goes fully opaque (no
+      translucency), dismiss timer 2.5s → 5s, and a proper exit animation (fade/scale-out)
+      replaces the hard unmount. Reduced-motion gate stays. Acceptance: overlay is unreadable-proof
+      (nothing bleeds through), visible ~5s, animates out.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="3"><strong>Phase 4 — gamified sounds.</strong>
+      <span data-item-text data-brain-action>Per decision 2: join/add become multi-note
+      jingles at higher gain, plus a "your turn" fanfare fired with the overlay. Mute toggle
+      and injectable-ctx unit tests extended, not bypassed. Acceptance: existing sound tests
+      green plus new ones; sounds audibly distinct across a room.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="4"><strong>Phase 5 — verify + ship.</strong>
+      <span data-item-text data-brain-action>feature-verifier browser walk at TV viewport
+      (golden path + error path, screenshots), verify-done gates, ship tv-beta-polish with
+      evidence, PR to main. Acceptance: verification doc PASS, harness check green.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or step..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="files-changed">
+  <h2>Files that change</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>app/routes/room/$code.tsx</td><td>edit</td>
+        <td>lobby grid → 2-col; playing grid → 1fr + right rail; drop TV HostControls render; 5s overlay timer; fanfare trigger</td></tr>
+      <tr><td>app/components/room/join-panel.tsx</td><td>edit</td>
+        <td>QR panel sized for left-column lobby hero + compact right-rail variant</td></tr>
+      <tr><td>app/components/room/roster-strip.tsx</td><td>edit</td>
+        <td>vertical/right-rail participant list variant</td></tr>
+      <tr><td>app/components/room/now-up-overlay.tsx</td><td>edit</td>
+        <td>opaque backdrop, exit animation hooks</td></tr>
+      <tr><td>app/components/room/now-singing-banner.tsx</td><td>edit</td>
+        <td>title 56px → ~36px, 2-line wrap + clamp</td></tr>
+      <tr><td>app/components/room/queue-rail.tsx</td><td>edit</td>
+        <td>heading 36px → ~22px, compact rail styling</td></tr>
+      <tr><td>app/components/room/host-controls.tsx</td><td>delete or lobby-only</td>
+        <td>per decision 1 (phone ControlsTab is a separate component and stays)</td></tr>
+      <tr><td>app/lib/party-sounds.ts (+ tests)</td><td>edit</td>
+        <td>jingles, gain, "your turn" fanfare</td></tr>
+      <tr><td>app/app.css</td><td>edit</td>
+        <td>now-up exit keyframes, tv-* type scale tweaks</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="golden-path">
+  <h2>Golden path</h2>
+  <pre class="mermaid">
+sequenceDiagram
+  participant G as Guest phone
+  participant H as Host phone Controls tab
+  participant DO as KaraokeRoom DO
+  participant TV as TV room screen
+  G->>DO: join via WebSocket
+  DO-->>TV: roster.updated
+  TV->>TV: roster chip animates in plus join jingle
+  H->>DO: playback.play
+  DO-->>TV: playback.updated
+  TV->>TV: You're up overlay at full opacity with fanfare, 5s, animated exit
+  TV->>TV: video at max size, queue and QR in right rail
+  </pre>
+</section>
+
+<section id="error-paths" data-brain-section="error-paths">
+  <h2>Error paths</h2>
+  <table>
+    <thead><tr><th>Failure</th><th>Detected by</th><th>Handled by</th><th>User sees</th></tr></thead>
+    <tbody data-brain-section="error-paths-body">
+      <tr data-brain-item="0">
+        <td data-item-text data-brain-action>Host never opens phone → TV can't start playback (if decision 1 = remove entirely)</td>
+        <td>n/a (by design)</td>
+        <td>lobby shows "scan to control from your phone" hint next to QR</td>
+        <td>clear instruction instead of a dead screen</td>
+      </tr>
+      <tr data-brain-item="1">
+        <td data-item-text data-brain-action>Very long song title</td>
+        <td>CSS line clamp</td>
+        <td>2-line wrap + ellipsis</td>
+        <td>wrapped title, no layout shift</td>
+      </tr>
+      <tr data-brain-item="2">
+        <td data-item-text data-brain-action>30+ guests join</td>
+        <td>roster overflow</td>
+        <td>internal scroll in the roster panel only — page never scrolls</td>
+        <td>scrollable participant list</td>
+      </tr>
+      <tr data-brain-item="3">
+        <td data-item-text data-brain-action>prefers-reduced-motion</td>
+        <td>existing CSS media gate</td>
+        <td>animations collapse to 0.01ms; overlay still shows 5s then disappears</td>
+        <td>static 5s announcement</td>
+      </tr>
+      <tr data-brain-item="4">
+        <td data-item-text data-brain-action>WebAudio blocked before user gesture</td>
+        <td>existing party-sounds ctx guard</td>
+        <td>sounds silently skipped until unlocked (unchanged pattern)</td>
+        <td>no error, sounds start after first interaction</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="testing-plan" data-brain-section="testing-plan">
+  <h2>Testing plan</h2>
+  <ul class="checklist">
+    <template>
+      <li data-brain-item>
+        <label><input type="checkbox"> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Unit: party-sounds jingle/fanfare scheduling (extend the 13 existing tests, injectable ctx)</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Full suite stays green (404 tests at last count) + typecheck 0 + build PASS</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="2"><label><input type="checkbox">
+      <span data-item-text data-brain-action>feature-verifier at 1920×1080: lobby no-scroll, playing no-scroll, overlay 5s + exit, phone host controls drive playback with TV buttons gone</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="3"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Error path: 90-char title wraps; 30-guest roster scrolls internally only</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="4"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Regression: guest phone flow (search/add/reorder) untouched and verified in the same walk</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing-plan">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0">
+      <span data-item-text data-brain-action>Should the "your turn" fanfare respect the same host mute toggle as join/add pops, or get its own toggle?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1">
+      <span data-item-text data-brain-action>Does the persistent corner QR from feat-008 disappear entirely now that the QR lives in the right rail, or stay for the lobby state?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="verdict">
+  <h2>Verdict</h2>
+  <div>
+    <button type="button" class="btn-approve" data-brain-action
+      onclick="queueVerdict('approve')">Approve plan</button>
+    <button type="button" class="btn-request-changes" data-brain-action
+      onclick="queueVerdict('request-changes')">Request changes</button>
+  </div>
+</section>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+
+  function queueVerdict(verdict) {
+    if (!(window.brain && typeof window.brain.queuePrompt === "function")) return;
+    window.brain.queuePrompt({
+      tag: "message",
+      queueKey: "verdict",
+      prompt: verdict === "approve"
+        ? "Plan approved as written."
+        : "Requesting changes — see annotations."
+    });
+  }
+
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

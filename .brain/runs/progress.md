@@ -21,6 +21,13 @@
 
 ---
 
+## 2026-07-17 — shipped tv-beta-polish: Shipped 2026-07-17. Plan plans/tv-beta-feedback.html (reviewed 2026-07-16 round 1, 3 decisions). 4 build commits on feat
+- branch: `feat/tv-beta-polish`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-16 — PR #3 SQUASH-MERGED to main (cb1ee80): feat-008 ui-overhaul complete end-to-end. All checks green pre-merge (baseline, build, e2e, non-negotiables sweep, preview deploy, Greptile re-review pass). Feature wall-clock: plan review → merge same day 2026-07-16.
 - branch: `feat/ui-overhaul`
 - in-progress feature: none
