@@ -39,6 +39,14 @@ export function ReactionBar({ send, disabled }: ReactionBarProps) {
   const { t } = useTranslation("room");
   const pendingRef = useRef<Partial<Record<ReactionEmoji, number>>>({});
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref-stash `send` so the batched flush (fired from a setTimeout) always
+  // calls the latest prop — same pattern as `onReactionBurstRef` in
+  // use-room-socket.ts. `send` is currently stable, but the timer must not
+  // rely on that staying true.
+  const sendRef = useRef(send);
+  useEffect(() => {
+    sendRef.current = send;
+  });
   // Bumped on every tap purely to re-trigger the sr-only `aria-live`
   // announcement below — screen readers only announce a live region when
   // its content actually changes, and "Reaction sent" alone wouldn't change
@@ -58,7 +66,7 @@ export function ReactionBar({ send, disabled }: ReactionBarProps) {
     for (const emoji of REACTION_EMOJIS) {
       const count = pending[emoji];
       if (!count) continue;
-      send({ type: "reaction.send", emoji, count });
+      sendRef.current({ type: "reaction.send", emoji, count });
     }
   };
 

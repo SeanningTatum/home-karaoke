@@ -36,7 +36,15 @@ export const RECAP_MS = 3500;
  * belt-and-suspenders guard as `NowUpOverlay.EXIT_FALLBACK_MS`: a missed
  * `animationend` event, or `prefers-reduced-motion` collapsing the animation
  * to ~0ms and some browsers skipping the event entirely for it. */
-const EXIT_FALLBACK_MS = 600;
+export const EXIT_FALLBACK_MS = 600;
+
+/** Total time from the recap appearing to it being fully gone (visible hold +
+ * exit window). Use this, not `RECAP_MS` alone, when deferring anything that
+ * must appear *after* the recap has fully cleared the screen — the recap
+ * stacks above `NowUpOverlay` (later in the JSX at the same z-50), so a
+ * `RECAP_MS`-only deferral would run the "You're up" entrance hidden behind
+ * the still-opaque exiting card. */
+export const RECAP_TOTAL_MS = RECAP_MS + EXIT_FALLBACK_MS;
 
 /**
  * End-of-song crowd recap card — announces how the crowd reacted to the song

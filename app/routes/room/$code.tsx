@@ -49,7 +49,7 @@ import {
   ReactionOverlay,
   type ReactionOverlayHandle,
 } from "@/components/room/reaction-overlay";
-import { ReactionRecap, RECAP_MS } from "@/components/room/reaction-recap";
+import { ReactionRecap, RECAP_TOTAL_MS } from "@/components/room/reaction-recap";
 import type { Route } from "./+types/$code";
 
 /** localStorage key for the host's party-sounds mute toggle. Absent (or any
@@ -301,7 +301,7 @@ function RoomHostView({
   // Fires the "You're up, {nickname}!" card + fanfare together (see the
   // FANFARE_SOUND doc comment — they must never drift apart) and (re)arms
   // the 5s auto-dismiss. Pulled out of the effect below so it can be called
-  // either immediately or after the `RECAP_MS` reaction-recap deferral.
+  // either immediately or after the `RECAP_TOTAL_MS` reaction-recap deferral.
   const announceNowUp = (nickname: string) => {
     if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
     setNowUpSinger({ nickname });
@@ -338,13 +338,14 @@ function RoomHostView({
     // The server broadcasts `reaction.recap` for the just-finished song
     // BEFORE the `playback.updated` that advances `currentItem` — so
     // `recapActiveRef.current` is already set by the time this effect
-    // re-runs. Defer the announcement by `RECAP_MS` (the recap card's own
-    // visible duration) so the two never overlap on the TV.
+    // re-runs. Defer the announcement by `RECAP_TOTAL_MS` (visible hold +
+    // exit window) so the "You're up" entrance never runs hidden behind the
+    // still-opaque exiting recap card, which stacks above it at the same z.
     if (recapActiveRef.current) {
       nowUpAnnounceDelayTimerRef.current = setTimeout(() => {
         nowUpAnnounceDelayTimerRef.current = null;
         announceNowUp(nickname);
-      }, RECAP_MS);
+      }, RECAP_TOTAL_MS);
     } else {
       announceNowUp(nickname);
     }
@@ -449,7 +450,7 @@ function RoomHostView({
 
   // Recap card finished (visible hold + exit animation) — clear it and let
   // the deferred "You're up" announcement (if any is pending) proceed on its
-  // own RECAP_MS timer, which was armed independently in the effect above.
+  // own RECAP_TOTAL_MS timer, which was armed independently in the effect above.
   const handleRecapDone = () => {
     setRecap(null);
     recapActiveRef.current = false;
