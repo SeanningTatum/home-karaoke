@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  IconArrowBarUp,
-  IconArrowUp,
   IconGripVertical,
   IconMusic,
   IconPlaylist,
@@ -29,7 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InitialsAvatar } from "@/components/room/initials-avatar";
 import { cn } from "@/lib/utils";
-import { moveToTopIndex, moveUpIndex } from "@/lib/room-state";
 import type { QueueItem, Role } from "@/lib/schemas/room-ws";
 
 export interface QueueRailProps {
@@ -142,29 +139,6 @@ export function QueueRail({
     onReorder?.(String(active.id), newIndex);
   };
 
-  // Tap-based reorder (alongside the existing drag handle above) — reuses
-  // the SAME `queue.reorder` wire message the drag path sends (single
-  // writer stays the room DO; no new protocol message). `moveUpIndex`/
-  // `moveToTopIndex` are the pure helpers next to the rest of the reducers
-  // in `app/lib/room-state.ts`.
-  const handleMoveUp = (queueItemId: string) => {
-    const newIndex = moveUpIndex(displayQueue, queueItemId);
-    if (newIndex === null) return;
-    const oldIndex = displayQueue.findIndex((q) => q.id === queueItemId);
-    if (oldIndex === -1) return;
-    setDisplayQueue((prev) => arrayMove([...prev], oldIndex, newIndex));
-    onReorder?.(queueItemId, newIndex);
-  };
-
-  const handleMoveToTop = (queueItemId: string) => {
-    const newIndex = moveToTopIndex(displayQueue, queueItemId);
-    if (newIndex === null) return;
-    const oldIndex = displayQueue.findIndex((q) => q.id === queueItemId);
-    if (oldIndex === -1) return;
-    setDisplayQueue((prev) => arrayMove([...prev], oldIndex, newIndex));
-    onReorder?.(queueItemId, newIndex);
-  };
-
   return (
     <div
       data-testid="room-queue-rail"
@@ -222,13 +196,8 @@ export function QueueRail({
             items={displayQueue.map((item) => item.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ul
-              className={cn(
-                "flex flex-col overflow-y-auto",
-                isTv ? "gap-3" : "gap-2"
-              )}
-            >
-              {displayQueue.map((item, index) => {
+            <ul className="flex flex-col gap-2 overflow-y-auto">
+              {displayQueue.map((item) => {
                 const isOwn =
                   ownUserId != null && item.addedByUserId === ownUserId;
                 const canRemove =
@@ -238,12 +207,9 @@ export function QueueRail({
                     key={item.id}
                     item={item}
                     isOwn={isOwn}
-                    isFirst={index === 0}
                     reorderable={reorderable}
                     canRemove={canRemove}
                     onRemove={onRemove}
-                    onMoveUp={handleMoveUp}
-                    onMoveToTop={handleMoveToTop}
                     isTv={isTv}
                     isNew={hasSeededRef.current && !knownQueueIdsRef.current.has(item.id)}
                   />
@@ -260,16 +226,9 @@ export function QueueRail({
 interface QueueRowProps {
   readonly item: QueueItem;
   readonly isOwn: boolean;
-  /** Already at the front of the queue — hides/disables the tap-reorder
-   * buttons since there's nowhere further up to move. */
-  readonly isFirst: boolean;
   readonly reorderable: boolean;
   readonly canRemove: boolean;
   readonly onRemove?: (queueItemId: string) => void;
-  /** Tap-based reorder alongside the drag handle — compact (phone) rows
-   * only, see `isTv` guard below. Omit to hide the buttons entirely. */
-  readonly onMoveUp?: (queueItemId: string) => void;
-  readonly onMoveToTop?: (queueItemId: string) => void;
   /** TV type scale + added-by chip (see `QueueRailProps.size`). */
   readonly isTv?: boolean;
   /** True for a row whose id `QueueRail` has never seen before — plays the
@@ -281,12 +240,9 @@ interface QueueRowProps {
 function QueueRow({
   item,
   isOwn,
-  isFirst,
   reorderable,
   canRemove,
   onRemove,
-  onMoveUp,
-  onMoveToTop,
   isTv = false,
   isNew = false,
 }: QueueRowProps) {
@@ -304,13 +260,133 @@ function QueueRow({
     transition,
   };
 
-  // Tap-based move-up/move-to-top buttons are a phone-only affordance
-  // (drag is awkward with one thumb) — the TV screen keeps drag-only.
-  // Gated by the SAME `reorderable` flag the drag handle uses (host
-  // always; guest only when `allowGuestReorder`), plus `isFirst` since
-  // there's nothing to do at the front of the queue.
-  const showMoveButtons = reorderable && !isTv && !isFirst;
+  const dragHandle = reorderable ? (
+    <button
+      type="button"
+      data-testid="room-queue-drag-handle"
+      aria-label={t("queue.drag_handle")}
+      className={cn(
+        "flex shrink-0 touch-none items-center justify-center rounded text-muted-foreground hover:text-foreground active:cursor-grabbing",
+        isTv ? "p-1" : "p-1"
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      <IconGripVertical className={isTv ? "size-5" : "size-4"} />
+    </button>
+  ) : null;
 
+  const thumbnail = item.thumbnailUrl ? (
+    <img
+      src={item.thumbnailUrl}
+      alt=""
+      className="size-12 shrink-0 rounded-lg object-cover"
+    />
+  ) : (
+    <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+      <IconMusic className="size-5 text-muted-foreground" />
+    </span>
+  );
+
+  const title = (
+    <p
+      className={cn(
+        "font-semibold leading-tight",
+        // Narrow (~280px) TV rail: `tv-body` (28px) truncated a real title
+        // down to a couple of glyphs. A 16px 2-line clamp shows meaningful
+        // text instead — beta feedback overrides the 10-foot "nothing under
+        // 24px" rule for this cramped rail specifically.
+        isTv ? "line-clamp-2 text-base" : "truncate text-sm"
+      )}
+    >
+      {item.title}
+    </p>
+  );
+
+  // Added-by chip — `item.singerNickname` is server-set from the adding
+  // guest's own WS identity (see `applyClientMessage` / `karaoke-room.ts`'s
+  // `x-nickname` header), never client-reported, so it already IS "who
+  // added this" data end-to-end.
+  const singer = (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <InitialsAvatar
+        name={item.singerNickname}
+        size="sm"
+        className={isTv ? "size-6 text-[0.65rem]" : "size-5 text-[0.6rem]"}
+      />
+      <p
+        className={cn(
+          "truncate text-muted-foreground",
+          isTv ? "text-sm font-medium" : "text-xs"
+        )}
+      >
+        {t("queue.singer", { name: item.singerNickname })}
+      </p>
+    </div>
+  );
+
+  const ownBadge = isOwn ? (
+    <Badge
+      variant="outline"
+      data-testid="room-queue-own-marker"
+      className={cn(
+        "shrink-0",
+        // See the queue-count Badge above for why this is composed from
+        // plain Tailwind utilities rather than `tv-label`.
+        isTv && "px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.04em]"
+      )}
+    >
+      {t("queue.you")}
+    </Badge>
+  ) : null;
+
+  const removeButton = canRemove ? (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      data-testid="room-queue-remove"
+      aria-label={t("queue.remove")}
+      className="shrink-0 text-muted-foreground hover:text-destructive"
+      onClick={() => onRemove?.(item.id)}
+    >
+      <IconX className={isTv ? "size-5" : "size-4"} />
+    </Button>
+  ) : null;
+
+  // TV rail (~280px): a VERTICAL card — thumbnail + title on top, the meta
+  // row (added-by + own marker + remove) beneath — so a long title gets the
+  // full card width for its 2-line clamp instead of competing horizontally
+  // with the badge/remove controls (beta feedback: top-to-bottom fits more).
+  if (isTv) {
+    return (
+      <li
+        ref={setNodeRef}
+        style={style}
+        data-testid="room-queue-item"
+        data-own={isOwn ? "true" : undefined}
+        className={cn(
+          "flex flex-col gap-2 rounded-xl border border-border bg-card p-2.5",
+          isOwn && "border-primary/50 bg-primary/5",
+          isDragging && "z-10 opacity-70 shadow-md",
+          entered && "animate-queue-row-in"
+        )}
+      >
+        <div className="flex items-start gap-2">
+          {dragHandle}
+          {thumbnail}
+          <div className="min-w-0 flex-1">{title}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">{singer}</div>
+          {ownBadge}
+          {removeButton}
+        </div>
+      </li>
+    );
+  }
+
+  // Compact (phone Search/Queue/Controls tabs): the original horizontal row.
   return (
     <li
       ref={setNodeRef}
@@ -318,147 +394,19 @@ function QueueRow({
       data-testid="room-queue-item"
       data-own={isOwn ? "true" : undefined}
       className={cn(
-        "flex items-center rounded-md border border-border bg-card",
-        isTv ? "gap-3 rounded-xl p-3" : "gap-2 p-2",
+        "flex items-center gap-2 rounded-md border border-border bg-card p-2",
         isOwn && "border-primary/50 bg-primary/5",
-        isDragging && "z-10 opacity-70 shadow-md",
-        isTv && entered && "animate-queue-row-in"
+        isDragging && "z-10 opacity-70 shadow-md"
       )}
     >
-      {reorderable && (
-        <button
-          type="button"
-          data-testid="room-queue-drag-handle"
-          aria-label={t("queue.drag_handle")}
-          className={cn(
-            "flex shrink-0 touch-none items-center justify-center rounded text-muted-foreground hover:text-foreground active:cursor-grabbing",
-            isTv ? "p-1.5" : "p-1"
-          )}
-          {...attributes}
-          {...listeners}
-        >
-          <IconGripVertical className={isTv ? "size-5" : "size-4"} />
-        </button>
-      )}
-      {showMoveButtons && (
-        <div className="flex shrink-0 flex-col gap-0.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            data-testid="room-queue-move-up"
-            aria-label={t("queue.move_up")}
-            title={t("queue.move_up")}
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => onMoveUp?.(item.id)}
-          >
-            <IconArrowUp className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            data-testid="room-queue-move-top"
-            aria-label={t("queue.move_to_top")}
-            title={t("queue.move_to_top")}
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => onMoveToTop?.(item.id)}
-          >
-            <IconArrowBarUp className="size-3.5" />
-          </Button>
-        </div>
-      )}
-      {item.thumbnailUrl ? (
-        <img
-          src={item.thumbnailUrl}
-          alt=""
-          className={cn(
-            "shrink-0 rounded object-cover",
-            isTv ? "size-14 rounded-lg" : "size-12"
-          )}
-        />
-      ) : (
-        <span
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded bg-muted",
-            isTv ? "size-14 rounded-lg" : "size-12"
-          )}
-        >
-          <IconMusic
-            className={cn("text-muted-foreground", isTv ? "size-6" : "size-5")}
-          />
-        </span>
-      )}
+      {dragHandle}
+      {thumbnail}
       <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "font-semibold leading-tight",
-            // Narrow (~320px) TV rail: `tv-body` (28px) truncated a real
-            // title down to a couple of glyphs. A 16px 2-line clamp shows
-            // meaningful text instead — beta feedback overrides the 10-foot
-            // "nothing under 24px" rule for this cramped rail specifically.
-            isTv ? "line-clamp-2 text-base" : "truncate text-sm"
-          )}
-        >
-          {item.title}
-        </p>
-        {/* Added-by chip — `item.singerNickname` is server-set from the
-            adding guest's own WS identity (see `applyClientMessage` /
-            `karaoke-room.ts`'s `x-nickname` header), never client-reported,
-            so it already IS "who added this" data end-to-end. */}
-        {isTv ? (
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <InitialsAvatar
-              name={item.singerNickname}
-              size="sm"
-              className="size-6 text-[0.65rem]"
-            />
-            <p
-              // Sized down for the narrow TV rail (was 24px, which forced
-              // the nickname to a single initial). 14px keeps the full
-              // name readable alongside the 2-line title above.
-              className="truncate text-sm font-medium text-muted-foreground"
-            >
-              {t("queue.singer", { name: item.singerNickname })}
-            </p>
-          </div>
-        ) : (
-          <div className="mt-1 flex items-center gap-1.5">
-            <InitialsAvatar name={item.singerNickname} size="sm" className="size-5 text-[0.6rem]" />
-            <p className="truncate text-xs text-muted-foreground">
-              {t("queue.singer", { name: item.singerNickname })}
-            </p>
-          </div>
-        )}
+        {title}
+        <div className="mt-1">{singer}</div>
       </div>
-      {isOwn && (
-        <Badge
-          variant="outline"
-          data-testid="room-queue-own-marker"
-          className={cn(
-            "shrink-0",
-            // See the queue-count Badge above for why this is composed
-            // from plain Tailwind utilities rather than `tv-label`. Sized
-            // for the narrow rail (was 24px) so it doesn't crowd the row.
-            isTv && "px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.04em]"
-          )}
-        >
-          {t("queue.you")}
-        </Badge>
-      )}
-      {canRemove && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          data-testid="room-queue-remove"
-          aria-label={t("queue.remove")}
-          className="shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={() => onRemove?.(item.id)}
-        >
-          <IconX className={isTv ? "size-5" : "size-4"} />
-        </Button>
-      )}
+      {ownBadge}
+      {removeButton}
     </li>
   );
 }

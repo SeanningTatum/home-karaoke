@@ -8,8 +8,6 @@ import {
   IconDoorExit,
   IconMusic,
   IconPlaylist,
-  IconVolume,
-  IconVolumeOff,
 } from "@tabler/icons-react";
 
 import { requireSession } from "@/lib/session";
@@ -158,13 +156,16 @@ function RoomHostView({
   // data instead of firing for everyone already in the room on connect.
   const hasReceivedSnapshot = state.settings !== null;
 
-  // Host mute toggle for the WebAudio party sounds below (join/add jingles +
-  // the "you're up!" fanfare) — default unmuted, persisted so it survives a
-  // page reload. Starts `false` (SSR and first client paint agree) and only
-  // flips after mount reading localStorage, same pattern as `NicknameForm`'s
-  // stored-nickname prefill. Declared up here (ahead of the celebration/
-  // now-up effects below) so `partySoundsRef` exists before the fanfare
-  // trigger needs it.
+  // Party-sounds mute for the WebAudio jingles below (join/add + the
+  // "you're up!" fanfare). The on-screen TV toggle was removed per beta
+  // feedback (annotation C) — we still honor the persisted default so a
+  // room that was previously muted stays muted, but there's no longer a
+  // control surface for it on the TV. (A future home for the toggle, if one
+  // is wanted, is the phone Controls tab alongside the other host controls.)
+  // Starts `false` so SSR and first client paint agree, then flips after
+  // mount from localStorage — same pattern as `NicknameForm`'s stored
+  // nickname prefill. The play path reads `soundsMutedRef`, not this state
+  // directly, so `partySoundsRef` (below) never needs recreating.
   const [soundsMuted, setSoundsMuted] = useState(false);
   const soundsMutedRef = useRef(soundsMuted);
   useEffect(() => {
@@ -175,14 +176,6 @@ function RoomHostView({
     const stored = window.localStorage.getItem(PARTY_SOUNDS_STORAGE_KEY);
     if (stored === "off") setSoundsMuted(true);
   }, []);
-
-  const toggleSounds = () => {
-    setSoundsMuted((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(PARTY_SOUNDS_STORAGE_KEY, next ? "off" : "on");
-      return next;
-    });
-  };
 
   // Lazily-created once per mount — `createPartySounds` itself never touches
   // `AudioContext` until the first non-muted play, so it's cheap to build
@@ -368,114 +361,101 @@ function RoomHostView({
   return (
     <div
       data-testid="room-host-view"
-      className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground"
+      className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground lg:flex-row"
     >
-      {/* Top bar holds only the room-level controls now (sounds / connection
-          / end party). The now-singing title moved into the LEFT column of
-          the playing grid below, next to the video, so the video can be the
-          largest element on the TV. */}
-      <div className="flex items-center justify-end gap-3 pb-4">
-        <div className="flex shrink-0 items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            data-testid="room-sounds-toggle"
-            aria-label={
-              soundsMuted ? t("sounds.unmute_label") : t("sounds.mute_label")
-            }
-            title={soundsMuted ? t("sounds.unmute_label") : t("sounds.mute_label")}
-            onClick={toggleSounds}
-          >
-            {soundsMuted ? (
-              <IconVolumeOff className="size-5" />
-            ) : (
-              <IconVolume className="size-5" />
-            )}
-          </Button>
-          <ConnectionStatusPill status={connectionStatus} />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                size="lg"
-                data-testid="room-end-party-button"
-                className="gap-2 text-2xl font-semibold"
+      {/* MAIN column — the navbar-style top bar sits INSIDE this column (not
+          spanning the rail) so the rail can extend the full viewport height
+          beside it (annotation H). Below it: the playing video (kept mounted,
+          just hidden, in the lobby so the YoutubePlayer IFrame + its
+          user-gesture "started" flag survive the lobby -> playing transition)
+          or the lobby's two-column layout. */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Top bar: "Party lobby" acts as a navbar title on the LEFT in the
+            lobby (annotation D); room-level controls on the RIGHT. The
+            party-sounds toggle was removed per beta feedback (annotation C) —
+            the persisted mute default is still honored, there's just no TV
+            control for it. */}
+        <div className="flex items-center justify-between gap-3 pb-4">
+          <div className="flex min-w-0 items-center">
+            {!hasCurrentItem && (
+              <h1
+                data-testid="room-lobby-heading"
+                className="tv-title-sm uppercase tracking-[0.12em] text-muted-foreground"
               >
-                <IconDoorExit className="size-5" />
-                {t("controls.end_party")}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent data-testid="room-end-party-dialog">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-4xl font-bold font-display">
-                  {t("controls.end_party_confirm_title")}
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
-                  {t("controls.end_party_confirm_description")}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel
-                  data-testid="room-end-party-cancel"
-                  size="lg"
-                  // `AlertDialogCancel`/`AlertDialogAction` render via
-                  // Radix's `asChild` Slot, which merges this className
-                  // onto the child by plain concatenation — NOT through
-                  // `tailwind-merge` — so a same-specificity override
-                  // (`text-2xl`) can lose to the wrapped Button's own
-                  // baked-in `text-sm` depending on generated CSS order.
-                  // `!` forces it to win regardless.
-                  className="!text-2xl !font-semibold"
-                >
-                  {t("controls.end_party_cancel")}
-                </AlertDialogCancel>
-                <AlertDialogAction
+                {t("lobby.heading")}
+              </h1>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <ConnectionStatusPill status={connectionStatus} />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
                   variant="destructive"
-                  data-testid="room-end-party-confirm"
                   size="lg"
-                  disabled={closeRoom.isPending}
-                  onClick={() => closeRoom.mutate({ roomId: room.id })}
-                  className="!text-2xl !font-semibold"
+                  data-testid="room-end-party-button"
+                  className="gap-2 text-2xl font-semibold"
                 >
-                  {t("controls.end_party_confirm_action")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <IconDoorExit className="size-5" />
+                  {t("controls.end_party")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent data-testid="room-end-party-dialog">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-4xl font-bold font-display">
+                    {t("controls.end_party_confirm_title")}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
+                    {t("controls.end_party_confirm_description")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    data-testid="room-end-party-cancel"
+                    size="lg"
+                    // `AlertDialogCancel`/`AlertDialogAction` render via
+                    // Radix's `asChild` Slot, which merges this className
+                    // onto the child by plain concatenation — NOT through
+                    // `tailwind-merge` — so a same-specificity override
+                    // (`text-2xl`) can lose to the wrapped Button's own
+                    // baked-in `text-sm` depending on generated CSS order.
+                    // `!` forces it to win regardless.
+                    className="!text-2xl !font-semibold"
+                  >
+                    {t("controls.end_party_cancel")}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    data-testid="room-end-party-confirm"
+                    size="lg"
+                    disabled={closeRoom.isPending}
+                    onClick={() => closeRoom.mutate({ roomId: room.id })}
+                    className="!text-2xl !font-semibold"
+                  >
+                    {t("controls.end_party_confirm_action")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
-      </div>
 
-      {/* Playing state — kept mounted (just hidden) rather than
-          conditionally unmounted while in the lobby, so the YoutubePlayer's
-          IFrame instance and its user-gesture "started" flag survive the
-          lobby -> playing transition instead of resetting.
-
-          Beta feedback (1080p TV): make the video the single largest element.
-          LEFT column = compact title + video that grows to fill all leftover
-          height (`fill` letterboxes it against the black surface, so it's as
-          big as fits with zero page scroll). RIGHT rail is fixed and slim
-          (~320px, down from the old minmax(340px,1fr)): participants on top,
-          the queue taking the flex-1 middle with its own scroll, and the join
-          QR pinned at the bottom so guests can keep joining mid-session.
-          There are NO on-screen playback controls here anymore — the host
-          drives play/pause/skip from the phone Controls tab on /join/:code. */}
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]",
-          !hasCurrentItem && "hidden"
-        )}
-      >
-        <div className="flex min-h-0 flex-col gap-3">
+        {/* Playing video — the single largest element on the TV. `fill`
+            letterboxes it against the black surface so it's as big as the
+            leftover height allows, never overflowing the viewport. Kept
+            mounted, hidden in the lobby (see MAIN column comment). */}
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col gap-3",
+            !hasCurrentItem && "hidden"
+          )}
+        >
           <div className="shrink-0">
             <NowSingingBanner
               currentItem={playback?.currentItem ?? null}
               size="tv"
             />
           </div>
-          {/* Flex-1 box the video fills; `YoutubePlayer fill` + `inset-0`
-              lets the video be as large as the leftover height allows,
-              letterboxed, never overflowing the viewport. */}
           <div className="relative min-h-0 flex-1">
             <YoutubePlayer
               fill
@@ -487,110 +467,44 @@ function RoomHostView({
           </div>
         </div>
 
-        <div
-          data-testid="room-playing-rail"
-          className="flex min-h-0 flex-col gap-4 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0"
-        >
-          <div data-testid="room-playing-participants" className="shrink-0">
-            <RosterStrip roster={roster} size="compact" />
-          </div>
-
-          <div className="min-h-0 flex-1">
-            <QueueRail
-              queue={queue}
-              viewerRole="host"
-              reorderable
-              size="tv"
-              onReorder={(queueItemId, toIndex) =>
-                send({ type: "queue.reorder", queueItemId, toIndex })
-              }
-              onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
-            />
-          </div>
-
-          {/* Join QR pinned at the bottom of the rail so guests can keep
-              scanning in mid-session (this replaces feat-008's persistent
-              corner panel, which now shows only in the lobby state). */}
-          <div data-testid="room-playing-join" className="shrink-0">
-            <JoinPanel
-              joinUrl={joinUrl}
-              code={code}
-              size="sm"
-              className="w-full"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Lobby state — party's about to start: horizontal two-column layout
-          that fits a 1920x1080 TV with zero page scroll (beta feedback: the
-          old stacked layout scrolled). QR hero fixed on the LEFT; the
-          "who's here" roster board fills the RIGHT and owns its own
-          internal `overflow-y-auto` (see RosterStrip) so 30+ guests scroll
-          inside their panel — never the page. `min-h-0` is required
-          alongside `overflow-y-auto`/`overflow-hidden` throughout here:
-          this div is a `flex-1` child of the `h-screen flex-col
-          overflow-hidden` root above, and a flex/grid item's default
-          `min-height: auto` refuses to shrink below its content size —
-          without `min-h-0` on every nested flex/grid child, content would
-          just grow taller than the viewport instead of becoming its own
-          scroll region. Below `lg` (host previewing on a laptop, not the
-          TV) it stacks into a single column and the outer lobby can scroll
-          as a fallback. */}
-      {!hasCurrentItem && (
-        <div
-          data-testid="room-lobby"
-          className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto lg:overflow-hidden"
-        >
-          {/* Page-level header row above BOTH columns (was a lone label
-              centered over just the right panel, which read as orphaned).
-              Left-aligned so it clearly titles the whole lobby page. */}
-          <header className="shrink-0">
-            <h1
-              data-testid="room-lobby-heading"
-              className="tv-title-sm uppercase tracking-[0.12em] text-muted-foreground"
-            >
-              {t("lobby.heading")}
-            </h1>
-          </header>
-
-          {/* Wider than the old `max-w-6xl` (1152px) — at 1920px wide a TV
-              has plenty of room for a much wider two-column split before
-              the QR/roster columns feel cramped. LEFT = QR hero only;
-              RIGHT = roster board + (when songs are queued) a queue preview. */}
-          <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(420px,540px)_1fr]">
-            <div className="flex min-h-0 flex-col items-center overflow-y-auto lg:justify-center">
-              <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
-            </div>
-
-            {/* Right column: "who's here" board (fills + scrolls internally)
-                plus a read-only queue preview pinned below it once songs are
-                queued. Playback is no longer startable from the TV (beta
-                decision: the phone Controls tab is the only playback surface
-                — see `lobby.playback_hint` in the QR card), so the preview is
-                purely informational. */}
-            <div className="flex min-h-0 flex-col gap-5">
-              <div
-                data-testid="room-lobby-roster-panel"
-                className="flex min-h-0 flex-1 overflow-hidden rounded-3xl border border-border/70 bg-card/40"
-              >
-                <RosterStrip roster={roster} />
+        {/* Lobby — two-column layout that fits a 1920x1080 TV with zero page
+            scroll. LEFT = QR hero, stretched to the full column height so it
+            matches the right column (annotation B). RIGHT = participants
+            board (~1/3 height, annotation A) over the queue panel (fills the
+            rest and always renders, annotation E). `min-h-0` on every nested
+            flex/grid child is required so panels become their own scroll
+            regions instead of growing past the viewport. Below `lg` (host
+            previewing on a laptop) it stacks and the lobby scrolls. */}
+        {!hasCurrentItem && (
+          <div
+            data-testid="room-lobby"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden"
+          >
+            <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(420px,540px)_1fr]">
+              {/* LEFT: QR hero, filling the full column height. */}
+              <div className="flex min-h-0">
+                <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
               </div>
 
-              {queue.length > 0 && (
+              {/* RIGHT: participants (top, ~1/3) + queue (below, fills). */}
+              <div className="flex min-h-0 flex-col gap-5">
+                <div
+                  data-testid="room-lobby-roster-panel"
+                  className="flex h-1/3 min-h-0 shrink-0 overflow-hidden rounded-3xl border border-border/70 bg-card/40"
+                >
+                  <RosterStrip roster={roster} />
+                </div>
+
                 <div
                   data-testid="room-lobby-queue"
-                  className="flex shrink-0 flex-col rounded-3xl border border-border/70 bg-card/40 p-6"
+                  className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border/70 bg-card/40 p-6"
                 >
-                  <div
-                    data-testid="room-lobby-queue-summary"
-                    className="flex min-h-0 flex-col"
-                  >
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h2 className="tv-title-sm flex items-center gap-2 text-foreground">
-                        <IconPlaylist className="size-6 text-primary" />
-                        {t("queue.title")}
-                      </h2>
+                  <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+                    <h2 className="tv-title-sm flex items-center gap-2 text-foreground">
+                      <IconPlaylist className="size-6 text-primary" />
+                      {t("queue.title")}
+                    </h2>
+                    {queue.length > 0 && (
                       <Badge
                         variant="secondary"
                         data-testid="room-lobby-queue-count"
@@ -598,9 +512,33 @@ function RoomHostView({
                       >
                         {t("queue.count", { count: queue.length })}
                       </Badge>
+                    )}
+                  </div>
+
+                  {queue.length === 0 ? (
+                    // Empty state — the queue panel renders even before any
+                    // song is added (annotation E) so the lobby's right
+                    // column reads as "participants + queue" from the start.
+                    <div
+                      data-testid="room-lobby-queue-empty"
+                      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center"
+                    >
+                      <span
+                        aria-hidden
+                        className="flex size-16 items-center justify-center rounded-full border border-border/60 bg-muted/40"
+                      >
+                        <IconMusic className="size-8 text-muted-foreground/60" />
+                      </span>
+                      <p className="tv-body max-w-sm text-muted-foreground">
+                        {t("queue.empty")}
+                      </p>
                     </div>
-                    <ul className="flex max-h-52 flex-col gap-2 overflow-y-auto pr-1">
-                      {queue.slice(0, 4).map((item) => (
+                  ) : (
+                    <ul
+                      data-testid="room-lobby-queue-summary"
+                      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
+                    >
+                      {queue.map((item) => (
                         <li
                           key={item.id}
                           data-testid="room-lobby-queue-item"
@@ -631,13 +569,50 @@ function RoomHostView({
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* RIGHT RAIL — playing state only, spanning the full viewport height
+          (annotation H): a sibling of MAIN so it runs from the top of the
+          tv-safe content area to the bottom (top-aligned above the title),
+          rather than starting below the top bar. Slimmed 320 -> 280px
+          (annotation H) to give the video more room. Participants on top, the
+          queue filling the flex-1 middle with its own scroll, the join QR
+          pinned at the bottom so guests can keep scanning mid-session. Kept
+          mounted, hidden in the lobby. */}
+      <div
+        data-testid="room-playing-rail"
+        className={cn(
+          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[280px] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
+          !hasCurrentItem && "hidden"
+        )}
+      >
+        <div data-testid="room-playing-participants" className="shrink-0">
+          <RosterStrip roster={roster} size="compact" />
         </div>
-      )}
+
+        <div className="min-h-0 flex-1">
+          <QueueRail
+            queue={queue}
+            viewerRole="host"
+            reorderable
+            size="tv"
+            onReorder={(queueItemId, toIndex) =>
+              send({ type: "queue.reorder", queueItemId, toIndex })
+            }
+            onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
+          />
+        </div>
+
+        <div data-testid="room-playing-join" className="shrink-0">
+          <JoinPanel joinUrl={joinUrl} code={code} size="sm" className="w-full" />
+        </div>
+      </div>
 
       <CelebrationBurst
         show={showCelebration}

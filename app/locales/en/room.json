@@ -16,6 +16,9 @@
     "volume_label": "Volume",
     "guest_reorder_label": "Let guests reorder the queue",
     "guest_reorder_description": "When on, any guest can drag songs to a new position — not just their own.",
+    "party_heading": "Party",
+    "start_party": "Start the party",
+    "start_party_hint": "Kick off playback on the big screen",
     "end_party": "End party",
     "end_party_confirm_title": "End this party?",
     "end_party_confirm_description": "This closes the room for everyone. Guests won't be able to rejoin, and the queue is cleared.",
@@ -32,9 +35,7 @@
     "singer": "{{name}}",
     "you": "You",
     "drag_handle": "Drag to reorder",
-    "remove": "Remove from queue",
-    "move_up": "Move up",
-    "move_to_top": "Move to top"
+    "remove": "Remove from queue"
   },
   "join": {
     "hint": "Scan to join & add songs",

@@ -16,6 +16,9 @@
     "volume_label": "音量",
     "guest_reorder_label": "允许访客调整队列顺序",
     "guest_reorder_description": "开启后，任何访客都可以拖动歌曲调整顺序 —— 不仅限于自己添加的歌曲。",
+    "party_heading": "派对",
+    "start_party": "开始派对",
+    "start_party_hint": "在大屏幕上开始播放",
     "end_party": "结束派对",
     "end_party_confirm_title": "结束这场派对？",
     "end_party_confirm_description": "这将为所有人关闭房间。访客将无法重新加入，队列也会被清空。",
@@ -31,9 +34,7 @@
     "singer": "{{name}}",
     "you": "你",
     "drag_handle": "拖动以调整顺序",
-    "remove": "从队列中移除",
-    "move_up": "上移",
-    "move_to_top": "移到最前"
+    "remove": "从队列中移除"
   },
   "join": {
     "hint": "扫码加入并添加歌曲",
