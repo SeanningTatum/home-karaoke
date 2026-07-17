@@ -58,7 +58,7 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
                 data-testid="room-roster-chip"
                 className="animate-chip-in flex items-center gap-1.5"
               >
-                <InitialsAvatar name={entry.nickname} size="sm" />
+                <InitialsAvatar name={entry.nickname} size="sm" src={entry.avatarUrl} />
                 <span className="max-w-24 truncate text-base font-medium text-foreground">
                   {entry.nickname}
                 </span>
@@ -108,6 +108,7 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
               name={entry.nickname}
               size="lg"
               className="size-20 text-2xl"
+              src={entry.avatarUrl}
             />
             <span className="max-w-28 truncate text-base font-medium text-foreground">
               {entry.nickname}

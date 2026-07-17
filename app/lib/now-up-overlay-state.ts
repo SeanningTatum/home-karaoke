@@ -7,6 +7,7 @@
 
 export interface NowUpSinger {
   readonly nickname: string;
+  readonly avatarUrl: string | null;
 }
 
 export interface NowUpDisplayState {

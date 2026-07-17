@@ -233,7 +233,10 @@ function RoomHostView({
   // separate observer of `playback.currentItem` — so it inherits the exact
   // same first-connect suppression as the overlay: both the visual card and
   // the sound only ever fire together, on a real singer CHANGE.
-  const [nowUpSinger, setNowUpSinger] = useState<{ nickname: string } | null>(null);
+  const [nowUpSinger, setNowUpSinger] = useState<{
+    nickname: string;
+    avatarUrl: string | null;
+  } | null>(null);
   const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
   const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
   const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -258,7 +261,10 @@ function RoomHostView({
     // motion preference too (just statically, via the global CSS collapse),
     // and its always-mounted aria-live region announces on top of that.
     if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
-    setNowUpSinger({ nickname: currentItem!.singerNickname });
+    setNowUpSinger({
+      nickname: currentItem!.singerNickname,
+      avatarUrl: currentItem!.singerAvatarUrl,
+    });
     partySoundsRef.current?.playFanfare();
     nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -560,7 +566,11 @@ function RoomHostView({
                               {item.title}
                             </p>
                             <div className="mt-1 flex items-center gap-1.5">
-                              <InitialsAvatar name={item.singerNickname} size="sm" />
+                              <InitialsAvatar
+                                name={item.singerNickname}
+                                size="sm"
+                                src={item.singerAvatarUrl}
+                              />
                               <p className="truncate text-sm text-muted-foreground">
                                 {t("queue.singer", { name: item.singerNickname })}
                               </p>
