@@ -51,6 +51,14 @@ export interface YoutubePlayerProps {
    */
   readonly onVideoError: () => void;
   readonly className?: string;
+  /**
+   * "fill" — the container fills its parent box (`h-full w-full`) and lets
+   * the YouTube IFrame letterbox the video inside it (black bars against the
+   * `bg-black` surface), so the video can be sized by an outer flex/grid box
+   * to be as large as possible without overflowing the viewport. Default
+   * (false) keeps the intrinsic `aspect-video w-full` box.
+   */
+  readonly fill?: boolean;
 }
 
 export function YoutubePlayer({
@@ -58,6 +66,7 @@ export function YoutubePlayer({
   onVideoEnded,
   onVideoError,
   className,
+  fill = false,
 }: YoutubePlayerProps) {
   const { t } = useTranslation("room");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,7 +176,8 @@ export function YoutubePlayer({
     <div
       data-testid="room-player-container"
       className={cn(
-        "relative aspect-video w-full overflow-hidden rounded-lg bg-black",
+        "relative overflow-hidden rounded-lg bg-black",
+        fill ? "h-full w-full" : "aspect-video w-full",
         className
       )}
     >

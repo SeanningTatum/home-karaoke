@@ -7,7 +7,6 @@ import {
   IconArrowLeft,
   IconDoorExit,
   IconMusic,
-  IconPlayerPlayFilled,
   IconPlaylist,
   IconVolume,
   IconVolumeOff,
@@ -37,7 +36,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { YoutubePlayer } from "@/components/room/youtube-player";
 import { NowSingingBanner } from "@/components/room/now-singing-banner";
-import { HostControls } from "@/components/room/host-controls";
 import { QueueRail } from "@/components/room/queue-rail";
 import { JoinPanel } from "@/components/room/join-panel";
 import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
@@ -342,11 +340,6 @@ function RoomHostView({
     });
   };
 
-  const handleSkip = () => {
-    recordCurrentIfPlaying();
-    send({ type: "playback.skip", currentItemId: playback?.currentItem?.id });
-  };
-
   const closeRoom = api.room.close.useMutation({
     onSuccess: () => navigate("/dashboard"),
     onError: (error) => {
@@ -359,15 +352,11 @@ function RoomHostView({
       data-testid="room-host-view"
       className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground"
     >
-      <div
-        className={cn(
-          "flex items-center gap-3 pb-4",
-          hasCurrentItem ? "justify-between" : "justify-end"
-        )}
-      >
-        {hasCurrentItem && (
-          <NowSingingBanner currentItem={playback?.currentItem ?? null} size="tv" />
-        )}
+      {/* Top bar holds only the room-level controls now (sounds / connection
+          / end party). The now-singing title moved into the LEFT column of
+          the playing grid below, next to the video, so the video can be the
+          largest element on the TV. */}
+      <div className="flex items-center justify-end gap-3 pb-4">
         <div className="flex shrink-0 items-center gap-3">
           <Button
             type="button"
@@ -442,45 +431,76 @@ function RoomHostView({
       {/* Playing state — kept mounted (just hidden) rather than
           conditionally unmounted while in the lobby, so the YoutubePlayer's
           IFrame instance and its user-gesture "started" flag survive the
-          lobby -> playing transition instead of resetting. */}
+          lobby -> playing transition instead of resetting.
+
+          Beta feedback (1080p TV): make the video the single largest element.
+          LEFT column = compact title + video that grows to fill all leftover
+          height (`fill` letterboxes it against the black surface, so it's as
+          big as fits with zero page scroll). RIGHT rail is fixed and slim
+          (~320px, down from the old minmax(340px,1fr)): participants on top,
+          the queue taking the flex-1 middle with its own scroll, and the join
+          QR pinned at the bottom so guests can keep joining mid-session.
+          There are NO on-screen playback controls here anymore — the host
+          drives play/pause/skip from the phone Controls tab on /join/:code. */}
       <div
         className={cn(
-          "grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[3fr_minmax(340px,1fr)]",
+          "grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]",
           !hasCurrentItem && "hidden"
         )}
       >
-        <div className="flex min-h-0 flex-col gap-4">
-          <YoutubePlayer
-            playback={playback}
-            onVideoEnded={handleVideoEnded}
-            onVideoError={handleVideoError}
-          />
-          <div className="flex items-center justify-between gap-4">
-            <HostControls
-              playback={playback}
-              queueLength={queue.length}
-              onPlay={() => send({ type: "playback.play" })}
-              onPause={() => send({ type: "playback.pause" })}
-              onSkip={handleSkip}
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="shrink-0">
+            <NowSingingBanner
+              currentItem={playback?.currentItem ?? null}
               size="tv"
             />
-            {/* Persistent join affordance while a song is playing — always
-                visible, never hidden behind an interaction. */}
-            <JoinPanel joinUrl={joinUrl} code={code} size="sm" />
+          </div>
+          {/* Flex-1 box the video fills; `YoutubePlayer fill` + `inset-0`
+              lets the video be as large as the leftover height allows,
+              letterboxed, never overflowing the viewport. */}
+          <div className="relative min-h-0 flex-1">
+            <YoutubePlayer
+              fill
+              className="absolute inset-0"
+              playback={playback}
+              onVideoEnded={handleVideoEnded}
+              onVideoError={handleVideoError}
+            />
           </div>
         </div>
 
-        <div className="min-h-0 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-          <QueueRail
-            queue={queue}
-            viewerRole="host"
-            reorderable
-            size="tv"
-            onReorder={(queueItemId, toIndex) =>
-              send({ type: "queue.reorder", queueItemId, toIndex })
-            }
-            onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
-          />
+        <div
+          data-testid="room-playing-rail"
+          className="flex min-h-0 flex-col gap-4 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0"
+        >
+          <div data-testid="room-playing-participants" className="shrink-0">
+            <RosterStrip roster={roster} size="compact" />
+          </div>
+
+          <div className="min-h-0 flex-1">
+            <QueueRail
+              queue={queue}
+              viewerRole="host"
+              reorderable
+              size="tv"
+              onReorder={(queueItemId, toIndex) =>
+                send({ type: "queue.reorder", queueItemId, toIndex })
+              }
+              onRemove={(queueItemId) => send({ type: "queue.remove", queueItemId })}
+            />
+          </div>
+
+          {/* Join QR pinned at the bottom of the rail so guests can keep
+              scanning in mid-session (this replaces feat-008's persistent
+              corner panel, which now shows only in the lobby state). */}
+          <div data-testid="room-playing-join" className="shrink-0">
+            <JoinPanel
+              joinUrl={joinUrl}
+              code={code}
+              size="sm"
+              className="w-full"
+            />
+          </div>
         </div>
       </div>
 
@@ -524,13 +544,12 @@ function RoomHostView({
                 {t("lobby.playback_hint")}
               </p>
 
-              {/* Regression fix (feature-verifier, ui-overhaul): from a cold
-                  lobby there was previously no way to start the party or see
-                  what's queued — `room-play-pause-button` + `QueueRail` only
-                  render once `hasCurrentItem` is true, which itself only
-                  becomes true AFTER `playback.play` is sent. Shown only once
-                  something's actually queued; an empty queue leaves the
-                  left column exactly as it was (QR + playback hint). */}
+              {/* Read-only preview of what's queued while the room is still
+                  in the lobby. Playback is no longer startable from the TV
+                  (beta decision: the phone Controls tab is the only playback
+                  surface — see `playback_hint` above), so this is purely
+                  informational now. Shown only once something's queued; an
+                  empty queue leaves the left column as just QR + hint. */}
               {queue.length > 0 && (
                 <div
                   data-testid="room-lobby-queue"
@@ -582,22 +601,6 @@ function RoomHostView({
                       ))}
                     </ul>
                   </div>
-
-                  {/* Sends the exact same `playback.play` message
-                      `HostControls`'s play button sends below — no new wire
-                      protocol. With no `currentItem` yet, `applyClientMessage`
-                      (`app/lib/room-state.ts`) pops the queue head into
-                      `currentItem`, which flips `hasCurrentItem` true and
-                      swaps this whole lobby for the playing-state grid. */}
-                  <Button
-                    size="lg"
-                    data-testid="room-lobby-start-party"
-                    className="gap-3 rounded-full bg-gradient-accent px-10 py-7 text-2xl font-semibold text-primary-foreground shadow-glow-accent hover:opacity-90"
-                    onClick={() => send({ type: "playback.play" })}
-                  >
-                    <IconPlayerPlayFilled className="size-6" />
-                    {t("player.start_party")}
-                  </Button>
                 </div>
               )}
             </div>

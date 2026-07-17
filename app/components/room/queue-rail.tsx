@@ -175,11 +175,11 @@ export function QueueRail({
           className={cn(
             "flex items-center text-muted-foreground",
             isTv
-              ? "tv-title gap-2 normal-case text-foreground"
+              ? "tv-title-sm gap-2 normal-case text-foreground"
               : "gap-1.5 text-sm font-medium uppercase tracking-wider"
           )}
         >
-          <IconPlaylist className={isTv ? "size-8 text-primary" : "size-4"} />
+          <IconPlaylist className={isTv ? "size-6 text-primary" : "size-4"} />
           {t("queue.title")}
         </h2>
         <Badge
@@ -195,7 +195,7 @@ export function QueueRail({
             // type scale) from plain Tailwind utilities here instead so
             // the override actually applies.
             isTv
-              ? "px-4 py-1.5 text-2xl font-semibold uppercase tracking-[0.04em]"
+              ? "px-3 py-1 text-xl font-semibold uppercase tracking-[0.04em]"
               : undefined
           }
         >

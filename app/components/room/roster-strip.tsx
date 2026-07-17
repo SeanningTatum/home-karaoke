@@ -6,6 +6,14 @@ import type { RosterEntry } from "@/lib/schemas/room-ws";
 
 export interface RosterStripProps {
   readonly roster: readonly RosterEntry[];
+  /**
+   * "lobby" (default) — the full-height "who's here" board that fills the
+   * lobby's right column with big avatars. "compact" — the slim participants
+   * strip pinned at the top of the playing-state right rail: a short header
+   * over a capped, internally-scrolling wrap of small avatar chips, so the
+   * queue below it keeps most of the rail's height.
+   */
+  readonly size?: "lobby" | "compact";
 }
 
 /**
@@ -21,9 +29,46 @@ export interface RosterStripProps {
  * and owns its own `overflow-y-auto` on the chip grid so a party of 30+
  * guests scrolls inside this panel — the lobby page itself never scrolls.
  */
-export function RosterStrip({ roster }: RosterStripProps) {
+export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
   const { t } = useTranslation("room");
   const guests = roster.filter((entry) => entry.role === "guest");
+
+  // Compact strip for the playing-state rail — small chips, capped height,
+  // its own scroll region so it never steals space from the queue below.
+  if (size === "compact") {
+    return (
+      <div
+        data-testid="room-roster-strip"
+        className="flex flex-col gap-2"
+      >
+        <p className="flex items-center gap-1.5 text-lg font-semibold text-muted-foreground">
+          <IconUsers className="size-5 shrink-0" aria-hidden />
+          {guests.length === 0
+            ? t("lobby.roster_empty")
+            : t("lobby.roster_title", { count: guests.length })}
+        </p>
+        {guests.length > 0 && (
+          <ul
+            data-testid="room-roster-chips-compact"
+            className="flex max-h-24 flex-wrap gap-x-3 gap-y-2 overflow-y-auto pr-1"
+          >
+            {guests.map((entry) => (
+              <li
+                key={entry.userId}
+                data-testid="room-roster-chip"
+                className="animate-chip-in flex items-center gap-1.5"
+              >
+                <InitialsAvatar name={entry.nickname} size="sm" />
+                <span className="max-w-24 truncate text-base font-medium text-foreground">
+                  {entry.nickname}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
 
   if (guests.length === 0) {
     return (
