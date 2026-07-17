@@ -34,7 +34,7 @@ export function NowSingingBanner({
     return (
       <div
         data-testid="room-now-singing"
-        className="flex min-w-0 items-center gap-4 text-foreground"
+        className="flex min-w-0 items-center text-foreground"
       >
         <div className="min-w-0">
           {/* Beta feedback: the old `tv-headline` (56px, single-line

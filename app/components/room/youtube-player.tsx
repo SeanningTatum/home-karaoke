@@ -159,7 +159,7 @@ export function YoutubePlayer({
     if (playback) player.setVolume(playback.volume);
   }, [playback, playerReady]);
 
-  const handleStartParty = () => {
+  const handleTapToPlay = () => {
     playerRef.current?.playVideo();
     setAutoplayBlocked(false);
   };
@@ -191,8 +191,8 @@ export function YoutubePlayer({
         <div className="absolute inset-0 flex items-center justify-center bg-black/70">
           <Button
             size="lg"
-            data-testid="room-start-party-button"
-            onClick={handleStartParty}
+            data-testid="room-tap-to-play-button"
+            onClick={handleTapToPlay}
           >
             <IconPlayerPlayFilled className="size-5" />
             {t("player.tap_to_play")}
