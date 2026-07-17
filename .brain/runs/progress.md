@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-16 — PR #4 SQUASH-MERGED to main (346c253): room-close live broadcast fix complete. Rebase onto post-PR-#3 main (2 conflicts: progress.md log union, room/$code.tsx reskin vs roomClosed wiring — resolved, 409 tests). resolve-comments: 1 Greptile P2 fixed bd96562 (best-effort catchAll now covers the `yield* KaraokeRooms` lookup, not just the call), 0 P1s; thread replied, re-review clean. Remote branch deleted.
+- branch: `fix/room-close-live-notify` → merged `main`
+- in-progress feature: none
+- run note: `.brain/runs/2026-07-16-room-close-do-notify.md` (closed, shipped)
+- next: prod deploy path — remote D1 migrations + `bun run deploy` + confirm YOUTUBE_API_KEY prod secret; optional fun app name swap
+
+---
+
 ## 2026-07-16 — Started room-close DO-notify fix (PR #3 comment, feat-007 post-ship bugfix). tRPC `room.close` updates D1 only — DO never broadcasts, guests see stale live UI until reload. Plan: `room.closed` ServerMessage + DO RPC `closeRoom()` (broadcast + socket close + cleanup) + best-effort stub call from the close mutation + hook `roomClosed` flag → loader revalidate on both pages. Baseline green (after `bun install` in fresh worktree).
 - branch: `fix/room-close-live-notify` (renamed from beaver/171a03d2, off main 2854960)
 - in-progress feature: none (bugfix on shipped feat-007)
