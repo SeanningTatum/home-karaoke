@@ -81,6 +81,7 @@
   "lobby": {
     "heading": "Party lobby",
     "prompt": "Scan to join the party",
+    "playback_hint": "The host controls playback — just scan to add songs",
     "roster_title_one": "{{count}} guest has joined",
     "roster_title_other": "{{count}} guests have joined",
     "roster_empty": "Be the first to scan and join"

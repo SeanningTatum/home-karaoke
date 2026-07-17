@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { IconUsers } from "@tabler/icons-react";
 
 import { InitialsAvatar } from "@/components/room/initials-avatar";
 import type { RosterEntry } from "@/lib/schemas/room-ws";
@@ -8,13 +9,17 @@ export interface RosterStripProps {
 }
 
 /**
- * Lobby "who's here" strip — one gradient-avatar chip per connected guest,
+ * Lobby "who's here" board — one gradient-avatar chip per connected guest,
  * ticking in as they join. Roster data already flows over the room socket
  * (`state.roster`, keyed by userId) — this just renders it. The host is
  * excluded; this is a guest headcount, not a full roster. Each `<li>` keeps
  * a stable `key={userId}` so a chip's DOM node — and therefore its one-shot
  * `animate-chip-in` entrance — is only created once, the first time that
  * guest appears; existing chips never replay the animation on re-render.
+ *
+ * Fills the whole right-hand lobby column (see `app/routes/room/$code.tsx`)
+ * and owns its own `overflow-y-auto` on the chip grid so a party of 30+
+ * guests scrolls inside this panel — the lobby page itself never scrolls.
  */
 export function RosterStrip({ roster }: RosterStripProps) {
   const { t } = useTranslation("room");
@@ -22,32 +27,39 @@ export function RosterStrip({ roster }: RosterStripProps) {
 
   if (guests.length === 0) {
     return (
-      <p
-        data-testid="room-roster-empty"
-        className="tv-label text-muted-foreground"
-      >
-        {t("lobby.roster_empty")}
-      </p>
+      <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <IconUsers className="size-10 text-muted-foreground/50" aria-hidden />
+        <p
+          data-testid="room-roster-empty"
+          className="tv-body text-muted-foreground"
+        >
+          {t("lobby.roster_empty")}
+        </p>
+      </div>
     );
   }
 
   return (
     <div
       data-testid="room-roster-strip"
-      className="flex flex-col items-center gap-4"
+      className="flex h-full min-h-0 w-full flex-col gap-4 p-6 lg:p-8"
     >
-      <p className="tv-label text-muted-foreground">
+      <p className="tv-label shrink-0 text-muted-foreground">
         {t("lobby.roster_title", { count: guests.length })}
       </p>
-      <ul className="flex max-w-3xl flex-wrap justify-center gap-4">
+      <ul className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-4 gap-y-6 overflow-y-auto pr-1">
         {guests.map((entry) => (
           <li
             key={entry.userId}
             data-testid="room-roster-chip"
-            className="animate-chip-in flex flex-col items-center gap-1.5"
+            className="animate-chip-in flex flex-col items-center gap-2"
           >
-            <InitialsAvatar name={entry.nickname} size="lg" />
-            <span className="max-w-24 truncate text-sm font-medium text-foreground">
+            <InitialsAvatar
+              name={entry.nickname}
+              size="lg"
+              className="size-20 text-2xl"
+            />
+            <span className="max-w-28 truncate text-base font-medium text-foreground">
               {entry.nickname}
             </span>
           </li>

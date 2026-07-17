@@ -78,6 +78,7 @@
   "lobby": {
     "heading": "派对大厅",
     "prompt": "扫码加入派对",
+    "playback_hint": "播放由主持人控制 —— 扫码即可点歌",
     "roster_title_other": "{{count}} 位嘉宾已加入",
     "roster_empty": "扫码成为第一位加入的人"
   },
