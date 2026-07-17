@@ -580,15 +580,21 @@ function RoomHostView({
       {/* RIGHT RAIL — playing state only, spanning the full viewport height
           (annotation H): a sibling of MAIN so it runs from the top of the
           tv-safe content area to the bottom (top-aligned above the title),
-          rather than starting below the top bar. Slimmed 320 -> 280px
-          (annotation H) to give the video more room. Participants on top, the
+          rather than starting below the top bar. Participants on top, the
           queue filling the flex-1 middle with its own scroll, the join QR
           pinned at the bottom so guests can keep scanning mid-session. Kept
-          mounted, hidden in the lobby. */}
+          mounted, hidden in the lobby.
+
+          Widened 280 -> 336px and pulled flush to the screen edge: the root
+          `tv-safe` padding-inline (--tv-safe-inline, 80px at 1920) left a
+          dead right margin, so a negative right margin cancels that padding
+          down to a 4px gap (beta feedback). Referencing the custom property
+          keeps this in lockstep with the tv-safe token in app.css — the gap
+          holds at every viewport width and survives future token edits. */}
       <div
         data-testid="room-playing-rail"
         className={cn(
-          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[280px] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
+          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[336px] lg:-mr-[calc(var(--tv-safe-inline)_-_4px)] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
           !hasCurrentItem && "hidden"
         )}
       >
