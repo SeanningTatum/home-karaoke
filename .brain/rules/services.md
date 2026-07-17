@@ -51,7 +51,7 @@ The runtime composes services into a single Layer in `app/runtime.ts` via `makeA
 | `CloudflareEnv` | `app/services/cloudflare.ts` | `app/CloudflareEnv` | The raw `Env` |
 | `Logger` | `app/services/logger.ts` | — (no Tag) | `LoggerLive` + `MinLogLevelLive` Layers — replace Effect's default Logger |
 
-Repos / procedures composition lives in `app/runtime.ts` (`AppServices` union: `Database | Bucket | AuthApi | Workflows | YouTube | KaraokeRooms | UserRepository | AnalyticsRepository | BucketRepository | RoomRepository | SongRepository`).
+Repos / procedures composition lives in `app/runtime.ts` (`AppServices` union: `Database | Bucket | AuthApi | Workflows | YouTube | KaraokeRooms | UserRepository | BucketRepository | RoomRepository | SongRepository`).
 
 > **Not present in this repo:** Stripe, PostHog, Resend, external AI SDKs. If a feature needs one, follow "Adding a new service" below and document under [`../high-level-architecture/integrations.md`](../high-level-architecture/integrations.md).
 
