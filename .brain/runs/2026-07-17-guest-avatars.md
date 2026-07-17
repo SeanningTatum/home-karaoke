@@ -1,7 +1,7 @@
 # Run: guest-avatars
 
 _Started: 2026-07-17_
-_Status: in-progress_
+_Status: shipped_
 
 ## Task
 
@@ -68,3 +68,12 @@ Identity flow map (file:line):
 Next: opus code-architect design.
 
 ---
+
+## Final
+
+_Closed: 2026-07-17_
+
+- Shipped: 3 build commits on `beaver/08399871` (6c168a2 data plane, 0a78c0e routes+capture, 8a65f9c display wiring) + brain/docs commit. PR pending.
+- Brain docs updated: features/guest-avatars/guest-avatars.md (full), codebase/api.md, codebase/i18n.md, rules/routes.md, rules/repository.md, rules/frontend.md, rules/library.md, CHANGELOG.md. Verification: features/guest-avatars/verifications/2026-07-17.md (PASS, 12 screenshots).
+- Left undone: none for this feature. Deferred by plan review: mid-room photo change (applies on next connect); anon-avatar R2 cleanup rides with future account-upgrade-at-session-end feature.
+- Surprises worth remembering: feat-003 cut only removed layers ABOVE BucketRepository — R2 infra was ship-ready. BucketBindingError is a layer-construction failure, not in a route program's E channel — catchTags on it is a TS error; Exit.match onFailure covers it (pattern documented in effect-trpc.ts:221-231).

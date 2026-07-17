@@ -1,0 +1,38 @@
+[
+  {
+    "id": "mrpeilza71etuy",
+    "shot": "features/guest-avatars/screenshots/03-guest-nickname-initials-preview.png",
+    "x": 40.5,
+    "y": 33.6,
+    "note": "center this and let's not use a microphone icon, let use a camera icon",
+    "at": "2026-07-17T20:39:30.502Z",
+    "shotMtimeMs": 1784320617299.7966,
+    "shotSize": 54507,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:40:31.470Z"
+  },
+  {
+    "id": "mrpej47we20t9l",
+    "shot": "features/guest-avatars/screenshots/06-host-lobby-roster-photo.png",
+    "x": 56.8,
+    "y": 31.6,
+    "note": "this needs to be on the most left, it has weird spacing",
+    "at": "2026-07-17T20:39:54.140Z",
+    "shotMtimeMs": 1784320617615.992,
+    "shotSize": 63143,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:40:31.470Z"
+  },
+  {
+    "id": "mrpejp2fxjk69w",
+    "shot": "features/guest-avatars/screenshots/09-host-playback-state.png",
+    "x": 76.3,
+    "y": 13.1,
+    "note": "We can just show the image / initials, no need to show the name",
+    "at": "2026-07-17T20:40:21.159Z",
+    "shotMtimeMs": 1784320620514.8574,
+    "shotSize": 265509,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:40:31.470Z"
+  }
+]

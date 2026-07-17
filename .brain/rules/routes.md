@@ -197,6 +197,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 **Second real example** — [`app/routes/api/room.$code.ws.ts`](../../app/routes/api/room.$code.ws.ts): a WebSocket upgrade boundary (group-karaoke, feat-007). Same shape as above (`Effect.gen` → `Effect.catchTags` building a `Response` → `runPromiseExit` + `Exit.match`), plus one more step once the Effect program succeeds with a plain value instead of a `Response`: it resolves the caller's identity + room via `getSession`/`RoomRepository`, then forwards a cloned `Request` (with resolved identity as `x-user-id`/`x-nickname`/`x-role`/`x-room-id`/`x-allow-guest-reorder` headers) to a Durable Object stub — `env.KARAOKE_ROOM.get(idFromName(room.id)).fetch(forwardedRequest)` — and returns *that* `Response` directly as the success case. The DO itself is a separate Workers runtime boundary (not Effect) — see [`cloudflare.md`](cloudflare.md) "Durable Objects (binding side)".
 
+**Live examples of the target shape above** (guest-avatars, feat-010) — the hypothetical `upload-file` sketch is now matched by two real routes: [`app/routes/api/avatar.ts`](../../app/routes/api/avatar.ts) (multipart `POST`, session-gated, `Effect.catchTags` on `ValidationError`/`BucketValidationError`/`BucketUploadError`/`UpdateError`) and [`app/routes/api/avatar.$userId.ts`](../../app/routes/api/avatar.$userId.ts) (public `GET`, streams the R2 object body, `Effect.catchTags` on `BucketNotFoundError`/`BucketGetError`).
+
 ## React Router routes
 
 File patterns:

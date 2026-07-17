@@ -146,8 +146,8 @@
         "feat-001",
         "feat-007"
       ],
-      "status": "in-progress",
-      "evidence": "run note .brain/runs/2026-07-17-guest-avatars.md",
+      "status": "shipped",
+      "evidence": "verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findings; plan plans/guest-avatars.html reviewed round 1",
       "owners": [
         "sean"
       ]

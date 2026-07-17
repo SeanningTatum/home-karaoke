@@ -21,6 +21,13 @@
 
 ---
 
+## 2026-07-17 — shipped guest-avatars: verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findi
+- branch: `beaver/08399871`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-17 — guest-avatars plan reviewed round 1: 5/5 decisions on recommended (stable R2 key+?v=, server setUserImage, 512px downscale, mid-room change out-of-scope, plain file input); open Qs resolved (seeds stay initials; anon-avatar cleanup deferred to future account-upgrade-at-session-end feature)
 - branch: `beaver/08399871`
 - in-progress feature: none
