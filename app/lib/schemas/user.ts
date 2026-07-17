@@ -81,6 +81,12 @@ export const BulkUpdateUserRolesInput = Schema.Struct({
 });
 export type BulkUpdateUserRolesInput = typeof BulkUpdateUserRolesInput.Type;
 
+export const SetUserImageInput = Schema.Struct({
+  userId: Schema.String,
+  image: Schema.NullOr(Schema.String),
+});
+export type SetUserImageInput = typeof SetUserImageInput.Type;
+
 export const CreateWorkflowInput = Schema.Struct({
   email: Schema.String,
   metadata: Schema.Record({ key: Schema.String, value: Schema.String }),

@@ -96,6 +96,7 @@ export interface AddToQueueInput {
   readonly channel: string;
   readonly thumbnailUrl: string;
   readonly singerNickname: string;
+  readonly singerAvatarUrl: string | null;
   readonly addedByUserId: string | null;
   readonly addedAt: number;
 }
@@ -284,6 +285,7 @@ export const setGuestReorder = (
 export interface ApplyContext {
   readonly userId: string;
   readonly nickname: string;
+  readonly avatarUrl: string | null;
   readonly role: Role;
   /** Pre-generated id for `queue.add` — kept as an input to stay pure. */
   readonly newQueueItemId: string;
@@ -310,6 +312,7 @@ export const applyClientMessage = (
         channel: message.channel,
         thumbnailUrl: message.thumbnailUrl,
         singerNickname: ctx.nickname,
+        singerAvatarUrl: ctx.avatarUrl,
         addedByUserId: ctx.userId,
         addedAt: ctx.now,
       });

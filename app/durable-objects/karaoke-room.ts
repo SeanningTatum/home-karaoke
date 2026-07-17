@@ -52,6 +52,7 @@ const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
 export interface SessionAttachment {
   readonly userId: string;
   readonly nickname: string;
+  readonly avatarUrl: string | null;
   readonly role: Role;
 }
 
@@ -121,6 +122,7 @@ export class KaraokeRoom extends DurableObject<Env> {
 
     const userId = request.headers.get("x-user-id");
     const nickname = request.headers.get("x-nickname");
+    const avatarUrl = request.headers.get("x-avatar-url") || null;
     const role = request.headers.get("x-role");
     if (!userId || !nickname || (role !== "host" && role !== "guest")) {
       return new Response("Missing or invalid identity headers", {
@@ -155,7 +157,7 @@ export class KaraokeRoom extends DurableObject<Env> {
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    const attachment: SessionAttachment = { userId, nickname, role };
+    const attachment: SessionAttachment = { userId, nickname, avatarUrl, role };
     server.serializeAttachment(attachment);
     this.ctx.acceptWebSocket(server);
     this.sessions.set(server, attachment);
@@ -163,6 +165,7 @@ export class KaraokeRoom extends DurableObject<Env> {
     this.liveState = addToRoster(this.liveState, {
       userId,
       nickname,
+      avatarUrl,
       role,
     });
     await this.persist();
@@ -224,6 +227,8 @@ export class KaraokeRoom extends DurableObject<Env> {
     this.liveState = applyClientMessage(this.liveState, clientMessage, {
       userId: session.userId,
       nickname: session.nickname,
+      // `?? null` tolerates old hibernated attachments that predate the field.
+      avatarUrl: session.avatarUrl ?? null,
       role: session.role,
       newQueueItemId: crypto.randomUUID(),
       now: Date.now(),

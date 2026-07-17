@@ -72,6 +72,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     const forwardHeaders = new Headers(request.headers);
     forwardHeaders.set("x-user-id", session.user.id);
     forwardHeaders.set("x-nickname", nickname);
+    forwardHeaders.set("x-avatar-url", session.user.image ?? "");
     forwardHeaders.set("x-role", role);
     forwardHeaders.set("x-room-id", room.id);
     forwardHeaders.set("x-allow-guest-reorder", String(room.allowGuestReorder));

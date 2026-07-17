@@ -21,6 +21,30 @@
 
 ---
 
+## 2026-07-17 — guest-avatars plan reviewed round 1: 5/5 decisions on recommended (stable R2 key+?v=, server setUserImage, 512px downscale, mid-room change out-of-scope, plain file input); open Qs resolved (seeds stay initials; anon-avatar cleanup deferred to future account-upgrade-at-session-end feature)
+- branch: `beaver/08399871`
+- in-progress feature: none
+- run note: none
+- next: Phase 1 build (server data plane) via opus builder
+
+---
+
+## 2026-07-17 — guest-avatars (feat-010) registered in feature_list.json, in-progress
+- branch: `beaver/08399871`
+- in-progress feature: feat-010 (guest-avatars)
+- run note: runs/2026-07-17-guest-avatars.md
+- next: feature memo stub created at features/guest-avatars/guest-avatars.md (design + key files TODO); proceed to opus architecture pass + phased build
+
+---
+
+## 2026-07-17 — guest-avatars started: guest profile-picture upload, avatar in lobby + room
+- branch: `beaver/08399871`
+- in-progress feature: feat-010 (guest-avatars — entry to be added to feature_list.json after design)
+- run note: runs/2026-07-17-guest-avatars.md
+- next: explore sub-agents (upload infra + roster path) → opus architecture design → phased build
+
+---
+
 ## 2026-07-17 — PR opened for tv-beta-polish: https://github.com/SeanningTatum/home-karaoke/pull/6
 - branch: `fix/tv-rail-annotations`
 - in-progress feature: none

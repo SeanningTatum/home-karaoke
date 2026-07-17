@@ -51,7 +51,9 @@ features/
 | Preview Deployments | [`preview-deployments/preview-deployments.md`](preview-deployments/preview-deployments.md) | shipped | — |
 | Feature Verification | [`feature-verification/feature-verification.md`](feature-verification/feature-verification.md) | shipped | [2026-07-13 ✅ PASS (self-verified via authentication)](authentication/verifications/2026-07-13.md) |
 | Group Karaoke Rooms | [`group-karaoke/group-karaoke.md`](group-karaoke/group-karaoke.md) | shipped | [2026-07-16 ✅ PASS](group-karaoke/verifications/2026-07-16.md) |
-| Karaoke UI/UX Overhaul | [`ui-overhaul/ui-overhaul.md`](ui-overhaul/ui-overhaul.md) | in-progress | — |
+| Karaoke UI/UX Overhaul | [`ui-overhaul/ui-overhaul.md`](ui-overhaul/ui-overhaul.md) | shipped | [2026-07-16 ✅ PASS](ui-overhaul/verifications/2026-07-16.md) |
+| TV Beta Feedback Polish | [`tv-beta-polish/tv-beta-polish.md`](tv-beta-polish/tv-beta-polish.md) | shipped | [2026-07-17 ✅ PASS](tv-beta-polish/verifications/2026-07-17.md) |
+| Guest Avatars | [`guest-avatars/guest-avatars.md`](guest-avatars/guest-avatars.md) | in-progress | — |
 
 ## Update trigger
 

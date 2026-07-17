@@ -135,6 +135,22 @@
       "owners": [
         "sean"
       ]
+    },
+    {
+      "id": "feat-010",
+      "name": "Guest Avatars",
+      "slug": "guest-avatars",
+      "doc": ".brain/features/guest-avatars/guest-avatars.md",
+      "description": "Guests upload a profile picture on /join/:code; avatar renders in host TV lobby roster, compact roster strip, queue rail, lobby queue summary, and now-up overlay, falling back to gradient InitialsAvatar. Stored in R2 (existing BUCKET binding + BucketRepository), URL persisted on Better Auth user.image, threaded to the KaraokeRoom DO via x-avatar-url WS header into RosterEntry.avatarUrl / QueueItem.singerAvatarUrl.",
+      "dependencies": [
+        "feat-001",
+        "feat-007"
+      ],
+      "status": "in-progress",
+      "evidence": "run note .brain/runs/2026-07-17-guest-avatars.md",
+      "owners": [
+        "sean"
+      ]
     }
   ]
 }
