@@ -6,6 +6,8 @@ import {
   JOIN_SOUND,
   ADD_SOUND,
   FANFARE_SOUND,
+  REACTION_POP_SOUND,
+  REACTION_RECAP_SOUND,
   POP_GAIN_PEAK,
   POP_ATTACK_MS,
   MAX_GAIN_PEAK,
@@ -87,7 +89,13 @@ describe("sound envelope constants", () => {
   });
 
   it("has a short attack relative to every jingle's shortest note", () => {
-    const allNotes = [...JOIN_SOUND, ...ADD_SOUND, ...FANFARE_SOUND];
+    const allNotes = [
+      ...JOIN_SOUND,
+      ...ADD_SOUND,
+      ...FANFARE_SOUND,
+      ...REACTION_POP_SOUND,
+      ...REACTION_RECAP_SOUND,
+    ];
     expect(POP_ATTACK_MS).toBeGreaterThan(0);
     for (const note of allNotes) {
       expect(POP_ATTACK_MS).toBeLessThan(note.durationMs);
@@ -95,7 +103,13 @@ describe("sound envelope constants", () => {
   });
 
   it("never lets a note's gainPeak override exceed MAX_GAIN_PEAK", () => {
-    const allNotes = [...JOIN_SOUND, ...ADD_SOUND, ...FANFARE_SOUND];
+    const allNotes = [
+      ...JOIN_SOUND,
+      ...ADD_SOUND,
+      ...FANFARE_SOUND,
+      ...REACTION_POP_SOUND,
+      ...REACTION_RECAP_SOUND,
+    ];
     for (const note of allNotes) {
       expect(note.gainPeak ?? POP_GAIN_PEAK).toBeLessThanOrEqual(MAX_GAIN_PEAK);
     }
@@ -150,6 +164,24 @@ describe("FANFARE_SOUND jingle shape", () => {
       expect(note.gainPeak).toBe(FANFARE_ACCENT_GAIN_PEAK);
     }
     expect(FANFARE_ACCENT_GAIN_PEAK).toBeGreaterThan(POP_GAIN_PEAK);
+  });
+});
+
+describe("REACTION_POP_SOUND / REACTION_RECAP_SOUND jingle shapes", () => {
+  it("REACTION_POP_SOUND is a single short note, cheap enough for a throttled burst", () => {
+    expect(REACTION_POP_SOUND).toHaveLength(1);
+    expect(jingleSpanMs(REACTION_POP_SOUND)).toBeLessThanOrEqual(100);
+  });
+
+  it("REACTION_RECAP_SOUND is a 2-3 note sting, distinct from FANFARE_SOUND", () => {
+    expect(REACTION_RECAP_SOUND.length).toBeGreaterThanOrEqual(2);
+    expect(REACTION_RECAP_SOUND.length).toBeLessThanOrEqual(3);
+    const spanMs = jingleSpanMs(REACTION_RECAP_SOUND);
+    expect(spanMs).toBeGreaterThan(0);
+    expect(spanMs).toBeLessThan(jingleSpanMs(FANFARE_SOUND));
+    expect(REACTION_RECAP_SOUND.map((n) => n.frequency)).not.toEqual(
+      FANFARE_SOUND.map((n) => n.frequency)
+    );
   });
 });
 
@@ -258,6 +290,8 @@ describe("createPartySounds", () => {
     sounds.playJoin();
     sounds.playAdd();
     sounds.playFanfare();
+    sounds.playReactionPop();
+    sounds.playRecap();
     expect(createAudioContext).not.toHaveBeenCalled();
   });
 
@@ -268,6 +302,8 @@ describe("createPartySounds", () => {
     sounds.playJoin();
     sounds.playAdd();
     sounds.playFanfare();
+    sounds.playReactionPop();
+    sounds.playRecap();
     expect(createAudioContext).toHaveBeenCalledTimes(1);
   });
 
@@ -307,6 +343,42 @@ describe("createPartySounds", () => {
       const createAudioContext = vi.fn();
       const sounds = createPartySounds(() => true, createAudioContext);
       sounds.playFanfare();
+      expect(createAudioContext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("playReactionPop", () => {
+    it("schedules the REACTION_POP_SOUND jingle when unmuted", () => {
+      const { context, oscillators } = createFakeContext();
+      const sounds = createPartySounds(() => false, () => context);
+      sounds.playReactionPop();
+      expect(oscillators).toHaveLength(REACTION_POP_SOUND.length);
+      expect(oscillators[0].frequency.value).toBe(REACTION_POP_SOUND[0].frequency);
+    });
+
+    it("respects the same mute toggle as playJoin/playAdd", () => {
+      const createAudioContext = vi.fn();
+      const sounds = createPartySounds(() => true, createAudioContext);
+      sounds.playReactionPop();
+      expect(createAudioContext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("playRecap", () => {
+    it("schedules the REACTION_RECAP_SOUND jingle when unmuted", () => {
+      const { context, oscillators } = createFakeContext();
+      const sounds = createPartySounds(() => false, () => context);
+      sounds.playRecap();
+      expect(oscillators).toHaveLength(REACTION_RECAP_SOUND.length);
+      REACTION_RECAP_SOUND.forEach((note, i) => {
+        expect(oscillators[i].frequency.value).toBe(note.frequency);
+      });
+    });
+
+    it("respects the same mute toggle as playJoin/playAdd", () => {
+      const createAudioContext = vi.fn();
+      const sounds = createPartySounds(() => true, createAudioContext);
+      sounds.playRecap();
       expect(createAudioContext).not.toHaveBeenCalled();
     });
   });

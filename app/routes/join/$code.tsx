@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
@@ -10,11 +10,16 @@ import { useRoomSocket } from "@/hooks/use-room-socket";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
+import {
+  ReactionOverlay,
+  type ReactionOverlayHandle,
+} from "@/components/room/reaction-overlay";
 import { NicknameForm } from "@/components/join/nickname-form";
 import { SearchTab } from "@/components/join/search-tab";
 import { QueueTab } from "@/components/join/queue-tab";
 import { ControlsTab } from "@/components/join/controls-tab";
 import { PositionBar } from "@/components/join/position-bar";
+import { ReactionBar } from "@/components/join/reaction-bar";
 import type { Route } from "./+types/$code";
 
 export const handle = { i18n: ["room"] };
@@ -176,9 +181,12 @@ function JoinRoomView({
   const [activeTab, setActiveTab] = useState<"search" | "queue" | "controls">(
     "search"
   );
+  const reactionOverlayRef = useRef<ReactionOverlayHandle>(null);
   const { state, send, connectionStatus, roomClosed } = useRoomSocket({
     code,
     nickname,
+    onReactionBurst: (msg) =>
+      reactionOverlayRef.current?.burst(msg.emoji, msg.count),
   });
 
   // Host ended the party — the DO broadcast `room.closed`. Re-run the
@@ -192,6 +200,7 @@ function JoinRoomView({
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 text-foreground">
+      <ReactionOverlay ref={reactionOverlayRef} variant="phone" />
       <header className="flex items-center justify-between gap-3">
         <span
           data-testid="join-room-code"
@@ -264,7 +273,13 @@ function JoinRoomView({
         )}
       </Tabs>
 
-      <PositionBar queue={state.queue} ownUserId={ownUserId} />
+      <div className="sticky bottom-0 z-10 flex flex-col gap-2">
+        <ReactionBar
+          send={send}
+          disabled={state.playback?.status !== "playing"}
+        />
+        <PositionBar queue={state.queue} ownUserId={ownUserId} />
+      </div>
     </div>
   );
 }

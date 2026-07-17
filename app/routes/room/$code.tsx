@@ -16,6 +16,11 @@ import { RoomRepository } from "@/repositories/room";
 import { buildJoinUrl } from "@/lib/room-urls";
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { createPartySounds, type PartySounds } from "@/lib/party-sounds";
+import type {
+  ReactionBurstMessage,
+  ReactionRecapMessage,
+} from "@/lib/schemas/room-ws";
+import type { ReactionRecapPayload } from "@/lib/reaction-recap-state";
 import { api } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,11 +45,22 @@ import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
 import { RosterStrip } from "@/components/room/roster-strip";
 import { CelebrationBurst } from "@/components/room/celebration-burst";
 import { NowUpOverlay } from "@/components/room/now-up-overlay";
+import {
+  ReactionOverlay,
+  type ReactionOverlayHandle,
+} from "@/components/room/reaction-overlay";
+import { ReactionRecap, RECAP_MS } from "@/components/room/reaction-recap";
 import type { Route } from "./+types/$code";
 
 /** localStorage key for the host's party-sounds mute toggle. Absent (or any
  * value other than `"off"`) means unmuted/audible — the documented default. */
 const PARTY_SOUNDS_STORAGE_KEY = "hk-party-sounds";
+
+/** Minimum gap between two reaction-pop sounds (feat-010) — a flurry of
+ * guest taps fans out as many `reaction.burst` messages in quick succession,
+ * but the pop is only meant to register as "reactions are happening", not to
+ * fire once per burst. */
+const REACTION_POP_THROTTLE_MS = 700;
 
 export const handle = { i18n: ["room"] };
 
@@ -147,7 +163,44 @@ function RoomHostView({
 }) {
   const { t } = useTranslation("room");
   const navigate = useNavigate();
-  const { state, send, connectionStatus, roomClosed } = useRoomSocket({ code });
+
+  // Emoji reactions (feat-010) — the TV-side overlay handle, the reaction-pop
+  // throttle clock, the end-of-song recap state, and a ref flag the
+  // currentItem-change effect below reads to decide whether to defer the
+  // "You're up" announcement. Declared here (before `useRoomSocket`) so the
+  // socket callbacks below can close over them; `partySoundsRef` (created
+  // further down) is referenced inside those callback BODIES only, which
+  // aren't invoked until a WebSocket message actually arrives — well after
+  // this render has finished setting it up.
+  const reactionOverlayRef = useRef<ReactionOverlayHandle>(null);
+  const lastPopAtRef = useRef(0);
+  const recapActiveRef = useRef(false);
+  const [recap, setRecap] = useState<ReactionRecapPayload | null>(null);
+
+  const handleReactionBurst = (msg: ReactionBurstMessage) => {
+    reactionOverlayRef.current?.burst(msg.emoji, msg.count);
+    const now = Date.now();
+    if (now - lastPopAtRef.current >= REACTION_POP_THROTTLE_MS) {
+      lastPopAtRef.current = now;
+      partySoundsRef.current?.playReactionPop();
+    }
+  };
+
+  const handleReactionRecap = (msg: ReactionRecapMessage) => {
+    setRecap({
+      singerNickname: msg.singerNickname,
+      total: msg.total,
+      breakdown: msg.breakdown,
+    });
+    recapActiveRef.current = true;
+    partySoundsRef.current?.playRecap();
+  };
+
+  const { state, send, connectionStatus, roomClosed } = useRoomSocket({
+    code,
+    onReactionBurst: handleReactionBurst,
+    onReactionRecap: handleReactionRecap,
+  });
   const { queue, playback, roster } = state;
   // `state.settings` is `null` until the room DO's first `room.state`
   // snapshot arrives (see `INITIAL_STATE` in `use-room-socket.ts`) — used
@@ -237,6 +290,24 @@ function RoomHostView({
   const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
   const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
   const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Emoji reactions (feat-010) — holds the pending "You're up" announcement
+  // while `recapActiveRef` is true (see `handleReactionRecap` above and the
+  // effect below). Cleared whenever a superseding singer change arrives so a
+  // stale delayed announcement never fires for the wrong nickname.
+  const nowUpAnnounceDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  // Fires the "You're up, {nickname}!" card + fanfare together (see the
+  // FANFARE_SOUND doc comment — they must never drift apart) and (re)arms
+  // the 5s auto-dismiss. Pulled out of the effect below so it can be called
+  // either immediately or after the `RECAP_MS` reaction-recap deferral.
+  const announceNowUp = (nickname: string) => {
+    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+    setNowUpSinger({ nickname });
+    partySoundsRef.current?.playFanfare();
+    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
+  };
 
   useEffect(() => {
     const currentItem = playback?.currentItem ?? null;
@@ -253,20 +324,38 @@ function RoomHostView({
       }
     }
 
+    if (nowUpAnnounceDelayTimerRef.current) {
+      clearTimeout(nowUpAnnounceDelayTimerRef.current);
+      nowUpAnnounceDelayTimerRef.current = null;
+    }
+
     // No reduced-motion gate here: the singer announcement must reach every
     // viewer either way — NowUpOverlay's visual card renders regardless of
     // motion preference too (just statically, via the global CSS collapse),
     // and its always-mounted aria-live region announces on top of that.
-    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
-    setNowUpSinger({ nickname: currentItem!.singerNickname });
-    partySoundsRef.current?.playFanfare();
-    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
+    const nickname = currentItem!.singerNickname;
+
+    // The server broadcasts `reaction.recap` for the just-finished song
+    // BEFORE the `playback.updated` that advances `currentItem` — so
+    // `recapActiveRef.current` is already set by the time this effect
+    // re-runs. Defer the announcement by `RECAP_MS` (the recap card's own
+    // visible duration) so the two never overlap on the TV.
+    if (recapActiveRef.current) {
+      nowUpAnnounceDelayTimerRef.current = setTimeout(() => {
+        nowUpAnnounceDelayTimerRef.current = null;
+        announceNowUp(nickname);
+      }, RECAP_MS);
+    } else {
+      announceNowUp(nickname);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback?.currentItem?.id]);
 
   useEffect(
     () => () => {
       if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+      if (nowUpAnnounceDelayTimerRef.current)
+        clearTimeout(nowUpAnnounceDelayTimerRef.current);
     },
     []
   );
@@ -357,6 +446,14 @@ function RoomHostView({
       toast.error(error.message || t("controls.end_party_error"));
     },
   });
+
+  // Recap card finished (visible hold + exit animation) — clear it and let
+  // the deferred "You're up" announcement (if any is pending) proceed on its
+  // own RECAP_MS timer, which was armed independently in the effect above.
+  const handleRecapDone = () => {
+    setRecap(null);
+    recapActiveRef.current = false;
+  };
 
   return (
     <div
@@ -625,6 +722,8 @@ function RoomHostView({
         onDone={() => setShowCelebration(false)}
       />
       <NowUpOverlay singer={nowUpSinger} />
+      <ReactionOverlay ref={reactionOverlayRef} variant="tv" />
+      <ReactionRecap recap={recap} onDone={handleRecapDone} />
     </div>
   );
 }
