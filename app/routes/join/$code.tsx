@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
 import { IconArrowLeft } from "@tabler/icons-react";
@@ -176,7 +176,19 @@ function JoinRoomView({
   const [activeTab, setActiveTab] = useState<"search" | "queue" | "controls">(
     "search"
   );
-  const { state, send, connectionStatus } = useRoomSocket({ code, nickname });
+  const { state, send, connectionStatus, roomClosed } = useRoomSocket({
+    code,
+    nickname,
+  });
+
+  // Host ended the party — the DO broadcast `room.closed`. Re-run the
+  // loader so this route renders the friendly closed state instead of a
+  // stale live queue.
+  const revalidator = useRevalidator();
+  useEffect(() => {
+    if (roomClosed) void revalidator.revalidate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomClosed]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 text-foreground">

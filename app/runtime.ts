@@ -5,6 +5,7 @@ import { BucketLive, type Bucket } from "@/services/bucket";
 import { AuthApiLive, type AuthApi as AuthApiTag } from "@/services/auth";
 import { WorkflowsLive, type Workflows } from "@/services/workflows";
 import { YouTubeLive, type YouTube } from "@/services/youtube";
+import { KaraokeRoomsLive, type KaraokeRooms } from "@/services/karaoke-rooms";
 import { LoggerLive, MinLogLevelLive } from "@/services/logger";
 import { UserRepository } from "@/repositories/user";
 import { BucketRepository } from "@/repositories/bucket";
@@ -17,6 +18,7 @@ export type AppServices =
   | AuthApiTag
   | Workflows
   | YouTube
+  | KaraokeRooms
   | UserRepository
   | BucketRepository
   | RoomRepository
@@ -32,7 +34,8 @@ export const makeAppRuntime = (env: Env, baseURL?: string) => {
     BucketLive,
     AuthApiLive(baseURL),
     WorkflowsLive,
-    YouTubeLive
+    YouTubeLive,
+    KaraokeRoomsLive
   );
   const reposLayer = Layer.mergeAll(
     UserRepository.Default,

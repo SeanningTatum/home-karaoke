@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { redirect, Link, useNavigate } from "react-router";
+import { redirect, Link, useNavigate, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
 import { toast } from "sonner";
@@ -149,7 +149,7 @@ function RoomHostView({
 }) {
   const { t } = useTranslation("room");
   const navigate = useNavigate();
-  const { state, send, connectionStatus } = useRoomSocket({ code });
+  const { state, send, connectionStatus, roomClosed } = useRoomSocket({ code });
   const { queue, playback, roster } = state;
   // `state.settings` is `null` until the room DO's first `room.state`
   // snapshot arrives (see `INITIAL_STATE` in `use-room-socket.ts`) — used
@@ -310,6 +310,15 @@ function RoomHostView({
     ids.forEach((id) => knownQueueSoundIdsRef.current!.add(id));
     if (hasNewItem) partySoundsRef.current?.playAdd();
   }, [queue, hasReceivedSnapshot]);
+
+  // The DO broadcast `room.closed` (host ended the party — possibly from
+  // another tab/device). Re-run the loader: it resolves the room as closed
+  // and this route renders the closed state instead of a stale live UI.
+  const revalidator = useRevalidator();
+  useEffect(() => {
+    if (roomClosed) void revalidator.revalidate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomClosed]);
 
   const recordPlayed = api.room.recordPlayed.useMutation({
     onError: (error) => {
