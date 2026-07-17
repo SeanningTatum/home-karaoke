@@ -6,6 +6,8 @@ import {
   type ClientMessage,
   type PlaybackState,
   type QueueItem,
+  type ReactionBurstMessage,
+  type ReactionRecapMessage,
   type RoomSettings,
   type RosterEntry,
 } from "@/lib/schemas/room-ws";
@@ -55,6 +57,15 @@ export interface UseRoomSocketOptions {
   readonly nickname?: string;
   /** Set false to skip connecting (e.g. before the code is known). */
   readonly enabled?: boolean;
+  /**
+   * Fired for each `reaction.burst` broadcast (a guest's emoji batch). Kept
+   * off `state` deliberately — reactions are transient fly-up animations, not
+   * durable room state, so a consumer drives its overlay imperatively from
+   * this callback instead of re-rendering on every burst.
+   */
+  readonly onReactionBurst?: (msg: ReactionBurstMessage) => void;
+  /** Fired for the end-of-song `reaction.recap` (TV-only). */
+  readonly onReactionRecap?: (msg: ReactionRecapMessage) => void;
 }
 
 export interface UseRoomSocketResult {
@@ -74,6 +85,8 @@ export function useRoomSocket({
   code,
   nickname,
   enabled = true,
+  onReactionBurst,
+  onReactionRecap,
 }: UseRoomSocketOptions): UseRoomSocketResult {
   const [state, setState] = useState<RoomSocketState>(INITIAL_STATE);
   const [connectionStatus, setConnectionStatus] =
@@ -81,6 +94,16 @@ export function useRoomSocket({
   const [roomClosed, setRoomClosed] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const backoffRef = useRef(MIN_BACKOFF_MS);
+  // Ref-stash the reaction callbacks so the socket effect stays keyed on
+  // code/nickname/enabled alone (same pattern as CelebrationBurst's onDone) —
+  // the message listener always calls the latest callback without re-opening
+  // the socket when a consumer passes a new closure each render.
+  const onReactionBurstRef = useRef(onReactionBurst);
+  const onReactionRecapRef = useRef(onReactionRecap);
+  useEffect(() => {
+    onReactionBurstRef.current = onReactionBurst;
+    onReactionRecapRef.current = onReactionRecap;
+  });
   // Mirrors `roomClosed` for the socket "close" handler, which fires after
   // the server hangs up and must decide synchronously whether to reconnect —
   // state would be stale inside that listener's closure.
@@ -125,6 +148,20 @@ export function useRoomSocket({
         if (message.type === "room.closed") {
           roomClosedRef.current = true;
           setRoomClosed(true);
+          return;
+        }
+
+        // Reactions are imperative side-channels, not room state — dispatch
+        // via the ref callbacks and bail before the setState snapshot switch,
+        // mirroring the `room.closed` early return. This also narrows
+        // `message` so the switch below stays exhaustive without cases for
+        // them (they carry no snapshot to fold into `RoomSocketState`).
+        if (message.type === "reaction.burst") {
+          onReactionBurstRef.current?.(message);
+          return;
+        }
+        if (message.type === "reaction.recap") {
+          onReactionRecapRef.current?.(message);
           return;
         }
 

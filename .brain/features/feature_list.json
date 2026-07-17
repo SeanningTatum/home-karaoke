@@ -135,6 +135,23 @@
       "owners": [
         "sean"
       ]
+    },
+    {
+      "id": "feat-010",
+      "name": "Emoji Reactions",
+      "slug": "emoji-reactions",
+      "doc": ".brain/features/emoji-reactions/emoji-reactions.md",
+      "description": "Guests on phones send live emoji reactions while someone sings; emojis fly up the TV screen Google-Meet-style (WS broadcast via KaraokeRoom DO, pure reducers in room-state.ts); at end of each song the TV 'next up' transition shows a 3-5s recap of reaction counts for the singer who just finished. Per-song counts live in DO memory only (reset per song).",
+      "dependencies": [
+        "feat-007",
+        "feat-008",
+        "feat-009"
+      ],
+      "status": "in-progress",
+      "evidence": "started 2026-07-17; run note .brain/runs/2026-07-17-emoji-reactions.md; branch feat/emoji-reactions",
+      "owners": [
+        "sean"
+      ]
     }
   ]
 }

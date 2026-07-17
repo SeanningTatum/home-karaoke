@@ -90,6 +90,13 @@
   "now_up": {
     "headline": "该你上场了，{{name}}！"
   },
+  "reactions": {
+    "bar_label": "发送互动表情",
+    "recap_title": "{{name}} 点燃了全场！",
+    "recap_total_other": "{{count}} 个互动",
+    "aria_recap": "回顾：{{name}} 收到了 {{count}} 个互动",
+    "aria_sent": "已发送互动"
+  },
   "sounds": {
     "mute_label": "静音派对音效",
     "unmute_label": "取消静音"

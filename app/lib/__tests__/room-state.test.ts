@@ -496,14 +496,14 @@ describe("applyClientMessage", () => {
 describe("broadcastsForMessage", () => {
   it("queue mutations broadcast queue.updated", () => {
     const next = baseState({ queue: [item()] });
-    expect(broadcastsForMessage({ type: "queue.add", videoId: "v", title: "t", channel: "c", thumbnailUrl: "u" }, next)).toEqual([
+    expect(broadcastsForMessage({ type: "queue.add", videoId: "v", title: "t", channel: "c", thumbnailUrl: "u" }, next, next)).toEqual([
       { type: "queue.updated", queue: next.queue },
     ]);
   });
 
   it("playback.play/skip/videoEnded broadcast both queue and playback", () => {
     const next = advanceToNext(baseState({ queue: [item({ id: "q1" })] }));
-    const messages = broadcastsForMessage({ type: "playback.skip" }, next);
+    const messages = broadcastsForMessage({ type: "playback.skip" }, next, next);
     expect(messages).toHaveLength(2);
     expect(messages[0].type).toBe("queue.updated");
     expect(messages[1].type).toBe("playback.updated");
@@ -511,19 +511,210 @@ describe("broadcastsForMessage", () => {
 
   it("playback.pause and setVolume broadcast playback only", () => {
     const next = baseState();
-    expect(broadcastsForMessage({ type: "playback.pause" }, next)).toEqual([
+    expect(broadcastsForMessage({ type: "playback.pause" }, next, next)).toEqual([
       { type: "playback.updated", playback: next.playback },
     ]);
     expect(
-      broadcastsForMessage({ type: "playback.setVolume", volume: 10 }, next)
+      broadcastsForMessage({ type: "playback.setVolume", volume: 10 }, next, next)
     ).toEqual([{ type: "playback.updated", playback: next.playback }]);
   });
 
   it("room.setGuestReorder broadcasts a full snapshot", () => {
     const next = setGuestReorder(baseState(), true);
-    expect(broadcastsForMessage({ type: "room.setGuestReorder", allowed: true }, next)).toEqual([
+    expect(broadcastsForMessage({ type: "room.setGuestReorder", allowed: true }, next, next)).toEqual([
       roomStateSnapshot(next),
     ]);
+  });
+});
+
+describe("reactions", () => {
+  const reactionCtx = {
+    userId: "u1",
+    nickname: "Alice",
+    role: "guest" as const,
+    newQueueItemId: "generated-id",
+    now: 555,
+  };
+
+  const playingState = (reactions: RoomLiveState["reactions"] = {}) =>
+    baseState({
+      playback: {
+        status: "playing",
+        currentItem: item({ id: "q1", singerNickname: "Alice" }),
+        volume: 80,
+      },
+      reactions,
+    });
+
+  it("createInitialRoomState starts with an empty tally", () => {
+    expect(createInitialRoomState({ allowGuestReorder: false }).reactions).toEqual(
+      {}
+    );
+  });
+
+  it("canPerform allows host AND guest to react only while playing", () => {
+    const playing = playingState();
+    const send = { type: "reaction.send", emoji: "🔥" } as const;
+    expect(
+      canPerform(send, { userId: "u1", role: "guest", state: playing })
+    ).toBe(true);
+    expect(
+      canPerform(send, { userId: "host-1", role: "host", state: playing })
+    ).toBe(true);
+
+    const paused = baseState({
+      playback: { status: "paused", currentItem: item(), volume: 80 },
+    });
+    expect(
+      canPerform(send, { userId: "u1", role: "guest", state: paused })
+    ).toBe(false);
+    expect(
+      canPerform(send, { userId: "host-1", role: "host", state: paused })
+    ).toBe(false);
+
+    const idle = baseState();
+    expect(
+      canPerform(send, { userId: "host-1", role: "host", state: idle })
+    ).toBe(false);
+  });
+
+  it("reaction.send increments the tally with a clamped count", () => {
+    const state = playingState({ "🔥": 2 });
+    const next = applyClientMessage(
+      state,
+      { type: "reaction.send", emoji: "🔥", count: 999 },
+      reactionCtx
+    );
+    expect(next.reactions["🔥"]).toBe(22); // 2 + clamp(999) = 2 + 20
+  });
+
+  it("reaction.send broadcasts a burst with the clamped count", () => {
+    const state = playingState();
+    expect(
+      broadcastsForMessage(
+        { type: "reaction.send", emoji: "🔥", count: 999 },
+        state,
+        state
+      )
+    ).toEqual([{ type: "reaction.burst", emoji: "🔥", count: 20 }]);
+  });
+
+  it("advanceToNext resets the reaction tally", () => {
+    const state = playingState({ "🔥": 5, "❤️": 3 });
+    expect(advanceToNext(state).reactions).toEqual({});
+  });
+
+  it("videoEnded with a non-zero tally prepends a recap before queue/playback updates", () => {
+    const prev = baseState({
+      queue: [item({ id: "q2", singerNickname: "Bob" })],
+      playback: {
+        status: "playing",
+        currentItem: item({ id: "q1", singerNickname: "Alice" }),
+        volume: 80,
+      },
+      reactions: { "🔥": 3, "❤️": 1 },
+    });
+    const next = advanceToNext(prev);
+    const messages = broadcastsForMessage(
+      { type: "playback.videoEnded", currentItemId: "q1" },
+      prev,
+      next
+    );
+    expect(messages).toHaveLength(3);
+    expect(messages[0]).toEqual({
+      type: "reaction.recap",
+      singerNickname: "Alice",
+      total: 4,
+      breakdown: [
+        { emoji: "🔥", count: 3 },
+        { emoji: "❤️", count: 1 },
+      ],
+    });
+    expect(messages[1].type).toBe("queue.updated");
+    expect(messages[2].type).toBe("playback.updated");
+  });
+
+  it("videoEnded with a zero tally emits no recap", () => {
+    const prev = baseState({
+      queue: [item({ id: "q2" })],
+      playback: {
+        status: "playing",
+        currentItem: item({ id: "q1" }),
+        volume: 80,
+      },
+    });
+    const next = advanceToNext(prev);
+    const messages = broadcastsForMessage(
+      { type: "playback.videoEnded", currentItemId: "q1" },
+      prev,
+      next
+    );
+    expect(messages).toHaveLength(2);
+    expect(messages.some((m) => m.type === "reaction.recap")).toBe(false);
+  });
+
+  it("an idempotent stale-id skip/videoEnded emits no recap", () => {
+    // Queue already advanced to q2; a stale second skip for q1 is a no-op.
+    const prev = baseState({
+      queue: [item({ id: "q3" })],
+      playback: {
+        status: "playing",
+        currentItem: item({ id: "q2" }),
+        volume: 80,
+      },
+      reactions: { "🔥": 5 },
+    });
+    const skipNext = applyClientMessage(
+      prev,
+      { type: "playback.skip", currentItemId: "q1" },
+      reactionCtx
+    );
+    expect(skipNext).toBe(prev); // unchanged
+    expect(
+      broadcastsForMessage(
+        { type: "playback.skip", currentItemId: "q1" },
+        prev,
+        skipNext
+      ).some((m) => m.type === "reaction.recap")
+    ).toBe(false);
+
+    const endedNext = applyClientMessage(
+      prev,
+      { type: "playback.videoEnded", currentItemId: "q1" },
+      reactionCtx
+    );
+    expect(
+      broadcastsForMessage(
+        { type: "playback.videoEnded", currentItemId: "q1" },
+        prev,
+        endedNext
+      ).some((m) => m.type === "reaction.recap")
+    ).toBe(false);
+  });
+
+  it("advancing past the last song (advance-to-null) still emits a recap", () => {
+    const prev = baseState({
+      queue: [],
+      playback: {
+        status: "playing",
+        currentItem: item({ id: "q1", singerNickname: "Alice" }),
+        volume: 80,
+      },
+      reactions: { "🎉": 2 },
+    });
+    const next = advanceToNext(prev);
+    expect(next.playback.currentItem).toBeNull();
+    const messages = broadcastsForMessage(
+      { type: "playback.videoEnded", currentItemId: "q1" },
+      prev,
+      next
+    );
+    expect(messages[0]).toEqual({
+      type: "reaction.recap",
+      singerNickname: "Alice",
+      total: 2,
+      breakdown: [{ emoji: "🎉", count: 2 }],
+    });
   });
 });
 

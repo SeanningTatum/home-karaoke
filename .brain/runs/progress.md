@@ -21,6 +21,22 @@
 
 ---
 
+## 2026-07-17 — feat-010 plan reviewed round 1 (plans/emoji-reactions.html, session ended by user): all 4 decisions answered — (1) sequence recap 3.5s then You're-up 5s, (2) v1 no DO throttle (client 300ms batch + count<=20 clamp + 40-particle cap), (3) palette 👏🔥❤️😭🤩🎉, (4) phone fly-up yes / recap TV-only. Party-end recap confirmed future feature. Build starting: Phase 1 opus (protocol+reducers+DO+hook+overlay), then parallel sonnet TV/phone.
+- branch: `feat/emoji-reactions`
+- in-progress feature: none
+- run note: none
+- next: Phase 1 opus builder: room-ws messages, reactions.ts, room-state reducers, DO selective persist, hook callbacks, ReactionOverlay, i18n keys
+
+---
+
+## 2026-07-17 — feat-010 emoji-reactions started (coordinator + opus/sonnet subagents)
+- branch: `feat/emoji-reactions`
+- in-progress feature: feat-010
+- run note: .brain/runs/2026-07-17-emoji-reactions.md
+- next: Explore agents map room-ws/room-state/DO/TV/phone extension points, then opus architect blueprint.
+
+---
+
 ## 2026-07-17 — PR opened for tv-beta-polish: https://github.com/SeanningTatum/home-karaoke/pull/6
 - branch: `fix/tv-rail-annotations`
 - in-progress feature: none

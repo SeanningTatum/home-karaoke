@@ -398,3 +398,31 @@ body {
 @utility animate-hero-in {
   animation: room-hero-in 0.5s ease-out;
 }
+
+/* Emoji reactions (feat-010) — a reaction particle floats from the bottom of
+   the viewport to the top, fading in then out while drifting horizontally and
+   rotating. The shared ReactionOverlay (TV + phone) sets per-particle drift
+   and rotation via the --reaction-drift / --reaction-rotate custom properties
+   and the total duration via an inline `animation-duration` (which overrides
+   the default below). Duration collapses under the global
+   prefers-reduced-motion net above; the overlay ALSO skips spawning entirely
+   for reduced-motion viewers (JS check), so a particle never even mounts. */
+@keyframes reaction-float-up {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh)
+      translateX(var(--reaction-drift, 0))
+      rotate(var(--reaction-rotate, 0deg));
+    opacity: 0;
+  }
+}
+
+@utility animate-reaction-float {
+  animation: reaction-float-up 3s ease-out forwards;
+}
