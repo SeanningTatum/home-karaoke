@@ -94,9 +94,13 @@ export function NowUpOverlay({ singer }: NowUpOverlayProps) {
   useEffect(() => clearExitTimer, []);
 
   const handleAnimationEnd = () => {
-    if (!display.isExiting) return;
+    // Functional updater: `display.isExiting` from the render closure can be
+    // stale if animationend lands while a new-singer update is queued but not
+    // yet committed — `prev` is always the latest committed value. The timer
+    // clear is a no-op outside the exit window (the ref only holds a timer
+    // while an exit is in flight).
     clearExitTimer();
-    setDisplay(exitedNowUpDisplayState);
+    setDisplay((prev) => (prev.isExiting ? exitedNowUpDisplayState : prev));
   };
 
   const { displayedSinger, isExiting } = display;
