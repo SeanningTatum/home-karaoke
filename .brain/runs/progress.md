@@ -21,6 +21,16 @@
 
 ---
 
+## 2026-07-17 — PR opened for TV remote-start + End-party/mic cleanup: https://github.com/SeanningTatum/home-karaoke/pull/7
+- branch: `beaver/5cf4b14b`
+- in-progress feature: none (group-karaoke beta polish)
+- run note: none — verification doc at `features/group-karaoke/verifications/2026-07-17-remote-start-tv-cleanup.md`
+- changes: removed YoutubePlayer `started` gate (phone play now drives TV directly, `onAutoplayBlocked` one-tap fallback kept), removed TV End-party button + closeRoom mutation (phone Controls tab flow unchanged), removed mic icon from TV now-singing banner, locale keys cleaned (`player.resume`/`player.start_party` dropped, `player.tap_to_play` added)
+- pre-PR Greptile review: 1 P2 (overlay label) auto-fixed in `87453d1`
+- next: merge PR #7 after human review
+
+---
+
 ## 2026-07-17 — PR opened for tv-beta-polish: https://github.com/SeanningTatum/home-karaoke/pull/6
 - branch: `fix/tv-rail-annotations`
 - in-progress feature: none
