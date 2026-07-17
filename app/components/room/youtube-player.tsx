@@ -195,7 +195,7 @@ export function YoutubePlayer({
             onClick={handleStartParty}
           >
             <IconPlayerPlayFilled className="size-5" />
-            {t("player.start_party")}
+            {t("player.tap_to_play")}
           </Button>
         </div>
       )}

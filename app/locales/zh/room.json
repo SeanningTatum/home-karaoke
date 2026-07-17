@@ -1,6 +1,6 @@
 {
   "player": {
-    "start_party": "开始播放",
+    "tap_to_play": "点击播放",
     "error_skipping": "这个视频无法播放 —— 正在跳到下一首"
   },
   "banner": {
