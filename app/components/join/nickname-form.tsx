@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { IconDice5, IconLoader2, IconMicrophone } from "@tabler/icons-react";
+import { IconCamera, IconDice5, IconLoader2 } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
 import { authClient } from "@/auth/client";
@@ -188,7 +188,7 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
         data-testid="join-nickname-card"
         className={cn("w-full max-w-sm border-border/80 shadow-sm")}
       >
-        <CardHeader className="items-center gap-3 text-center">
+        <CardHeader className="flex flex-col items-center gap-3 text-center">
           <input
             ref={fileInputRef}
             type="file"
@@ -199,8 +199,8 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
           />
           {/* Live preview — updates on every keystroke, same gradient-fill
            * treatment the rest of the app uses for a guest's avatar once
-           * they're in the room (design.md §8). Falls back to the mic icon
-           * chip when nothing's typed and no photo is picked yet. Tapping
+           * they're in the room (design.md §8). Falls back to the camera
+           * icon chip when nothing's typed and no photo is picked yet. Tapping
            * the preview opens the OS file/camera sheet. */}
           <button
             type="button"
@@ -223,7 +223,7 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
               />
             ) : (
               <span className="flex size-16 items-center justify-center rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent">
-                <IconMicrophone className="size-7" />
+                <IconCamera className="size-7" />
               </span>
             )}
           </button>
