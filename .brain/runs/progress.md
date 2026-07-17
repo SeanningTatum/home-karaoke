@@ -21,6 +21,13 @@
 
 ---
 
+## 2026-07-17 — shipped emoji-reactions: Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (op
+- branch: `feat/emoji-reactions`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-17 — feat-010 plan reviewed round 1 (plans/emoji-reactions.html, session ended by user): all 4 decisions answered — (1) sequence recap 3.5s then You're-up 5s, (2) v1 no DO throttle (client 300ms batch + count<=20 clamp + 40-particle cap), (3) palette 👏🔥❤️😭🤩🎉, (4) phone fly-up yes / recap TV-only. Party-end recap confirmed future feature. Build starting: Phase 1 opus (protocol+reducers+DO+hook+overlay), then parallel sonnet TV/phone.
 - branch: `feat/emoji-reactions`
 - in-progress feature: none
