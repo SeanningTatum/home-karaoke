@@ -354,10 +354,12 @@ function QueueRow({
     </Button>
   ) : null;
 
-  // TV rail (~280px): a VERTICAL card — thumbnail + title on top, the meta
-  // row (added-by + own marker + remove) beneath — so a long title gets the
-  // full card width for its 2-line clamp instead of competing horizontally
-  // with the badge/remove controls (beta feedback: top-to-bottom fits more).
+  // TV rail (~320px): two COLUMNS — the drag handle lives alone in a
+  // left column (vertically centered against the full card height), and a
+  // right column stacks the video preview + title INLINE on one row over
+  // the meta row (added-by + own marker + remove) beneath. Beta feedback:
+  // isolating the drag handle keeps the reorder affordance from crowding
+  // the thumbnail/title, and the thumbnail reads as part of the title line.
   if (isTv) {
     return (
       <li
@@ -366,21 +368,23 @@ function QueueRow({
         data-testid="room-queue-item"
         data-own={isOwn ? "true" : undefined}
         className={cn(
-          "flex flex-col gap-2 rounded-xl border border-border bg-card p-2.5",
+          "flex items-center gap-2 rounded-xl border border-border bg-card p-2.5",
           isOwn && "border-primary/50 bg-primary/5",
           isDragging && "z-10 opacity-70 shadow-md",
           entered && "animate-queue-row-in"
         )}
       >
-        <div className="flex items-start gap-2">
-          {dragHandle}
-          {thumbnail}
-          <div className="min-w-0 flex-1">{title}</div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">{singer}</div>
-          {ownBadge}
-          {removeButton}
+        {dragHandle}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex items-center gap-2">
+            {thumbnail}
+            <div className="min-w-0 flex-1">{title}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">{singer}</div>
+            {ownBadge}
+            {removeButton}
+          </div>
         </div>
       </li>
     );

@@ -39,8 +39,12 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
       >
         <CardContent
           className={cn(
-            "flex items-center gap-4 p-4",
-            isLarge && "h-full flex-col justify-center gap-6 p-10"
+            // Both variants stack top-to-bottom now (beta feedback: the sm
+            // corner card used to be a side-by-side row that squished the QR
+            // against the code). QR on top, then the hint label, then the
+            // code — centered in either size.
+            "flex flex-col items-center gap-3 p-4",
+            isLarge && "h-full justify-center gap-6 p-10"
           )}
         >
           {/* Literal white, not a theme token: QR scanners need a light quiet
@@ -53,12 +57,12 @@ export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelPr
               isLarge && "rounded-2xl p-6"
             )}
           >
-            <QRCodeSVG value={joinUrl} size={isLarge ? 240 : 96} />
+            <QRCodeSVG value={joinUrl} size={isLarge ? 240 : 144} />
           </div>
           <div
             className={cn(
-              "flex flex-col gap-1",
-              isLarge && "items-center gap-3 text-center"
+              "flex flex-col items-center gap-1 text-center",
+              isLarge && "gap-3"
             )}
           >
             <span

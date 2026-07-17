@@ -97,5 +97,38 @@
     "shotMtimeMs": 1784269647812.3096,
     "shotSize": 483876,
     "superseded": false
+  },
+  {
+    "id": "mrp80b4bjqxc19",
+    "shot": "features/tv-beta-polish/screenshots/05-tv-playing-state.png",
+    "x": 96.3,
+    "y": 5.4,
+    "note": "The right hand side of this container has till to fill until 4px of the screen, we can make it wider it's fine",
+    "at": "2026-07-17T17:37:18.923Z",
+    "shotMtimeMs": 1784309350755.8777,
+    "shotSize": 472479,
+    "superseded": false
+  },
+  {
+    "id": "mrp81v6cs5kdsz",
+    "shot": "features/tv-beta-polish/screenshots/05-tv-playing-state.png",
+    "x": 83.6,
+    "y": 24.2,
+    "note": "This should be inline with the video preview and text so that the drag and drop is alone in the col",
+    "at": "2026-07-17T17:38:31.572Z",
+    "shotMtimeMs": 1784309350755.8777,
+    "shotSize": 472479,
+    "superseded": false
+  },
+  {
+    "id": "mrp82x4nj2teox",
+    "shot": "features/tv-beta-polish/screenshots/05-tv-playing-state.png",
+    "x": 91.9,
+    "y": 81.5,
+    "note": "Let's change this to have a column layout instead of a row layout so things are top to bottom instead of being squished",
+    "at": "2026-07-17T17:39:20.759Z",
+    "shotMtimeMs": 1784309350755.8777,
+    "shotSize": 472479,
+    "superseded": false
   }
 ]
