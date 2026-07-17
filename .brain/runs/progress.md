@@ -21,6 +21,15 @@
 
 ---
 
+## 2026-07-16 — Started room-close DO-notify fix (PR #3 comment, feat-007 post-ship bugfix). tRPC `room.close` updates D1 only — DO never broadcasts, guests see stale live UI until reload. Plan: `room.closed` ServerMessage + DO RPC `closeRoom()` (broadcast + socket close + cleanup) + best-effort stub call from the close mutation + hook `roomClosed` flag → loader revalidate on both pages. Baseline green (after `bun install` in fresh worktree).
+- branch: `fix/room-close-live-notify` (renamed from beaver/171a03d2, off main 2854960)
+- in-progress feature: none (bugfix on shipped feat-007)
+- run note: `.brain/runs/2026-07-16-room-close-do-notify.md` (closed, shipped)
+- next: PR #4 open (https://github.com/SeanningTatum/home-karaoke/pull/4) — pre-PR Greptile ran (2 findings auto-fixed in 08756fa: clearRoom sessions.clear() ordering, karaoke-rooms.test-layer.ts); await human review/merge. Cross-linked from PR #3 comment.
+- checkpoint: implementation done — `room.closed` ServerMessage + `roomClosed()` helper, DO RPC `closeRoom()` (+ shared `clearRoom()`), new `KaraokeRooms` service (AppServices + baseLayer; CloudflareEnv not directly yieldable in procedures — it's `Layer.provide`d, not merged), best-effort notify in close mutation, hook `roomClosed` flag + no-reconnect, revalidate on both pages. typecheck ✓, 406 tests ✓ (+3 new files' cases)
+
+---
+
 ## 2026-07-16 — PR #3 SQUASH-MERGED to main (cb1ee80): feat-008 ui-overhaul complete end-to-end. All checks green pre-merge (baseline, build, e2e, non-negotiables sweep, preview deploy, Greptile re-review pass). Feature wall-clock: plan review → merge same day 2026-07-16.
 - branch: `feat/ui-overhaul`
 - in-progress feature: none

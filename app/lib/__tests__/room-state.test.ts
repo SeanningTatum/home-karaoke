@@ -19,6 +19,7 @@ import {
   applyClientMessage,
   broadcastsForMessage,
   forbiddenError,
+  roomClosed,
   roomStateSnapshot,
   rosterUpdated,
   type RoomLiveState,
@@ -557,5 +558,9 @@ describe("rosterUpdated / roomStateSnapshot", () => {
       roster: state.roster,
       settings: state.settings,
     });
+  });
+
+  it("roomClosed builds the terminal close broadcast", () => {
+    expect(roomClosed()).toEqual({ type: "room.closed" });
   });
 });
