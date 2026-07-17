@@ -586,15 +586,15 @@ function RoomHostView({
           mounted, hidden in the lobby.
 
           Widened 280 -> 336px and pulled flush to the screen edge: the root
-          `tv-safe` padding-inline (clamp(1.5rem,5vw,5rem) = 80px at 1920)
-          left a dead right margin, so a negative right margin cancels that
-          padding down to a 4px gap (beta feedback). The `calc(tv-safe - 4px)`
-          tracks the same clamp, so the 4px gap holds at every viewport width
-          instead of a fixed pixel over-pull on smaller screens. */}
+          `tv-safe` padding-inline (--tv-safe-inline, 80px at 1920) left a
+          dead right margin, so a negative right margin cancels that padding
+          down to a 4px gap (beta feedback). Referencing the custom property
+          keeps this in lockstep with the tv-safe token in app.css — the gap
+          holds at every viewport width and survives future token edits. */}
       <div
         data-testid="room-playing-rail"
         className={cn(
-          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[336px] lg:-mr-[calc(clamp(1.5rem,5vw,5rem)_-_4px)] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
+          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[336px] lg:-mr-[calc(var(--tv-safe-inline)_-_4px)] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
           !hasCurrentItem && "hidden"
         )}
       >

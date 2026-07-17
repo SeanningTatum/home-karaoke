@@ -354,7 +354,7 @@ function QueueRow({
     </Button>
   ) : null;
 
-  // TV rail (~320px): two COLUMNS — the drag handle lives alone in a
+  // TV rail (~336px): two COLUMNS — the drag handle lives alone in a
   // left column (vertically centered against the full card height), and a
   // right column stacks the video preview + title INLINE on one row over
   // the meta row (added-by + own marker + remove) beneath. Beta feedback:

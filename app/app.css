@@ -254,14 +254,20 @@ body {
   text-transform: uppercase;
 }
 
-/* ~5% safe margins for TV-viewport layouts. See design.md §Typography. */
+/* ~5% safe margins for TV-viewport layouts. See design.md §Typography.
+   --tv-safe-inline is the single source of truth — the playing-state rail
+   cancels it with a negative margin (room/$code.tsx), so change it HERE only. */
+:root {
+  --tv-safe-inline: clamp(1.5rem, 5vw, 5rem);
+}
+
 @utility tv-safe {
-  padding-inline: clamp(1.5rem, 5vw, 5rem);
+  padding-inline: var(--tv-safe-inline);
   padding-block: clamp(1rem, 5vh, 3rem);
 }
 
 @utility tv-safe-x {
-  padding-inline: clamp(1.5rem, 5vw, 5rem);
+  padding-inline: var(--tv-safe-inline);
 }
 
 @utility tv-safe-y {
