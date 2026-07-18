@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { redirect, Link, useNavigate, useRevalidator } from "react-router";
+import { redirect, Link, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
-import { toast } from "sonner";
 import {
   IconArrowLeft,
-  IconDoorExit,
   IconMusic,
   IconPlaylist,
 } from "@tabler/icons-react";
@@ -26,17 +24,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InitialsAvatar } from "@/components/room/initials-avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { YoutubePlayer } from "@/components/room/youtube-player";
 import { NowSingingBanner } from "@/components/room/now-singing-banner";
 import { QueueRail } from "@/components/room/queue-rail";
@@ -162,8 +149,6 @@ function RoomHostView({
   joinUrl: string;
 }) {
   const { t } = useTranslation("room");
-  const navigate = useNavigate();
-
   // Emoji reactions (feat-010) — the TV-side overlay handle, the reaction-pop
   // throttle clock, the end-of-song recap state, and a ref flag the
   // currentItem-change effect below reads to decide whether to defer the
@@ -441,13 +426,6 @@ function RoomHostView({
     });
   };
 
-  const closeRoom = api.room.close.useMutation({
-    onSuccess: () => navigate("/dashboard"),
-    onError: (error) => {
-      toast.error(error.message || t("controls.end_party_error"));
-    },
-  });
-
   // Recap card finished (visible hold + exit animation) — clear it and let
   // the deferred "You're up" announcement (if any is pending) proceed on its
   // own RECAP_TOTAL_MS timer, which was armed independently in the effect above.
@@ -464,15 +442,15 @@ function RoomHostView({
       {/* MAIN column — the navbar-style top bar sits INSIDE this column (not
           spanning the rail) so the rail can extend the full viewport height
           beside it (annotation H). Below it: the playing video (kept mounted,
-          just hidden, in the lobby so the YoutubePlayer IFrame + its
-          user-gesture "started" flag survive the lobby -> playing transition)
-          or the lobby's two-column layout. */}
+          just hidden, in the lobby so the YoutubePlayer IFrame survives the
+          lobby -> playing transition) or the lobby's two-column layout. */}
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Top bar: "Party lobby" acts as a navbar title on the LEFT in the
-            lobby (annotation D); room-level controls on the RIGHT. The
-            party-sounds toggle was removed per beta feedback (annotation C) —
-            the persisted mute default is still honored, there's just no TV
-            control for it. */}
+            lobby (annotation D); connection status on the RIGHT. The
+            party-sounds toggle and End party button were removed per beta
+            feedback — the TV is a display surface; ending the party lives in
+            the phone Controls tab. The persisted sounds-mute default is
+            still honored, there's just no TV control for it. */}
         <div className="flex items-center justify-between gap-3 pb-4">
           <div className="flex min-w-0 items-center">
             {!hasCurrentItem && (
@@ -486,55 +464,6 @@ function RoomHostView({
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <ConnectionStatusPill status={connectionStatus} />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="lg"
-                  data-testid="room-end-party-button"
-                  className="gap-2 text-2xl font-semibold"
-                >
-                  <IconDoorExit className="size-5" />
-                  {t("controls.end_party")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent data-testid="room-end-party-dialog">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-4xl font-bold font-display">
-                    {t("controls.end_party_confirm_title")}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
-                    {t("controls.end_party_confirm_description")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel
-                    data-testid="room-end-party-cancel"
-                    size="lg"
-                    // `AlertDialogCancel`/`AlertDialogAction` render via
-                    // Radix's `asChild` Slot, which merges this className
-                    // onto the child by plain concatenation — NOT through
-                    // `tailwind-merge` — so a same-specificity override
-                    // (`text-2xl`) can lose to the wrapped Button's own
-                    // baked-in `text-sm` depending on generated CSS order.
-                    // `!` forces it to win regardless.
-                    className="!text-2xl !font-semibold"
-                  >
-                    {t("controls.end_party_cancel")}
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    data-testid="room-end-party-confirm"
-                    size="lg"
-                    disabled={closeRoom.isPending}
-                    onClick={() => closeRoom.mutate({ roomId: room.id })}
-                    className="!text-2xl !font-semibold"
-                  >
-                    {t("controls.end_party_confirm_action")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </div>
 
