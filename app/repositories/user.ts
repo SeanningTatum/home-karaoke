@@ -14,6 +14,7 @@ import type {
   BulkBanUsersInput,
   BulkDeleteUsersInput,
   BulkUpdateUserRolesInput,
+  SetUserImageInput,
 } from "@/lib/schemas/user";
 
 export interface FilterProtectedInput {
@@ -244,6 +245,17 @@ export class UserRepository extends Effect.Service<UserRepository>()(
           return { success: true } as const;
         });
 
+      const setUserImage = (input: SetUserImageInput) =>
+        Effect.gen(function* () {
+          yield* tryUpdate("user", () =>
+            db
+              .update(user)
+              .set({ image: input.image })
+              .where(eq(user.id, input.userId))
+          );
+          return { success: true } as const;
+        });
+
       return {
         getUsers,
         filterProtectedUsers,
@@ -255,6 +267,7 @@ export class UserRepository extends Effect.Service<UserRepository>()(
         banUser,
         unbanUser,
         deleteUser,
+        setUserImage,
       } as const;
     }),
   }

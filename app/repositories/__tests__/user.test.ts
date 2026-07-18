@@ -475,3 +475,52 @@ describe("UserRepository.banUser", () => {
     }).pipe(Effect.provide(provideStub(stub)));
   });
 });
+
+describe("UserRepository.setUserImage", () => {
+  it.effect("writes the image and returns success", () => {
+    const updateSpy = chainableSpy(undefined);
+    const stub = { update: updateSpy };
+    return Effect.gen(function* () {
+      const repo = yield* UserRepository;
+      const result = yield* repo.setUserImage({
+        userId: "u1",
+        image: "https://cdn.example.com/a.png",
+      });
+      expect(result).toEqual({ success: true });
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy).toHaveBeenCalledWith(user);
+    }).pipe(Effect.provide(provideStub(stub)));
+  });
+
+  it.effect("clears the image when passed null", () => {
+    const updateSpy = chainableSpy(undefined);
+    const stub = { update: updateSpy };
+    return Effect.gen(function* () {
+      const repo = yield* UserRepository;
+      const result = yield* repo.setUserImage({ userId: "u1", image: null });
+      expect(result).toEqual({ success: true });
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    }).pipe(Effect.provide(provideStub(stub)));
+  });
+
+  it.effect("fails with UpdateError when the update throws", () => {
+    const stub = {
+      update: () => {
+        throw new Error("update boom");
+      },
+    };
+    return Effect.gen(function* () {
+      const repo = yield* UserRepository;
+      const exit = yield* Effect.exit(
+        repo.setUserImage({ userId: "u1", image: null })
+      );
+      expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit)) {
+        const failure = Cause.failureOption(exit.cause);
+        if (failure._tag === "Some") {
+          expect(failure.value).toBeInstanceOf(UpdateError);
+        }
+      }
+    }).pipe(Effect.provide(provideStub(stub)));
+  });
+});

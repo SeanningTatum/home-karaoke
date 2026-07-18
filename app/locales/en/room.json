@@ -48,6 +48,16 @@
       "submitting": "Joining…",
       "error_session": "Couldn't join the room — try again"
     },
+    "avatar": {
+      "add_photo": "Add a photo",
+      "change_photo": "Change photo",
+      "remove_photo": "Remove",
+      "uploading": "Uploading…",
+      "error_upload": "Couldn't upload your photo — you can still join",
+      "error_type": "Use a JPG, PNG, or WebP image",
+      "error_size": "Image is too large (max 20 MB)",
+      "alt": "Your profile photo"
+    },
     "tabs": {
       "search": "Search",
       "queue": "Queue",

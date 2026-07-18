@@ -57,6 +57,10 @@ export class WidgetRepository extends Effect.Service<WidgetRepository>()(
 - **No context access**: pass identity / role through input parameters (e.g. `currentUserId` field)
 - **Pure helpers**: extract predicates / SQL-condition builders to top-level exported functions so tests can call them directly
 
+### Existing method inventory notes
+
+- `UserRepository.setUserImage({ userId, image })` (feat-011) — sole write path for the Better Auth `user.image` column (versioned avatar serving URL, or `null` to clear). Called from the avatar upload action with the authenticated `session.user.id` — never a client-supplied id. Uses `tryUpdate`; details in [`features/guest-avatars/guest-avatars.md`](../features/guest-avatars/guest-avatars.md).
+
 ## Wire into runtime
 
 After creating repo, edit `app/runtime.ts`:

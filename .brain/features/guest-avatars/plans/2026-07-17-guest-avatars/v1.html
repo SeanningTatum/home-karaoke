@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guest Avatars — feat-011 plan</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 72ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  code { font-size: 0.9em; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0 4px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-draft { background: var(--surface); color: var(--muted); }
+  .chip-high { color: var(--accent); border-color: var(--accent); }
+  .chip-med { color: var(--fg-secondary); }
+  .chip-low { color: var(--muted); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue, .btn-approve, .btn-request-changes {
+    border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em;
+  }
+  .btn-queue, .btn-approve { background: var(--fg); color: #fff; }
+  .btn-request-changes { background: transparent; color: var(--fg);
+    border: 1px solid var(--border); }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  pre.mermaid { text-align: center; }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Guest Avatars — profile photos in the lobby &amp; room</h1>
+  <div>
+    <span>2026-07-17</span> ·
+    <span>feature: guest-avatars (feat-011)</span> ·
+    <span class="chip chip-status-draft">draft</span> ·
+    <span>round 0</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>Guests get an optional "add a photo" step next to the nickname form on
+  <code>/join/:code</code>; the photo is stored in R2 and their face replaces the
+  gradient-initials avatar everywhere their identity already shows — the TV lobby
+  roster, the compact participants strip, queue rows, the lobby queue summary, and
+  the "You're up!" overlay. The R2 plumbing (binding, service, repository, tagged
+  errors) survived the feat-003 cut, so this is mostly a route + wire-protocol +
+  UI-threading feature, not new infrastructure.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>feat-007 group-karaoke shipped 2026-07-16 (plan <code>plans/group-karaoke.html</code>);
+  feat-009 tv-beta-polish merged as PR #6 earlier today — the TV lobby now has a
+  horizontal roster of gradient <code>InitialsAvatar</code> chips, which is exactly
+  where faces belong. feat-003 file-upload was <em>cut</em> by feat-008 (ui-overhaul)
+  but only above the repository layer: the <code>BUCKET</code> R2 binding,
+  <code>Bucket</code> service, <code>BucketRepository</code> (upload/get/remove/list),
+  its 7 tagged errors and unit tests all remain live in <code>app/runtime.ts</code>.
+  The Better Auth <code>user.image</code> column exists with no write path. feat-011
+  was registered in-progress today (checkpoint 2026-07-17, run note
+  <code>.brain/runs/2026-07-17-guest-avatars.md</code>); two recon passes mapped the
+  upload infra and the full identity path (nickname → WS header → Durable Object
+  roster → UI), and an architecture pass produced the blueprint this plan reflects.</p>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture</h2>
+  <pre class="mermaid">
+flowchart TD
+  G[Guest phone: /join/:code<br/>nickname + optional photo] -->|downscale 512px, POST /api/avatar| A[Upload action<br/>validate type/size]
+  A -->|put avatars/userId| R2[(R2 BUCKET)]
+  A -->|user.image = /api/avatar/userId?v=ts| D1[(D1 user row)]
+  G -->|WS connect ?nickname=| WS[WS upgrade route]
+  D1 -->|session.user.image| WS
+  WS -->|x-avatar-url header| DO[KaraokeRoom DO<br/>roster + queue live state]
+  DO -->|room.state / roster.updated<br/>avatarUrl on entries| TV[Host TV: lobby roster,<br/>queue rail, now-up overlay]
+  DO --> P[Guest phones: queue tab]
+  TV -->|GET /api/avatar/:userId| S[Serve loader<br/>streams R2, immutable cache]
+  S --> R2
+  </pre>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-key-scheme" data-brain-action>
+    <p><strong>1. R2 key scheme &amp; cache strategy</strong></p>
+    <p>How we name the stored object determines cache behavior and cleanup burden.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-key-scheme" id="opt-stable-key"
+            value="Stable key avatars/userId + ?v= cache-bust URL" checked data-brain-action></td>
+          <td><label for="opt-stable-key">Stable key <code>avatars/${userId}</code>, URL carries <code>?v=timestamp</code>
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Re-upload overwrites atomically — zero orphans, no cleanup code; versioned URL is unique content so serving can be <code>immutable</code>, 1-year cache</td>
+          <td>Raw URL without <code>?v=</code> can serve a stale cached image (never emitted by the app)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-key-scheme" id="opt-timestamped-key"
+            value="Timestamped keys + delete old object" data-brain-action></td>
+          <td><label for="opt-timestamped-key">Timestamped keys <code>avatars/${userId}/${ts}</code>, delete previous on re-upload</label></td>
+          <td>Every key is immutable content by construction</td>
+          <td>More code; best-effort delete races leave orphaned objects in R2</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-key-scheme', 'R2 key scheme and cache strategy')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-key-scheme"></span>
+  </div>
+
+  <div class="decision-card" id="decision-image-write" data-brain-action>
+    <p><strong>2. Who writes <code>user.image</code>?</strong></p>
+    <p>The serving URL must land on the Better Auth user row so the WS route can forward it.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-image-write" id="opt-server-write"
+            value="Server-side in upload action via UserRepository.setUserImage" checked data-brain-action></td>
+          <td><label for="opt-server-write">Server-side, inside the upload action (new <code>UserRepository.setUserImage</code>)
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Atomic with the R2 put in one Effect program; URL derived from the authenticated <code>session.user.id</code> — a guest can only ever overwrite their own row; no reliance on Better Auth's client field allowlist</td>
+          <td>One new repository method (+ unit test)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-image-write" id="opt-client-write"
+            value="Client-side authClient.updateUser({ image })" data-brain-action></td>
+          <td><label for="opt-client-write">Client calls <code>authClient.updateUser({ image })</code> after upload</label></td>
+          <td>No repo change</td>
+          <td>Second round-trip; trusts client-supplied URL string; subject to Better Auth's updateUser field policy</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-image-write', 'Who writes user.image')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-image-write"></span>
+  </div>
+
+  <div class="decision-card" id="decision-downscale" data-brain-action>
+    <p><strong>3. Client-side downscale before upload?</strong></p>
+    <p>Phone photos are routinely 3–10&nbsp;MB; avatars render at most 80px on the TV.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-downscale" id="opt-downscale"
+            value="Downscale to 512px center-cropped square JPEG client-side; 2MB server cap as safety net" checked data-brain-action></td>
+          <td><label for="opt-downscale">Yes — 512px center-cropped square, JPEG q0.85 (~50–150&nbsp;KB); server keeps a 2&nbsp;MB cap as safety net
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Fast uploads on party wi-fi; tiny R2 storage; crop math is a pure unit-tested helper</td>
+          <td>A thin untestable canvas wrapper (jsdom can't run canvas — kept deliberately thin)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-downscale" id="opt-raw-upload"
+            value="Upload original file, server 2MB cap only" data-brain-action></td>
+          <td><label for="opt-raw-upload">No — upload the original, rely on the 2&nbsp;MB cap</label></td>
+          <td>Less client code</td>
+          <td>Most phone photos exceed 2&nbsp;MB → uploads rejected, bad UX wall</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-downscale', 'Client-side downscale before upload')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-downscale"></span>
+  </div>
+
+  <div class="decision-card" id="decision-midroom" data-brain-action>
+    <p><strong>4. Changing your photo mid-room</strong></p>
+    <p>Avatar is captured into roster/queue entries at WS-connect / queue-add time.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-midroom" id="opt-defer-midroom"
+            value="Out of scope this feature — photo set at join; changing it applies on next connect" checked data-brain-action></td>
+          <td><label for="opt-defer-midroom">Out of scope — photo is set at the join step; a change applies on the next connect
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>No new WS message or re-broadcast path; keeps the diff focused</td>
+          <td>A guest who joins photo-less stays initials-only until they rejoin</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-midroom" id="opt-live-midroom"
+            value="Support live avatar change: new WS message + roster re-broadcast" data-brain-action></td>
+          <td><label for="opt-live-midroom">Support it now — new client WS message, DO updates roster + re-broadcasts</label></td>
+          <td>Nicer for photo-shy latecomers</td>
+          <td>New protocol message, new reducer, wider test surface — scope growth</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-midroom', 'Changing photo mid-room')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-midroom"></span>
+  </div>
+
+  <div class="decision-card" id="decision-capture" data-brain-action>
+    <p><strong>5. Photo picker style on the phone</strong></p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-capture" id="opt-picker"
+            value="Plain file input (gallery or camera, OS chooses)" checked data-brain-action></td>
+          <td><label for="opt-picker">Plain file input — OS sheet offers camera <em>or</em> gallery
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Guest picks a flattering photo or snaps one; standard behavior</td>
+          <td>One extra tap vs. camera-direct</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-capture" id="opt-camera-direct"
+            value="capture=user attribute: jump straight to selfie camera" data-brain-action></td>
+          <td><label for="opt-camera-direct"><code>capture="user"</code> — jump straight to the selfie camera</label></td>
+          <td>Fastest path to a real face at the party</td>
+          <td>No gallery option on most Android pickers; awkward on desktop</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-capture', 'Photo picker style on the phone')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-capture"></span>
+  </div>
+</section>
+
+<section id="plan-of-record" data-brain-section="plan-of-record">
+  <h2>Plan of record</h2>
+  <ol>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 — server data plane.</strong>
+      <span data-item-text data-brain-action>Add avatar fields to the wire schemas (QueueItem.singerAvatarUrl, RosterEntry.avatarUrl — optional-with-null-default so old hibernated DO state and old clients decode cleanly), thread avatarUrl through room-state reducers, the DO SessionAttachment, and the WS upgrade route's x-avatar-url header (from session.user.image); new pure helpers app/lib/avatar.ts (key/URL/type/size) + UserRepository.setUserImage. Acceptance: typecheck green; new unit tests for helpers, reducers, schema decode (field present / null / absent), and the repo method all pass.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1"><strong>Phase 2 — upload &amp; serve routes.</strong>
+      <span data-item-text data-brain-action>POST /api/avatar (multipart action: session-gated, type/size validated, BucketRepository.upload to the stable key, setUserImage with the versioned URL) and GET /api/avatar/:userId (streams R2 body, immutable Cache-Control, ETag, 404 on missing) — both following the non-tRPC Effect route pattern; registered in app/routes.ts. No new tagged errors — reuse the 7 mapped bucket errors + ValidationError/UpdateError. Acceptance: typecheck + build green; manual curl round-trip works in dev.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="2"><strong>Phase 3 — client capture UI.</strong>
+      <span data-item-text data-brain-action>Photo picker + preview in the nickname form (tap the avatar preview → file input → downscale to 512px square → object-URL preview → upload after session exists, best-effort with inline error and join never blocked); pure computeCoverCrop helper + test; InitialsAvatar gains an optional src prop (AvatarImage with automatic fallback to gradient initials); en+zh i18n keys in the existing room namespace. Acceptance: unit tests green; guest can join with or without a photo.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="3"><strong>Phase 4 — wire the five display surfaces.</strong>
+      <span data-item-text data-brain-action>Pass avatar URLs into RosterStrip (lobby + compact), the queue rail singer chips, the lobby queue summary, and the now-up overlay (singer prop extended to carry avatarUrl). Acceptance: typecheck green; photo guests show faces, photo-less guests keep gradient initials everywhere.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="4"><strong>Phase 5 — verify &amp; ship.</strong>
+      <span data-item-text data-brain-action>effect-ts-enforcer sweep, full verify-done (typecheck/tests/e2e smoke/build), feature-verifier browser walk (upload a real image on /join, confirm face in lobby roster + compact strip + queue rail + lobby summary + now-up overlay, plus initials fallback for a photo-less guest), update feature memo + CHANGELOG, flip feat-011 via brain ship. Acceptance: verification doc PASS with screenshots.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or acceptance criterion..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="files-changed">
+  <h2>Files that change</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>app/lib/avatar.ts (+test)</td><td>new</td><td>pure key/URL/type/size helpers</td></tr>
+      <tr><td>app/lib/image/crop.ts (+test)</td><td>new</td><td>pure center-crop math</td></tr>
+      <tr><td>app/lib/image/downscale.ts</td><td>new</td><td>thin canvas wrapper (client-only)</td></tr>
+      <tr><td>app/routes/api/avatar.ts</td><td>new</td><td>POST upload action</td></tr>
+      <tr><td>app/routes/api/avatar.$userId.ts</td><td>new</td><td>GET serve loader (R2 stream)</td></tr>
+      <tr><td>app/routes.ts</td><td>edit</td><td>register both API routes</td></tr>
+      <tr><td>app/lib/schemas/room-ws.ts</td><td>edit</td><td>QueueItem.singerAvatarUrl + RosterEntry.avatarUrl (optional, null default)</td></tr>
+      <tr><td>app/lib/room-state.ts</td><td>edit</td><td>AddToQueueInput / ApplyContext / queue.add carry avatarUrl</td></tr>
+      <tr><td>app/durable-objects/karaoke-room.ts</td><td>edit</td><td>SessionAttachment.avatarUrl (hibernation-tolerant), roster + ctx threading</td></tr>
+      <tr><td>app/routes/api/room.$code.ws.ts</td><td>edit</td><td>forward x-avatar-url from session.user.image</td></tr>
+      <tr><td>app/repositories/user.ts (+test)</td><td>edit</td><td>setUserImage</td></tr>
+      <tr><td>app/lib/schemas/user.ts</td><td>edit</td><td>SetUserImageInput schema</td></tr>
+      <tr><td>app/components/room/initials-avatar.tsx</td><td>edit</td><td>optional src → AvatarImage + fallback</td></tr>
+      <tr><td>app/components/join/nickname-form.tsx</td><td>edit</td><td>photo picker, preview, upload</td></tr>
+      <tr><td>app/components/room/roster-strip.tsx · queue-rail.tsx · now-up-overlay.tsx · app/routes/room/$code.tsx</td><td>edit</td><td>pass avatar src at the 5 display sites</td></tr>
+      <tr><td>app/locales/en/room.json · zh/room.json</td><td>edit</td><td>join.avatar.* keys</td></tr>
+      <tr><td>.brain (feature memo, CHANGELOG, data-models/api/routes docs)</td><td>edit</td><td>brain sync per repo rules</td></tr>
+    </tbody>
+  </table>
+  <p>Not changing: <code>tagToTRPC</code> (no new tagged errors), <code>use-room-socket.ts</code>
+  (decoded fields flow through verbatim), Drizzle schema (user.image already exists — no migration),
+  <code>wrangler.jsonc</code> (BUCKET binding already present).</p>
+</section>
+
+<section id="golden-path">
+  <h2>Golden path</h2>
+  <pre class="mermaid">
+sequenceDiagram
+  participant G as Guest phone
+  participant W as Worker
+  participant R2 as R2 BUCKET
+  participant D1 as D1
+  participant DO as KaraokeRoom DO
+  participant TV as Host TV
+  G->>G: pick photo, downscale to 512px square
+  G->>W: signIn.anonymous() + updateUser(name)
+  G->>W: POST /api/avatar (multipart)
+  W->>R2: put avatars/userId (contentType)
+  W->>D1: user.image = /api/avatar/userId?v=ts
+  W-->>G: 200 { url }
+  G->>W: WS upgrade /api/room/:code/ws?nickname=
+  W->>DO: headers incl. x-avatar-url
+  DO-->>TV: roster.updated (avatarUrl on entry)
+  G->>DO: queue.add
+  DO-->>TV: queue.updated (singerAvatarUrl)
+  TV->>W: GET /api/avatar/userId?v=ts
+  W->>R2: get avatars/userId
+  W-->>TV: image stream (immutable, 1y cache)
+  </pre>
+</section>
+
+<section id="error-paths">
+  <h2>Error paths</h2>
+  <table>
+    <thead><tr><th>Failure</th><th>Detected by</th><th>Handled by</th><th>User sees</th></tr></thead>
+    <tbody data-brain-section="error-paths">
+      <template>
+        <tr data-brain-item>
+          <td data-item-text data-brain-action colspan="4"></td>
+        </tr>
+      </template>
+      <tr data-brain-item="0">
+        <td data-item-text data-brain-action>Wrong file type / over 2 MB</td>
+        <td>server validation (also filtered client-side by accept + downscale)</td>
+        <td>BucketValidationError → 400</td>
+        <td>inline "Use a JPG, PNG, or WebP" / "too large" under the picker; join still works</td>
+        <td><span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+      </tr>
+      <tr data-brain-item="1">
+        <td data-item-text data-brain-action>Upload fails (R2 error, network)</td>
+        <td>BucketUploadError / fetch rejection</td>
+        <td>best-effort: error shown, join proceeds photo-less</td>
+        <td>"Couldn't upload your photo — you can still join"</td>
+        <td><span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+      </tr>
+      <tr data-brain-item="2">
+        <td data-item-text data-brain-action>Avatar GET for a user with no photo</td>
+        <td>BucketNotFoundError on R2 get</td>
+        <td>404 response; Radix Avatar auto-falls-back</td>
+        <td>gradient initials chip (today's behavior)</td>
+        <td><span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+      </tr>
+      <tr data-brain-item="3">
+        <td data-item-text data-brain-action>Old hibernated DO state / old clients (no avatar fields)</td>
+        <td>schema decode of stored/wire data</td>
+        <td>optional-with-default fields decode absent → null; SessionAttachment guard unchanged</td>
+        <td>initials fallback — no crash, no disconnect</td>
+        <td><span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+      </tr>
+      <tr data-brain-item="4">
+        <td data-item-text data-brain-action>user.image write fails after successful R2 put</td>
+        <td>UpdateError from setUserImage</td>
+        <td>500 from action; object remains at stable key (next upload overwrites)</td>
+        <td>upload error message; can retry; join unaffected</td>
+        <td><span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="testing-plan" data-brain-section="testing-plan">
+  <h2>Testing plan</h2>
+  <ul class="checklist">
+    <template>
+      <li data-brain-item>
+        <label><input type="checkbox"> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <!-- dblclick on label text also toggles the checkbox twice en route to edit
+         mode — harmless (nets to original state); do not preventDefault. -->
+    <li data-brain-item="0"><label><input type="checkbox"> <span data-item-text data-brain-action>Unit: avatar helpers (type/size boundaries, key + versioned URL format), computeCoverCrop (landscape/portrait/square), setUserImage (set + null-clear), room-state reducers carry avatarUrl/singerAvatarUrl, room-ws decode with field present / null / absent</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="1"><label><input type="checkbox"> <span data-item-text data-brain-action>Golden path (feature-verifier): guest uploads a real image on /join → face appears in TV lobby roster, compact strip, queue rail row, lobby queue summary, and now-up overlay</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="2"><label><input type="checkbox"> <span data-item-text data-brain-action>Error path: second guest joins without a photo → gradient initials everywhere, no console/network errors from missing avatars</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="3"><label><input type="checkbox"> <span data-item-text data-brain-action>Regression: e2e smoke suite (join flow, queue sync, room close) still green; existing 429-test unit suite untouched</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="4"><label><input type="checkbox"> <span data-item-text data-brain-action>Build: bun run build green (CF Workers compat — R2 stream in a loader Response)</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing-plan">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test case..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0">
+      <span data-item-text data-brain-action>Seed data: leave fixture users photo-less (initials is a valid seeded state) and rely on the live feature-verifier walk — or point one fixture at a committed static asset for visual smoke?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1">
+      <span data-item-text data-brain-action>Preview/prod R2: does the deployed home-karaoke-bucket need any lifecycle rule (e.g. cleanup of avatars for long-dead anonymous users), or is unbounded small-object growth acceptable for now?</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="verdict">
+  <h2>Verdict</h2>
+  <div>
+    <button type="button" class="btn-approve" data-brain-action
+      onclick="queueVerdict('approve')">Approve plan</button>
+    <button type="button" class="btn-request-changes" data-brain-action
+      onclick="queueVerdict('request-changes')">Request changes</button>
+    <span class="queue-ack" id="ack-verdict"></span>
+  </div>
+</section>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+
+  function queueVerdict(verdict) {
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "message",
+        queueKey: "verdict",
+        prompt: verdict === "approve"
+          ? "Plan approved as written."
+          : "Requesting changes — see annotations."
+      });
+    }
+    var ack = document.getElementById("ack-verdict");
+    if (ack) ack.textContent = verdict === "approve" ? "Queued: approve" : "Queued: request changes";
+  }
+
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

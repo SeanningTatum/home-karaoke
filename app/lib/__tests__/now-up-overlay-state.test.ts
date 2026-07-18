@@ -6,8 +6,8 @@ import {
   type NowUpDisplayState,
 } from "../now-up-overlay-state";
 
-const alice = { nickname: "Alice" };
-const bob = { nickname: "Bob" };
+const alice = { nickname: "Alice", avatarUrl: null };
+const bob = { nickname: "Bob", avatarUrl: null };
 
 const idle: NowUpDisplayState = { displayedSinger: null, isExiting: false };
 const showing = (singer: NowUpDisplayState["displayedSinger"]): NowUpDisplayState => ({

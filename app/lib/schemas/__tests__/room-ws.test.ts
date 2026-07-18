@@ -1,13 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { Either } from "effect";
+import { Either, Schema } from "effect";
 import {
   decodeClientMessage,
   decodeServerMessage,
   encodeClientMessage,
   encodeServerMessage,
+  QueueItem,
+  RosterEntry,
   type ClientMessage,
   type ServerMessage,
 } from "../room-ws";
+
+const decodeQueueItem = Schema.decodeUnknownEither(QueueItem);
+const decodeRosterEntry = Schema.decodeUnknownEither(RosterEntry);
 
 describe("decodeClientMessage", () => {
   it("decodes queue.add", () => {
@@ -200,6 +205,77 @@ describe("decodeServerMessage", () => {
     expect(Either.isLeft(result)).toBe(true);
     if (Either.isLeft(result)) {
       expect(result.left._tag).toBe("JsonParseError");
+    }
+  });
+});
+
+describe("QueueItem avatar field", () => {
+  const base = {
+    id: "q1",
+    videoId: "v1",
+    title: "t",
+    channel: "c",
+    thumbnailUrl: "u",
+    singerNickname: "Alice",
+    addedByUserId: "u1",
+    addedAt: 123,
+  };
+
+  it("decodes a present singerAvatarUrl", () => {
+    const result = decodeQueueItem({
+      ...base,
+      singerAvatarUrl: "https://cdn.example.com/a.png",
+    });
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.singerAvatarUrl).toBe("https://cdn.example.com/a.png");
+    }
+  });
+
+  it("decodes an explicit null singerAvatarUrl", () => {
+    const result = decodeQueueItem({ ...base, singerAvatarUrl: null });
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.singerAvatarUrl).toBeNull();
+    }
+  });
+
+  it("decodes an ABSENT singerAvatarUrl to null (hibernation / old-client compat)", () => {
+    const result = decodeQueueItem(base);
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.singerAvatarUrl).toBeNull();
+    }
+  });
+});
+
+describe("RosterEntry avatar field", () => {
+  const base = { userId: "u1", nickname: "Alice", role: "guest" as const };
+
+  it("decodes a present avatarUrl", () => {
+    const result = decodeRosterEntry({
+      ...base,
+      avatarUrl: "https://cdn.example.com/a.png",
+    });
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.avatarUrl).toBe("https://cdn.example.com/a.png");
+    }
+  });
+
+  it("decodes an explicit null avatarUrl", () => {
+    const result = decodeRosterEntry({ ...base, avatarUrl: null });
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.avatarUrl).toBeNull();
+    }
+  });
+
+  it("decodes an ABSENT avatarUrl to null (hibernation / old-client compat)", () => {
+    const result = decodeRosterEntry(base);
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.avatarUrl).toBeNull();
     }
   });
 });

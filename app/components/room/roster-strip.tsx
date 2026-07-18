@@ -26,8 +26,10 @@ export interface RosterStripProps {
  * guest appears; existing chips never replay the animation on re-render.
  *
  * Fills the whole right-hand lobby column (see `app/routes/room/$code.tsx`)
- * and owns its own `overflow-y-auto` on the chip grid so a party of 30+
+ * and owns its own `overflow-y-auto` on the chip list so a party of 30+
  * guests scrolls inside this panel — the lobby page itself never scrolls.
+ * Chips are left-aligned (`justify-start`) so the first chip sits flush with
+ * the heading's left edge, rather than centered in a stretched grid track.
  */
 export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
   const { t } = useTranslation("room");
@@ -50,18 +52,20 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
         {guests.length > 0 && (
           <ul
             data-testid="room-roster-chips-compact"
-            className="flex max-h-24 flex-wrap gap-x-3 gap-y-2 overflow-y-auto pr-1"
+            className="flex max-h-24 flex-wrap gap-x-2 gap-y-2 overflow-y-auto pr-1"
           >
             {guests.map((entry) => (
+              // Compact rail chips show avatar/initials only — the nickname is
+              // kept as an accessible label (title + sr-only) so the rail stays
+              // dense while screen readers still announce who's here.
               <li
                 key={entry.userId}
                 data-testid="room-roster-chip"
-                className="animate-chip-in flex items-center gap-1.5"
+                title={entry.nickname}
+                className="animate-chip-in flex items-center"
               >
-                <InitialsAvatar name={entry.nickname} size="sm" />
-                <span className="max-w-24 truncate text-base font-medium text-foreground">
-                  {entry.nickname}
-                </span>
+                <InitialsAvatar name={entry.nickname} size="sm" src={entry.avatarUrl} />
+                <span className="sr-only">{entry.nickname}</span>
               </li>
             ))}
           </ul>
@@ -97,7 +101,7 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
       <p className="tv-label shrink-0 text-muted-foreground">
         {t("lobby.roster_title", { count: guests.length })}
       </p>
-      <ul className="grid min-h-0 flex-1 content-start auto-rows-min grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-4 gap-y-6 overflow-y-auto pr-1">
+      <ul className="flex min-h-0 flex-1 flex-wrap content-start justify-start gap-x-6 gap-y-6 overflow-y-auto pr-1">
         {guests.map((entry) => (
           <li
             key={entry.userId}
@@ -108,6 +112,7 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
               name={entry.nickname}
               size="lg"
               className="size-20 text-2xl"
+              src={entry.avatarUrl}
             />
             <span className="max-w-28 truncate text-base font-medium text-foreground">
               {entry.nickname}

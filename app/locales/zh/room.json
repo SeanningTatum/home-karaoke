@@ -47,6 +47,16 @@
       "submitting": "加入中…",
       "error_session": "加入房间失败 —— 请重试"
     },
+    "avatar": {
+      "add_photo": "添加照片",
+      "change_photo": "更换照片",
+      "remove_photo": "移除",
+      "uploading": "上传中…",
+      "error_upload": "照片上传失败 —— 你仍然可以加入",
+      "error_type": "请使用 JPG、PNG 或 WebP 格式的图片",
+      "error_size": "图片太大（最大 20 MB）",
+      "alt": "你的头像"
+    },
     "tabs": {
       "search": "搜索",
       "queue": "队列",

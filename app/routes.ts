@@ -12,6 +12,8 @@ export default [
   route("/api/auth/*", "routes/api/auth.$.ts"),
   route("/api/set-locale", "routes/api/set-locale.ts"),
   route("/api/room/:code/ws", "routes/api/room.$code.ws.ts"),
+  route("/api/avatar", "routes/api/avatar.ts"),
+  route("/api/avatar/:userId", "routes/api/avatar.$userId.ts"),
 
   // Public routes at root (default locale)
   index("routes/home.tsx"),

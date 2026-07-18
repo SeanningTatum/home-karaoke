@@ -14,7 +14,10 @@ export interface NowUpOverlayProps {
   /** The singer to announce, or `null` for no announcement. Owned by the
    * caller (`$code.tsx`), which also owns the ~5s auto-dismiss timer —
    * see that file's doc comment for the item-id-change latching logic. */
-  readonly singer: { readonly nickname: string } | null;
+  readonly singer: {
+    readonly nickname: string;
+    readonly avatarUrl: string | null;
+  } | null;
 }
 
 /** How long the exit animation is given to finish (`animate-now-up-out` is
@@ -124,7 +127,12 @@ export function NowUpOverlay({ singer }: NowUpOverlayProps) {
             isExiting ? "animate-now-up-out" : "animate-now-up"
           )}
         >
-          <InitialsAvatar name={displayedSinger.nickname} size="lg" className="shadow-glow-accent" />
+          <InitialsAvatar
+            name={displayedSinger.nickname}
+            size="lg"
+            className="shadow-glow-accent"
+            src={displayedSinger.avatarUrl}
+          />
           <p className="tv-headline text-center text-foreground">
             {t("now_up.headline", { name: displayedSinger.nickname })}
           </p>

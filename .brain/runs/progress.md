@@ -21,6 +21,29 @@
 
 ---
 
+## 2026-07-18 — merged origin/main into feat/guest-avatars; emoji-reactions keeps feat-010, guest-avatars renumbered feat-010 → feat-011
+- branch: `feat/guest-avatars`
+- in-progress feature: none
+- run note: none
+- next: verify-done (typecheck/test/build/harness-check), then PR #9 review/merge
+
+---
+
+## 2026-07-17 — PR #9 opened for feat-011 guest-avatars (feat/guest-avatars → main, 6 commits): annotation fix pass (3 pins: centered camera preview, flush-left lobby chips, avatar-only compact roster) + pre-PR Greptile (P1 Content-Length pre-check user-approved, P2 no-throw downscale) — both fixed, 458 tests green
+- branch: `feat/guest-avatars`
+- in-progress feature: none
+- run note: none
+- next: Watch PR #9 CI + human review; merge when green
+
+---
+
+## 2026-07-17 — PR opened for guest-avatars: https://github.com/SeanningTatum/home-karaoke/pull/9
+- branch: `feat/guest-avatars`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-17 — feat-010 emoji-reactions PR #8 opened (feat/emoji-reactions → main, 6 commits ea569f4..613d3d5). Beta annotation pass (4 pins: fixed bottom bar, opacity-100 fly-ups, canvas-confetti — all superseded after live re-verify). Greptile pre-PR review: 3 findings all auto-fixed 613d3d5 (RECAP_TOTAL_MS deferral so You're-up entrance isn't hidden behind recap exit; EXIT_FALLBACK_MS export; sendRef in reaction-bar flush). 482 tests green.
 - branch: `feat/emoji-reactions`
 - in-progress feature: none
@@ -36,10 +59,41 @@
 
 ---
 
+## 2026-07-17 — shipped guest-avatars: verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findi
+- branch: `beaver/08399871`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-17 — shipped emoji-reactions: Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (op
 - branch: `feat/emoji-reactions`
 - in-progress feature: none
 - run note: none
+
+---
+
+## 2026-07-17 — guest-avatars plan reviewed round 1: 5/5 decisions on recommended (stable R2 key+?v=, server setUserImage, 512px downscale, mid-room change out-of-scope, plain file input); open Qs resolved (seeds stay initials; anon-avatar cleanup deferred to future account-upgrade-at-session-end feature)
+- branch: `beaver/08399871`
+- in-progress feature: none
+- run note: none
+- next: Phase 1 build (server data plane) via opus builder
+
+---
+
+## 2026-07-17 — guest-avatars (feat-011) registered in feature_list.json, in-progress
+- branch: `beaver/08399871`
+- in-progress feature: feat-011 (guest-avatars)
+- run note: runs/2026-07-17-guest-avatars.md
+- next: feature memo stub created at features/guest-avatars/guest-avatars.md (design + key files TODO); proceed to opus architecture pass + phased build
+
+---
+
+## 2026-07-17 — guest-avatars started: guest profile-picture upload, avatar in lobby + room
+- branch: `beaver/08399871`
+- in-progress feature: feat-011 (guest-avatars — entry to be added to feature_list.json after design)
+- run note: runs/2026-07-17-guest-avatars.md
+- next: explore sub-agents (upload infra + roster path) → opus architecture design → phased build
 
 ---
 

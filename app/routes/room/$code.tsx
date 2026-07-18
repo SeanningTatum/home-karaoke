@@ -271,7 +271,10 @@ function RoomHostView({
   // separate observer of `playback.currentItem` — so it inherits the exact
   // same first-connect suppression as the overlay: both the visual card and
   // the sound only ever fire together, on a real singer CHANGE.
-  const [nowUpSinger, setNowUpSinger] = useState<{ nickname: string } | null>(null);
+  const [nowUpSinger, setNowUpSinger] = useState<{
+    nickname: string;
+    avatarUrl: string | null;
+  } | null>(null);
   const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
   const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
   const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -287,9 +290,9 @@ function RoomHostView({
   // FANFARE_SOUND doc comment — they must never drift apart) and (re)arms
   // the 5s auto-dismiss. Pulled out of the effect below so it can be called
   // either immediately or after the `RECAP_TOTAL_MS` reaction-recap deferral.
-  const announceNowUp = (nickname: string) => {
+  const announceNowUp = (nickname: string, avatarUrl: string | null) => {
     if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
-    setNowUpSinger({ nickname });
+    setNowUpSinger({ nickname, avatarUrl });
     partySoundsRef.current?.playFanfare();
     nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
   };
@@ -319,6 +322,7 @@ function RoomHostView({
     // motion preference too (just statically, via the global CSS collapse),
     // and its always-mounted aria-live region announces on top of that.
     const nickname = currentItem!.singerNickname;
+    const avatarUrl = currentItem!.singerAvatarUrl;
 
     // The server broadcasts `reaction.recap` for the just-finished song
     // BEFORE the `playback.updated` that advances `currentItem` — so
@@ -329,10 +333,10 @@ function RoomHostView({
     if (recapActiveRef.current) {
       nowUpAnnounceDelayTimerRef.current = setTimeout(() => {
         nowUpAnnounceDelayTimerRef.current = null;
-        announceNowUp(nickname);
+        announceNowUp(nickname, avatarUrl);
       }, RECAP_TOTAL_MS);
     } else {
-      announceNowUp(nickname);
+      announceNowUp(nickname, avatarUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback?.currentItem?.id]);
@@ -587,7 +591,11 @@ function RoomHostView({
                               {item.title}
                             </p>
                             <div className="mt-1 flex items-center gap-1.5">
-                              <InitialsAvatar name={item.singerNickname} size="sm" />
+                              <InitialsAvatar
+                                name={item.singerNickname}
+                                size="sm"
+                                src={item.singerAvatarUrl}
+                              />
                               <p className="truncate text-sm text-muted-foreground">
                                 {t("queue.singer", { name: item.singerNickname })}
                               </p>

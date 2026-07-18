@@ -1,6 +1,6 @@
 {
   "$schema": "Machine-readable feature state tracker. Source of truth for status; per-feature MD docs are source of truth for design/runtime.",
-  "updated": "2026-07-17",
+  "updated": "2026-07-18",
   "policy": {
     "one_in_progress_at_a_time": true,
     "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent"
@@ -149,6 +149,22 @@
       ],
       "status": "shipped",
       "evidence": "Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (opus Phase 1 contract, parallel sonnet TV/phone). Enforcer clean 0 findings. verify-done: typecheck 0, 482 unit tests (35 files), e2e smoke 2/2 (E2E_PORT=5199 isolated), prod build PASS, harness 11/11, i18n.md coherence gap fixed. Verification .brain/features/emoji-reactions/verifications/2026-07-17.md PASS 11/11 golden + error path, 0 app-origin errors (translucency finding withdrawn as capture artifact, 09b-tv-recap-steady.png).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-011",
+      "name": "Guest Avatars",
+      "slug": "guest-avatars",
+      "doc": ".brain/features/guest-avatars/guest-avatars.md",
+      "description": "Guests upload a profile picture on /join/:code; avatar renders in host TV lobby roster, compact roster strip, queue rail, lobby queue summary, and now-up overlay, falling back to gradient InitialsAvatar. Stored in R2 (existing BUCKET binding + BucketRepository), URL persisted on Better Auth user.image, threaded to the KaraokeRoom DO via x-avatar-url WS header into RosterEntry.avatarUrl / QueueItem.singerAvatarUrl.",
+      "dependencies": [
+        "feat-001",
+        "feat-007"
+      ],
+      "status": "shipped",
+      "evidence": "verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findings; plan plans/guest-avatars.html reviewed round 1",
       "owners": [
         "sean"
       ]

@@ -313,6 +313,7 @@ function QueueRow({
         name={item.singerNickname}
         size="sm"
         className={isTv ? "size-6 text-[0.65rem]" : "size-5 text-[0.6rem]"}
+        src={item.singerAvatarUrl}
       />
       <p
         className={cn(

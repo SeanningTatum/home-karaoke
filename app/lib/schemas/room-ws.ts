@@ -15,6 +15,11 @@ export const QueueItem = Schema.Struct({
   channel: Schema.String,
   thumbnailUrl: Schema.String,
   singerNickname: Schema.String,
+  // Absent key decodes to null so old hibernated DO state and old clients
+  // (which never wrote this field) still parse.
+  singerAvatarUrl: Schema.optionalWith(Schema.NullOr(Schema.String), {
+    default: () => null,
+  }),
   addedByUserId: Schema.NullOr(Schema.String),
   addedAt: Schema.Number,
 });
@@ -36,6 +41,11 @@ export type Role = typeof Role.Type;
 export const RosterEntry = Schema.Struct({
   userId: Schema.String,
   nickname: Schema.String,
+  // Absent key decodes to null so old hibernated DO state and old clients
+  // (which never wrote this field) still parse.
+  avatarUrl: Schema.optionalWith(Schema.NullOr(Schema.String), {
+    default: () => null,
+  }),
   role: Role,
 });
 export type RosterEntry = typeof RosterEntry.Type;

@@ -33,6 +33,7 @@ const item = (overrides: Partial<QueueItem> = {}): QueueItem => ({
   channel: "Channel",
   thumbnailUrl: "https://example.com/t.jpg",
   singerNickname: "Alice",
+  singerAvatarUrl: null,
   addedByUserId: "u1",
   addedAt: 1000,
   ...overrides,
@@ -184,6 +185,7 @@ describe("queue transitions", () => {
       channel: "Channel",
       thumbnailUrl: "https://example.com/t.jpg",
       singerNickname: "Alice",
+      singerAvatarUrl: null,
       addedByUserId: "u1",
       addedAt: 1000,
     });
@@ -206,6 +208,7 @@ describe("queue transitions", () => {
       channel: "c",
       thumbnailUrl: "u",
       singerNickname: "Mallory",
+      singerAvatarUrl: null,
       addedByUserId: "u9",
       addedAt: 2000,
     });
@@ -356,35 +359,56 @@ describe("playback transitions", () => {
 });
 
 describe("roster", () => {
-  it("addToRoster appends a new entry", () => {
+  it("addToRoster appends a new entry carrying its avatarUrl", () => {
     const state = baseState();
     const next = addToRoster(state, {
       userId: "u1",
       nickname: "Alice",
+      avatarUrl: "https://cdn.example.com/a.png",
       role: "guest",
     });
     expect(next.roster).toHaveLength(1);
+    expect(next.roster[0].avatarUrl).toBe("https://cdn.example.com/a.png");
+  });
+
+  it("addToRoster carries a null avatarUrl", () => {
+    const state = baseState();
+    const next = addToRoster(state, {
+      userId: "u1",
+      nickname: "Alice",
+      avatarUrl: null,
+      role: "guest",
+    });
+    expect(next.roster[0].avatarUrl).toBeNull();
   });
 
   it("addToRoster replaces an existing entry for the same userId (reconnect)", () => {
     const state = baseState({
-      roster: [{ userId: "u1", nickname: "Old", role: "guest" }],
+      roster: [
+        { userId: "u1", nickname: "Old", avatarUrl: null, role: "guest" },
+      ],
     });
     const next = addToRoster(state, {
       userId: "u1",
       nickname: "New",
+      avatarUrl: "https://cdn.example.com/new.png",
       role: "host",
     });
     expect(next.roster).toEqual([
-      { userId: "u1", nickname: "New", role: "host" },
+      {
+        userId: "u1",
+        nickname: "New",
+        avatarUrl: "https://cdn.example.com/new.png",
+        role: "host",
+      },
     ]);
   });
 
   it("removeFromRoster drops the matching userId", () => {
     const state = baseState({
       roster: [
-        { userId: "u1", nickname: "Alice", role: "guest" },
-        { userId: "u2", nickname: "Bob", role: "host" },
+        { userId: "u1", nickname: "Alice", avatarUrl: null, role: "guest" },
+        { userId: "u2", nickname: "Bob", avatarUrl: null, role: "host" },
       ],
     });
     const next = removeFromRoster(state, "u1");
@@ -405,12 +429,13 @@ describe("applyClientMessage", () => {
   const ctx = {
     userId: "u1",
     nickname: "Alice",
+    avatarUrl: "https://cdn.example.com/a.png",
     role: "guest" as const,
     newQueueItemId: "generated-id",
     now: 555,
   };
 
-  it("queue.add uses ctx for id/nickname/userId/now", () => {
+  it("queue.add uses ctx for id/nickname/avatarUrl/userId/now", () => {
     const state = baseState();
     const next = applyClientMessage(
       state,
@@ -424,9 +449,20 @@ describe("applyClientMessage", () => {
       channel: "c",
       thumbnailUrl: "u",
       singerNickname: "Alice",
+      singerAvatarUrl: "https://cdn.example.com/a.png",
       addedByUserId: "u1",
       addedAt: 555,
     });
+  });
+
+  it("queue.add carries a null singerAvatarUrl when ctx has none", () => {
+    const state = baseState();
+    const next = applyClientMessage(
+      state,
+      { type: "queue.add", videoId: "v", title: "t", channel: "c", thumbnailUrl: "u" },
+      { ...ctx, avatarUrl: null }
+    );
+    expect(next.queue[0].singerAvatarUrl).toBeNull();
   });
 
   it("playback.play advances when no currentItem", () => {
@@ -531,6 +567,7 @@ describe("reactions", () => {
   const reactionCtx = {
     userId: "u1",
     nickname: "Alice",
+    avatarUrl: null,
     role: "guest" as const,
     newQueueItemId: "generated-id",
     now: 555,
@@ -732,7 +769,9 @@ describe("forbiddenError", () => {
 describe("rosterUpdated / roomStateSnapshot", () => {
   it("rosterUpdated reflects current roster", () => {
     const state = baseState({
-      roster: [{ userId: "u1", nickname: "Alice", role: "host" }],
+      roster: [
+        { userId: "u1", nickname: "Alice", avatarUrl: null, role: "host" },
+      ],
     });
     expect(rosterUpdated(state)).toEqual({
       type: "roster.updated",
