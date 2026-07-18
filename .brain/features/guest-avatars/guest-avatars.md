@@ -87,4 +87,4 @@ Guests upload a profile picture on `/join/:code`; the avatar renders in the host
 | Date | Type | Description |
 |------|------|--------------|
 | 2026-07-17 | feature | Phases 1-4 built (opus phase 1, sonnet 2/3/4): server data plane (WS schema fields w/ hibernation-safe defaults, DO threading, avatar helpers, `setUserImage`), upload+serve routes, client capture UI (512px downscale, best-effort upload, en+zh i18n), display wiring on all 5 surfaces. 458 unit tests (from 429). Enforcer sweep clean. Plan `plans/guest-avatars.html` reviewed round 1 — 5/5 decisions on recommended options; seeds stay initials-only; anon-avatar R2 cleanup deferred to future account-upgrade-at-session-end feature. |
-| 2026-07-17 | feature | Scoped feat-010; design in flight — exploration complete (R2/upload infra + identity/roster path mapped), opus architecture pass next. |
+| 2026-07-17 | feature | Scoped feat-011; design in flight — exploration complete (R2/upload infra + identity/roster path mapped), opus architecture pass next. |

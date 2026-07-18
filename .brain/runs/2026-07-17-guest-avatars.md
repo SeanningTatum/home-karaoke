@@ -15,7 +15,7 @@ mixed (cloudflare R2 binding + repository + service + tRPC route + DO/WS protoco
 
 1. Explore (parallel sub-agents): (a) upload/R2 infra status — feat-003 file-upload is CUT, verify what exists; (b) guest identity/roster data path (join flow → WS headers → DO roster → lobby/room UI).
 2. Architect design (opus sub-agent): storage (R2), upload endpoint (binary/multipart non-tRPC route or tRPC base64?), user.image column, WS roster avatarUrl threading, UI (Avatar in lobby tiles, queue rows, now-singing banner).
-3. New feature entry feat-010 `guest-avatars` in feature_list.json (in-progress) + feature memo from _TEMPLATE.
+3. New feature entry feat-011 `guest-avatars` in feature_list.json (in-progress) + feature memo from _TEMPLATE.
 4. Build in phases via sonnet/opus builders (persistence → binding/service → endpoint → DO/protocol → UI).
 5. effect-ts-enforcer review + /verify-done + feature-verifier browser walk.
 

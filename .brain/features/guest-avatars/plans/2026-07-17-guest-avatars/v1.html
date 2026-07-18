@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Guest Avatars — feat-010 plan</title>
+<title>Guest Avatars — feat-011 plan</title>
 <style>
   :root {
     --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
@@ -76,7 +76,7 @@
   <h1>Guest Avatars — profile photos in the lobby &amp; room</h1>
   <div>
     <span>2026-07-17</span> ·
-    <span>feature: guest-avatars (feat-010)</span> ·
+    <span>feature: guest-avatars (feat-011)</span> ·
     <span class="chip chip-status-draft">draft</span> ·
     <span>round 0</span>
   </div>
@@ -102,7 +102,7 @@
   but only above the repository layer: the <code>BUCKET</code> R2 binding,
   <code>Bucket</code> service, <code>BucketRepository</code> (upload/get/remove/list),
   its 7 tagged errors and unit tests all remain live in <code>app/runtime.ts</code>.
-  The Better Auth <code>user.image</code> column exists with no write path. feat-010
+  The Better Auth <code>user.image</code> column exists with no write path. feat-011
   was registered in-progress today (checkpoint 2026-07-17, run note
   <code>.brain/runs/2026-07-17-guest-avatars.md</code>); two recon passes mapped the
   upload infra and the full identity path (nickname → WS header → Durable Object
@@ -320,7 +320,7 @@ flowchart TD
       </span>
     </li>
     <li data-brain-item="4"><strong>Phase 5 — verify &amp; ship.</strong>
-      <span data-item-text data-brain-action>effect-ts-enforcer sweep, full verify-done (typecheck/tests/e2e smoke/build), feature-verifier browser walk (upload a real image on /join, confirm face in lobby roster + compact strip + queue rail + lobby summary + now-up overlay, plus initials fallback for a photo-less guest), update feature memo + CHANGELOG, flip feat-010 via brain ship. Acceptance: verification doc PASS with screenshots.</span>
+      <span data-item-text data-brain-action>effect-ts-enforcer sweep, full verify-done (typecheck/tests/e2e smoke/build), feature-verifier browser walk (upload a real image on /join, confirm face in lobby roster + compact strip + queue rail + lobby summary + now-up overlay, plus initials fallback for a photo-less guest), update feature memo + CHANGELOG, flip feat-011 via brain ship. Acceptance: verification doc PASS with screenshots.</span>
       <span class="item-controls">
         <button type="button" class="item-x" data-brain-action title="Remove">x</button>
         <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>

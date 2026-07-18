@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { redirect, Link, useNavigate, useRevalidator } from "react-router";
+import { redirect, Link, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
-import { toast } from "sonner";
 import {
   IconArrowLeft,
-  IconDoorExit,
   IconMusic,
   IconPlaylist,
 } from "@tabler/icons-react";
@@ -16,22 +14,16 @@ import { RoomRepository } from "@/repositories/room";
 import { buildJoinUrl } from "@/lib/room-urls";
 import { useRoomSocket } from "@/hooks/use-room-socket";
 import { createPartySounds, type PartySounds } from "@/lib/party-sounds";
+import type {
+  ReactionBurstMessage,
+  ReactionRecapMessage,
+} from "@/lib/schemas/room-ws";
+import type { ReactionRecapPayload } from "@/lib/reaction-recap-state";
 import { api } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InitialsAvatar } from "@/components/room/initials-avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { YoutubePlayer } from "@/components/room/youtube-player";
 import { NowSingingBanner } from "@/components/room/now-singing-banner";
 import { QueueRail } from "@/components/room/queue-rail";
@@ -40,11 +32,22 @@ import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
 import { RosterStrip } from "@/components/room/roster-strip";
 import { CelebrationBurst } from "@/components/room/celebration-burst";
 import { NowUpOverlay } from "@/components/room/now-up-overlay";
+import {
+  ReactionOverlay,
+  type ReactionOverlayHandle,
+} from "@/components/room/reaction-overlay";
+import { ReactionRecap, RECAP_TOTAL_MS } from "@/components/room/reaction-recap";
 import type { Route } from "./+types/$code";
 
 /** localStorage key for the host's party-sounds mute toggle. Absent (or any
  * value other than `"off"`) means unmuted/audible — the documented default. */
 const PARTY_SOUNDS_STORAGE_KEY = "hk-party-sounds";
+
+/** Minimum gap between two reaction-pop sounds (feat-010) — a flurry of
+ * guest taps fans out as many `reaction.burst` messages in quick succession,
+ * but the pop is only meant to register as "reactions are happening", not to
+ * fire once per burst. */
+const REACTION_POP_THROTTLE_MS = 700;
 
 export const handle = { i18n: ["room"] };
 
@@ -146,8 +149,43 @@ function RoomHostView({
   joinUrl: string;
 }) {
   const { t } = useTranslation("room");
-  const navigate = useNavigate();
-  const { state, send, connectionStatus, roomClosed } = useRoomSocket({ code });
+  // Emoji reactions (feat-010) — the TV-side overlay handle, the reaction-pop
+  // throttle clock, the end-of-song recap state, and a ref flag the
+  // currentItem-change effect below reads to decide whether to defer the
+  // "You're up" announcement. Declared here (before `useRoomSocket`) so the
+  // socket callbacks below can close over them; `partySoundsRef` (created
+  // further down) is referenced inside those callback BODIES only, which
+  // aren't invoked until a WebSocket message actually arrives — well after
+  // this render has finished setting it up.
+  const reactionOverlayRef = useRef<ReactionOverlayHandle>(null);
+  const lastPopAtRef = useRef(0);
+  const recapActiveRef = useRef(false);
+  const [recap, setRecap] = useState<ReactionRecapPayload | null>(null);
+
+  const handleReactionBurst = (msg: ReactionBurstMessage) => {
+    reactionOverlayRef.current?.burst(msg.emoji, msg.count);
+    const now = Date.now();
+    if (now - lastPopAtRef.current >= REACTION_POP_THROTTLE_MS) {
+      lastPopAtRef.current = now;
+      partySoundsRef.current?.playReactionPop();
+    }
+  };
+
+  const handleReactionRecap = (msg: ReactionRecapMessage) => {
+    setRecap({
+      singerNickname: msg.singerNickname,
+      total: msg.total,
+      breakdown: msg.breakdown,
+    });
+    recapActiveRef.current = true;
+    partySoundsRef.current?.playRecap();
+  };
+
+  const { state, send, connectionStatus, roomClosed } = useRoomSocket({
+    code,
+    onReactionBurst: handleReactionBurst,
+    onReactionRecap: handleReactionRecap,
+  });
   const { queue, playback, roster } = state;
   // `state.settings` is `null` until the room DO's first `room.state`
   // snapshot arrives (see `INITIAL_STATE` in `use-room-socket.ts`) — used
@@ -240,6 +278,24 @@ function RoomHostView({
   const prevNowUpItemIdRef = useRef<string | null>(playback?.currentItem?.id ?? null);
   const hasSeenFirstItemRef = useRef(Boolean(playback?.currentItem));
   const nowUpDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Emoji reactions (feat-010) — holds the pending "You're up" announcement
+  // while `recapActiveRef` is true (see `handleReactionRecap` above and the
+  // effect below). Cleared whenever a superseding singer change arrives so a
+  // stale delayed announcement never fires for the wrong nickname.
+  const nowUpAnnounceDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  // Fires the "You're up, {nickname}!" card + fanfare together (see the
+  // FANFARE_SOUND doc comment — they must never drift apart) and (re)arms
+  // the 5s auto-dismiss. Pulled out of the effect below so it can be called
+  // either immediately or after the `RECAP_TOTAL_MS` reaction-recap deferral.
+  const announceNowUp = (nickname: string, avatarUrl: string | null) => {
+    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+    setNowUpSinger({ nickname, avatarUrl });
+    partySoundsRef.current?.playFanfare();
+    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
+  };
 
   useEffect(() => {
     const currentItem = playback?.currentItem ?? null;
@@ -256,23 +312,40 @@ function RoomHostView({
       }
     }
 
+    if (nowUpAnnounceDelayTimerRef.current) {
+      clearTimeout(nowUpAnnounceDelayTimerRef.current);
+      nowUpAnnounceDelayTimerRef.current = null;
+    }
+
     // No reduced-motion gate here: the singer announcement must reach every
     // viewer either way — NowUpOverlay's visual card renders regardless of
     // motion preference too (just statically, via the global CSS collapse),
     // and its always-mounted aria-live region announces on top of that.
-    if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
-    setNowUpSinger({
-      nickname: currentItem!.singerNickname,
-      avatarUrl: currentItem!.singerAvatarUrl,
-    });
-    partySoundsRef.current?.playFanfare();
-    nowUpDismissTimerRef.current = setTimeout(() => setNowUpSinger(null), 5000);
+    const nickname = currentItem!.singerNickname;
+    const avatarUrl = currentItem!.singerAvatarUrl;
+
+    // The server broadcasts `reaction.recap` for the just-finished song
+    // BEFORE the `playback.updated` that advances `currentItem` — so
+    // `recapActiveRef.current` is already set by the time this effect
+    // re-runs. Defer the announcement by `RECAP_TOTAL_MS` (visible hold +
+    // exit window) so the "You're up" entrance never runs hidden behind the
+    // still-opaque exiting recap card, which stacks above it at the same z.
+    if (recapActiveRef.current) {
+      nowUpAnnounceDelayTimerRef.current = setTimeout(() => {
+        nowUpAnnounceDelayTimerRef.current = null;
+        announceNowUp(nickname, avatarUrl);
+      }, RECAP_TOTAL_MS);
+    } else {
+      announceNowUp(nickname, avatarUrl);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback?.currentItem?.id]);
 
   useEffect(
     () => () => {
       if (nowUpDismissTimerRef.current) clearTimeout(nowUpDismissTimerRef.current);
+      if (nowUpAnnounceDelayTimerRef.current)
+        clearTimeout(nowUpAnnounceDelayTimerRef.current);
     },
     []
   );
@@ -357,12 +430,13 @@ function RoomHostView({
     });
   };
 
-  const closeRoom = api.room.close.useMutation({
-    onSuccess: () => navigate("/dashboard"),
-    onError: (error) => {
-      toast.error(error.message || t("controls.end_party_error"));
-    },
-  });
+  // Recap card finished (visible hold + exit animation) — clear it and let
+  // the deferred "You're up" announcement (if any is pending) proceed on its
+  // own RECAP_TOTAL_MS timer, which was armed independently in the effect above.
+  const handleRecapDone = () => {
+    setRecap(null);
+    recapActiveRef.current = false;
+  };
 
   return (
     <div
@@ -372,15 +446,15 @@ function RoomHostView({
       {/* MAIN column — the navbar-style top bar sits INSIDE this column (not
           spanning the rail) so the rail can extend the full viewport height
           beside it (annotation H). Below it: the playing video (kept mounted,
-          just hidden, in the lobby so the YoutubePlayer IFrame + its
-          user-gesture "started" flag survive the lobby -> playing transition)
-          or the lobby's two-column layout. */}
+          just hidden, in the lobby so the YoutubePlayer IFrame survives the
+          lobby -> playing transition) or the lobby's two-column layout. */}
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Top bar: "Party lobby" acts as a navbar title on the LEFT in the
-            lobby (annotation D); room-level controls on the RIGHT. The
-            party-sounds toggle was removed per beta feedback (annotation C) —
-            the persisted mute default is still honored, there's just no TV
-            control for it. */}
+            lobby (annotation D); connection status on the RIGHT. The
+            party-sounds toggle and End party button were removed per beta
+            feedback — the TV is a display surface; ending the party lives in
+            the phone Controls tab. The persisted sounds-mute default is
+            still honored, there's just no TV control for it. */}
         <div className="flex items-center justify-between gap-3 pb-4">
           <div className="flex min-w-0 items-center">
             {!hasCurrentItem && (
@@ -394,55 +468,6 @@ function RoomHostView({
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <ConnectionStatusPill status={connectionStatus} />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="lg"
-                  data-testid="room-end-party-button"
-                  className="gap-2 text-2xl font-semibold"
-                >
-                  <IconDoorExit className="size-5" />
-                  {t("controls.end_party")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent data-testid="room-end-party-dialog">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-4xl font-bold font-display">
-                    {t("controls.end_party_confirm_title")}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-[1.75rem] leading-[1.4] font-medium">
-                    {t("controls.end_party_confirm_description")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel
-                    data-testid="room-end-party-cancel"
-                    size="lg"
-                    // `AlertDialogCancel`/`AlertDialogAction` render via
-                    // Radix's `asChild` Slot, which merges this className
-                    // onto the child by plain concatenation — NOT through
-                    // `tailwind-merge` — so a same-specificity override
-                    // (`text-2xl`) can lose to the wrapped Button's own
-                    // baked-in `text-sm` depending on generated CSS order.
-                    // `!` forces it to win regardless.
-                    className="!text-2xl !font-semibold"
-                  >
-                    {t("controls.end_party_cancel")}
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    data-testid="room-end-party-confirm"
-                    size="lg"
-                    disabled={closeRoom.isPending}
-                    onClick={() => closeRoom.mutate({ roomId: room.id })}
-                    className="!text-2xl !font-semibold"
-                  >
-                    {t("controls.end_party_confirm_action")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </div>
 
@@ -635,6 +660,8 @@ function RoomHostView({
         onDone={() => setShowCelebration(false)}
       />
       <NowUpOverlay singer={nowUpSinger} />
+      <ReactionOverlay ref={reactionOverlayRef} variant="tv" />
+      <ReactionRecap recap={recap} onDone={handleRecapDone} />
     </div>
   );
 }

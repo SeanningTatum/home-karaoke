@@ -53,7 +53,8 @@ features/
 | Group Karaoke Rooms | [`group-karaoke/group-karaoke.md`](group-karaoke/group-karaoke.md) | shipped | [2026-07-16 ✅ PASS](group-karaoke/verifications/2026-07-16.md) |
 | Karaoke UI/UX Overhaul | [`ui-overhaul/ui-overhaul.md`](ui-overhaul/ui-overhaul.md) | shipped | [2026-07-16 ✅ PASS](ui-overhaul/verifications/2026-07-16.md) |
 | TV Beta Feedback Polish | [`tv-beta-polish/tv-beta-polish.md`](tv-beta-polish/tv-beta-polish.md) | shipped | [2026-07-17 ✅ PASS](tv-beta-polish/verifications/2026-07-17.md) |
-| Guest Avatars | [`guest-avatars/guest-avatars.md`](guest-avatars/guest-avatars.md) | in-progress | — |
+| Emoji Reactions | [`emoji-reactions/emoji-reactions.md`](emoji-reactions/emoji-reactions.md) | shipped | [2026-07-17 ✅ PASS](emoji-reactions/verifications/2026-07-17.md) |
+| Guest Avatars | [`guest-avatars/guest-avatars.md`](guest-avatars/guest-avatars.md) | shipped | [2026-07-17 ✅ PASS](guest-avatars/verifications/2026-07-17.md) |
 
 ## Update trigger
 

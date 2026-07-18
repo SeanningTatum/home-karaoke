@@ -1,7 +1,6 @@
 {
   "player": {
-    "start_party": "开始播放",
-    "resume": "继续播放",
+    "tap_to_play": "点击播放",
     "error_skipping": "这个视频无法播放 —— 正在跳到下一首"
   },
   "banner": {
@@ -99,6 +98,13 @@
   },
   "now_up": {
     "headline": "该你上场了，{{name}}！"
+  },
+  "reactions": {
+    "bar_label": "发送互动表情",
+    "recap_title": "{{name}} 点燃了全场！",
+    "recap_total_other": "{{count}} 个互动",
+    "aria_recap": "回顾：{{name}} 收到了 {{count}} 个互动",
+    "aria_sent": "已发送互动"
   },
   "sounds": {
     "mute_label": "静音派对音效",

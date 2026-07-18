@@ -109,8 +109,8 @@ From [`app/routes.ts`](../../app/routes.ts):
 | `/room/:code` | `routes/room/$code.tsx` | Host big-screen room view (feat-007) — player, queue rail, QR join panel, controls |
 | `/join/:code` | `routes/join/$code.tsx` | Guest join flow (feat-007) — public loader, nickname step, Search/Queue tabs |
 | `/api/room/:code/ws` | `routes/api/room.$code.ws.ts` | WS upgrade boundary (feat-007) — non-tRPC, forwards to the `KARAOKE_ROOM` Durable Object |
-| `/api/avatar` | `routes/api/avatar.ts` | `POST` (feat-010) — non-tRPC, session-gated multipart upload; validates jpeg/png/webp ≤2MB, stores R2 at `avatars/${userId}` via `BucketRepository`, writes a versioned `/api/avatar/${userId}?v=<ts>` URL to `user.image` via `UserRepository.setUserImage` |
-| `/api/avatar/:userId` | `routes/api/avatar.$userId.ts` | `GET` (feat-010) — non-tRPC, public (no auth), streams the R2 object body with `Cache-Control: public, max-age=31536000, immutable` + `ETag`; 404 on missing key (client falls back to initials) |
+| `/api/avatar` | `routes/api/avatar.ts` | `POST` (feat-011) — non-tRPC, session-gated multipart upload; validates jpeg/png/webp ≤2MB, stores R2 at `avatars/${userId}` via `BucketRepository`, writes a versioned `/api/avatar/${userId}?v=<ts>` URL to `user.image` via `UserRepository.setUserImage` |
+| `/api/avatar/:userId` | `routes/api/avatar.$userId.ts` | `GET` (feat-011) — non-tRPC, public (no auth), streams the R2 object body with `Cache-Control: public, max-age=31536000, immutable` + `ETag`; 404 on missing key (client falls back to initials) |
 
 Locale prefixes: only `/`, `/login`, `/sign-up` accept the `/:lng/` variant. `/dashboard` and `/admin` are not locale-prefixed.
 

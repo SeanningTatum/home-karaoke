@@ -1,4 +1,4 @@
-// Pure helpers for guest avatar uploads (feat-010). No I/O — validation
+// Pure helpers for guest avatar uploads (feat-011). No I/O — validation
 // predicates, the R2 object key, and the public image URL. Callers (the
 // upload route + the avatar-serving route) resolve the side effects.
 

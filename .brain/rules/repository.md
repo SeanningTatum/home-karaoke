@@ -59,7 +59,7 @@ export class WidgetRepository extends Effect.Service<WidgetRepository>()(
 
 ### Existing method inventory notes
 
-- `UserRepository.setUserImage({ userId, image })` (feat-010) — sole write path for the Better Auth `user.image` column (versioned avatar serving URL, or `null` to clear). Called from the avatar upload action with the authenticated `session.user.id` — never a client-supplied id. Uses `tryUpdate`; details in [`features/guest-avatars/guest-avatars.md`](../features/guest-avatars/guest-avatars.md).
+- `UserRepository.setUserImage({ userId, image })` (feat-011) — sole write path for the Better Auth `user.image` column (versioned avatar serving URL, or `null` to clear). Called from the avatar upload action with the authenticated `session.user.id` — never a client-supplied id. Uses `tryUpdate`; details in [`features/guest-avatars/guest-avatars.md`](../features/guest-avatars/guest-avatars.md).
 
 ## Wire into runtime
 

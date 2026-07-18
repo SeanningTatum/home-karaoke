@@ -109,6 +109,46 @@ describe("decodeClientMessage", () => {
       expect(result.left._tag).toBe("SchemaParseError");
     }
   });
+
+  it("decodes reaction.send without a count", () => {
+    const raw = JSON.stringify({ type: "reaction.send", emoji: "🔥" });
+    const result = decodeClientMessage(raw);
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.type).toBe("reaction.send");
+    }
+  });
+
+  it("decodes reaction.send with a count", () => {
+    const raw = JSON.stringify({ type: "reaction.send", emoji: "❤️", count: 5 });
+    expect(Either.isRight(decodeClientMessage(raw))).toBe(true);
+  });
+
+  it("rejects reaction.send with an emoji outside the palette", () => {
+    const raw = JSON.stringify({ type: "reaction.send", emoji: "💀" });
+    const result = decodeClientMessage(raw);
+    expect(Either.isLeft(result)).toBe(true);
+    if (Either.isLeft(result)) {
+      expect(result.left._tag).toBe("SchemaParseError");
+    }
+  });
+
+  it.each([0, 21, 5.5])(
+    "rejects reaction.send with an invalid count (%s)",
+    (count) => {
+      const raw = JSON.stringify({ type: "reaction.send", emoji: "🎉", count });
+      expect(Either.isLeft(decodeClientMessage(raw))).toBe(true);
+    }
+  );
+
+  it("accepts reaction.send through the ClientMessage union", () => {
+    const message: ClientMessage = { type: "reaction.send", emoji: "🤩" };
+    const decoded = decodeClientMessage(encodeClientMessage(message));
+    expect(Either.isRight(decoded)).toBe(true);
+    if (Either.isRight(decoded)) {
+      expect(decoded.right).toEqual(message);
+    }
+  });
 });
 
 describe("decodeServerMessage", () => {
@@ -254,6 +294,36 @@ describe("encode / decode roundtrip", () => {
     const message: ServerMessage = {
       type: "playback.updated",
       playback: { status: "playing", currentItem: null, volume: 42 },
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(message));
+    expect(Either.isRight(decoded)).toBe(true);
+    if (Either.isRight(decoded)) {
+      expect(decoded.right).toEqual(message);
+    }
+  });
+
+  it("roundtrips a reaction.burst server message", () => {
+    const message: ServerMessage = {
+      type: "reaction.burst",
+      emoji: "🔥",
+      count: 7,
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(message));
+    expect(Either.isRight(decoded)).toBe(true);
+    if (Either.isRight(decoded)) {
+      expect(decoded.right).toEqual(message);
+    }
+  });
+
+  it("roundtrips a reaction.recap server message", () => {
+    const message: ServerMessage = {
+      type: "reaction.recap",
+      singerNickname: "Alice",
+      total: 4,
+      breakdown: [
+        { emoji: "🔥", count: 3 },
+        { emoji: "❤️", count: 1 },
+      ],
     };
     const decoded = decodeServerMessage(encodeServerMessage(message));
     expect(Either.isRight(decoded)).toBe(true);

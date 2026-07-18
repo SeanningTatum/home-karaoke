@@ -118,6 +118,28 @@ export const FANFARE_SOUND: JingleSpec = [
   },
 ];
 
+/** Emoji reaction fly-up (feat-010) — a single short, bright pop, cheap
+ * enough to fire on every burst without competing with `JOIN_SOUND`/
+ * `ADD_SOUND` for attention. Distinct sine tone (E6) and a much shorter
+ * duration than any other jingle — the caller (`$code.tsx`) additionally
+ * throttles this to at most once per ~700ms so a flurry of reactions doesn't
+ * turn into a machine-gun of pops. ~60ms total. */
+export const REACTION_POP_SOUND: JingleSpec = [
+  { frequency: 1318.51, type: "sine", startMs: 0, durationMs: 60 },
+];
+
+/** End-of-song crowd recap sting (feat-010) — a quick 3-note celebratory
+ * flourish (E5-G5-B5, triangle), fired once when the `reaction.recap` card
+ * appears. Deliberately shorter and texturally distinct from `FANFARE_SOUND`
+ * (square-wave "you're up!" run) so the two never get confused even though
+ * they can occur close together in time (recap fires just before the next
+ * singer's fanfare). ~330ms total. */
+export const REACTION_RECAP_SOUND: JingleSpec = [
+  { frequency: 659.25, type: "triangle", startMs: 0, durationMs: 90 },
+  { frequency: 783.99, type: "triangle", startMs: 85, durationMs: 90 },
+  { frequency: 987.77, type: "triangle", startMs: 170, durationMs: 160 },
+];
+
 export interface PartySounds {
   readonly playJoin: () => void;
   readonly playAdd: () => void;
@@ -126,6 +148,13 @@ export interface PartySounds {
    * see the doc comment on `FANFARE_SOUND`). Respects the same mute toggle
    * as `playJoin`/`playAdd`. */
   readonly playFanfare: () => void;
+  /** Cheap pop for a single emoji-reaction burst (feat-010). Caller-side
+   * throttled (see `REACTION_POP_SOUND`'s doc comment); this function itself
+   * has no throttle of its own. */
+  readonly playReactionPop: () => void;
+  /** End-of-song crowd recap sting (feat-010) — call exactly once when the
+   * `ReactionRecap` card appears, mirroring `playFanfare`'s discipline. */
+  readonly playRecap: () => void;
   /**
    * Closes the lazily-created `AudioContext`, if one was ever created — call
    * from the host screen's unmount cleanup. Browsers cap concurrent
@@ -229,6 +258,8 @@ export function createPartySounds(
     playJoin: () => play(JOIN_SOUND),
     playAdd: () => play(ADD_SOUND),
     playFanfare: () => play(FANFARE_SOUND),
+    playReactionPop: () => play(REACTION_POP_SOUND),
+    playRecap: () => play(REACTION_RECAP_SOUND),
     dispose: () => {
       context?.close();
       context = null;

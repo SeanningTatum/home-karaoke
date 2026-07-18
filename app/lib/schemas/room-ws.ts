@@ -55,6 +55,27 @@ export const RoomSettings = Schema.Struct({
 });
 export type RoomSettings = typeof RoomSettings.Type;
 
+// --- Reactions ---------------------------------------------------------------
+
+/**
+ * The fixed emoji palette guests can react with (human-approved, final).
+ * Order is load-bearing: it's the stable tiebreak for equal-count entries in
+ * a recap breakdown (see `app/lib/reactions.ts`).
+ */
+export const REACTION_EMOJIS = ["👏", "🔥", "❤️", "😭", "🤩", "🎉"] as const;
+
+export const ReactionEmoji = Schema.Literal(...REACTION_EMOJIS);
+export type ReactionEmoji = typeof ReactionEmoji.Type;
+
+/**
+ * Upper bound on a single `reaction.send` count. Guests batch taps client-side
+ * (~300ms) and send one message per batch; both the schema below and the
+ * reducer (`clampReactionCount`) clamp to this so a hand-crafted message can't
+ * inflate the tally. No DO-side rate throttle in v1 — this clamp plus the
+ * 40-particle DOM cap is the whole rate-limiting story.
+ */
+export const MAX_REACTION_BATCH = 20;
+
 // --- Client -> server messages ---------------------------------------------
 
 export const QueueAddMessage = Schema.Struct({
@@ -119,6 +140,19 @@ export const RoomSetGuestReorderMessage = Schema.Struct({
 });
 export type RoomSetGuestReorderMessage = typeof RoomSetGuestReorderMessage.Type;
 
+export const ReactionSendMessage = Schema.Struct({
+  type: Schema.Literal("reaction.send"),
+  emoji: ReactionEmoji,
+  // Number of taps in this batch. Optional (defaults to 1 in the reducer) —
+  // same backward-compatible-optional-field shape as `playback.skip`'s
+  // `currentItemId`. Rejected outside [1, MAX_REACTION_BATCH]; the reducer
+  // clamps again defensively.
+  count: Schema.optional(
+    Schema.Number.pipe(Schema.int(), Schema.between(1, MAX_REACTION_BATCH))
+  ),
+});
+export type ReactionSendMessage = typeof ReactionSendMessage.Type;
+
 export const ClientMessage = Schema.Union(
   QueueAddMessage,
   QueueRemoveMessage,
@@ -128,7 +162,8 @@ export const ClientMessage = Schema.Union(
   PlaybackSkipMessage,
   PlaybackSetVolumeMessage,
   PlaybackVideoEndedMessage,
-  RoomSetGuestReorderMessage
+  RoomSetGuestReorderMessage,
+  ReactionSendMessage
 );
 export type ClientMessage = typeof ClientMessage.Type;
 
@@ -177,13 +212,39 @@ export const ErrorMessage = Schema.Struct({
 });
 export type ErrorMessage = typeof ErrorMessage.Type;
 
+// A single guest's reaction batch, fanned out to every socket (including the
+// reactor's own phone, so their fly-up matches the TV). `count` is already
+// clamped server-side — clients render it as-is.
+export const ReactionBurstMessage = Schema.Struct({
+  type: Schema.Literal("reaction.burst"),
+  emoji: ReactionEmoji,
+  count: Schema.Number,
+});
+export type ReactionBurstMessage = typeof ReactionBurstMessage.Type;
+
+// End-of-song crowd recap (TV-only). Broadcast BEFORE the `playback.updated`
+// that advances to the next singer, so the TV can defer its "You're up" card
+// until after the recap has shown. `total` and `breakdown` are computed from
+// the tally of the song that just finished.
+export const ReactionRecapMessage = Schema.Struct({
+  type: Schema.Literal("reaction.recap"),
+  singerNickname: Schema.String,
+  total: Schema.Number,
+  breakdown: Schema.Array(
+    Schema.Struct({ emoji: ReactionEmoji, count: Schema.Number })
+  ),
+});
+export type ReactionRecapMessage = typeof ReactionRecapMessage.Type;
+
 export const ServerMessage = Schema.Union(
   RoomStateMessage,
   QueueUpdatedMessage,
   PlaybackUpdatedMessage,
   RosterUpdatedMessage,
   RoomClosedMessage,
-  ErrorMessage
+  ErrorMessage,
+  ReactionBurstMessage,
+  ReactionRecapMessage
 );
 export type ServerMessage = typeof ServerMessage.Type;
 

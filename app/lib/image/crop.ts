@@ -1,4 +1,4 @@
-// Pure geometry for client-side avatar downscaling (feat-010). No I/O, no
+// Pure geometry for client-side avatar downscaling (feat-011). No I/O, no
 // DOM — `downscale.ts` is the thin browser-boundary wrapper that feeds this
 // math into `canvas.drawImage`.
 

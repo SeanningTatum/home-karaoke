@@ -79,7 +79,6 @@ export function YoutubePlayer({
 
   const [apiReady, setApiReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
-  const [started, setStarted] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   // Load the IFrame API once, create the player once the container exists.
@@ -104,6 +103,10 @@ export function YoutubePlayer({
         onStateChange: (event) => {
           if (event.data === YT.PlayerState.ENDED) {
             onVideoEndedRef.current();
+          } else if (event.data === YT.PlayerState.PLAYING) {
+            // Playback actually began (autoplay allowed, or the host tapped
+            // the blocked-overlay button) — clear any stale blocked flag.
+            setAutoplayBlocked(false);
           }
         },
         onError: () => {
@@ -125,9 +128,12 @@ export function YoutubePlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiReady]);
 
-  // Sync incoming playback state -> player. Runs on every playback change;
-  // guarded internally by `started` for anything that would attempt sound
-  // without a prior user gesture.
+  // Sync incoming playback state -> player. The shared playback state (set
+  // from the phone controls) drives the player directly — a "playing" status
+  // always attempts real playback, no local user-gesture gate. If the
+  // browser's autoplay policy blocks it, the `onAutoplayBlocked` event above
+  // flips the overlay on and the host taps once; the overlay clears itself
+  // on the resulting PLAYING state change.
   useEffect(() => {
     const player = playerRef.current;
     if (!player || !playerReady) return;
@@ -136,9 +142,8 @@ export function YoutubePlayer({
 
     if (videoId !== loadedVideoIdRef.current) {
       if (videoId) {
-        if (started) {
+        if (playback?.status === "playing") {
           player.loadVideoById(videoId);
-          if (playback?.status === "paused") player.pauseVideo();
         } else {
           player.cueVideoById(videoId);
         }
@@ -146,27 +151,20 @@ export function YoutubePlayer({
         player.stopVideo();
       }
       loadedVideoIdRef.current = videoId;
-    } else if (started && videoId) {
+    } else if (videoId) {
       if (playback?.status === "playing") player.playVideo();
       else if (playback?.status === "paused") player.pauseVideo();
     }
 
     if (playback) player.setVolume(playback.volume);
-  }, [playback, playerReady, started]);
+  }, [playback, playerReady]);
 
-  const handleStartParty = () => {
-    playerRef.current?.playVideo();
-    setStarted(true);
-    setAutoplayBlocked(false);
-  };
-
-  const handleResume = () => {
+  const handleTapToPlay = () => {
     playerRef.current?.playVideo();
     setAutoplayBlocked(false);
   };
 
-  const showStartOverlay = playerReady && !started;
-  const showResumeOverlay = playerReady && started && autoplayBlocked;
+  const showBlockedOverlay = playerReady && autoplayBlocked;
 
   return (
     /* Literal black, not a theme token: this is a video letterbox surface —
@@ -189,28 +187,15 @@ export function YoutubePlayer({
         </div>
       )}
 
-      {showStartOverlay && (
+      {showBlockedOverlay && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70">
           <Button
             size="lg"
-            data-testid="room-start-party-button"
-            onClick={handleStartParty}
+            data-testid="room-tap-to-play-button"
+            onClick={handleTapToPlay}
           >
             <IconPlayerPlayFilled className="size-5" />
-            {t("player.start_party")}
-          </Button>
-        </div>
-      )}
-
-      {showResumeOverlay && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-          <Button
-            size="lg"
-            data-testid="room-resume-button"
-            onClick={handleResume}
-          >
-            <IconPlayerPlayFilled className="size-5" />
-            {t("player.resume")}
+            {t("player.tap_to_play")}
           </Button>
         </div>
       )}

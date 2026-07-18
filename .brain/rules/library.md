@@ -14,8 +14,8 @@ Shared helpers, schemas, constants, testing utilities. **Source-of-truth files**
 | `app/lib/session.ts` | `requireSession`, `requireAdmin`, `redirectIfAuthenticated` — loader auth-gating helpers |
 | `app/lib/insights.ts` | `buildUserInsights` + named threshold constants (admin dashboard insight copy) |
 | `app/lib/constants/upload.ts` | `MAX_UPLOAD_SIZE_BYTES`, `ALLOWED_UPLOAD_CONTENT_TYPES`, `isAllowedUploadContentType` |
-| `app/lib/avatar.ts` | `MAX_AVATAR_BYTES`, `ALLOWED_AVATAR_TYPES`, `isAllowedAvatarType`, `isWithinAvatarSize`, `avatarKey`, `avatarImageUrl` — pure helpers shared by the `/api/avatar` upload + `/api/avatar/:userId` serve routes (feat-010) |
-| `app/lib/image/crop.ts` | `computeCoverCrop` — pure "cover" center-crop geometry for downscaling an avatar to a square (feat-010) |
+| `app/lib/avatar.ts` | `MAX_AVATAR_BYTES`, `ALLOWED_AVATAR_TYPES`, `isAllowedAvatarType`, `isWithinAvatarSize`, `avatarKey`, `avatarImageUrl` — pure helpers shared by the `/api/avatar` upload + `/api/avatar/:userId` serve routes (feat-011) |
+| `app/lib/image/crop.ts` | `computeCoverCrop` — pure "cover" center-crop geometry for downscaling an avatar to a square (feat-011) |
 | `app/lib/image/downscale.ts` | `downscaleAvatar` — client-only browser boundary (`createImageBitmap` + `<canvas>`) wrapping `computeCoverCrop`; **documented untested boundary** (no DOM 2D rasterizer under Vitest/jsdom) — see `crop.ts` for the tested pure math |
 | `app/lib/schemas/{domain}.ts` | Effect Schema definitions (`user`, `auth`, `analytics`, `bucket`, `pagination`) |
 | `app/lib/utils.ts` | Generic helpers (`cn`, etc.) |

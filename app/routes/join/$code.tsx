@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Effect, Schema } from "effect";
@@ -10,11 +10,16 @@ import { useRoomSocket } from "@/hooks/use-room-socket";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectionStatusPill } from "@/components/room/connection-status-pill";
+import {
+  ReactionOverlay,
+  type ReactionOverlayHandle,
+} from "@/components/room/reaction-overlay";
 import { NicknameForm } from "@/components/join/nickname-form";
 import { SearchTab } from "@/components/join/search-tab";
 import { QueueTab } from "@/components/join/queue-tab";
 import { ControlsTab } from "@/components/join/controls-tab";
 import { PositionBar } from "@/components/join/position-bar";
+import { ReactionBar } from "@/components/join/reaction-bar";
 import type { Route } from "./+types/$code";
 
 export const handle = { i18n: ["room"] };
@@ -176,10 +181,33 @@ function JoinRoomView({
   const [activeTab, setActiveTab] = useState<"search" | "queue" | "controls">(
     "search"
   );
+  const reactionOverlayRef = useRef<ReactionOverlayHandle>(null);
   const { state, send, connectionStatus, roomClosed } = useRoomSocket({
     code,
     nickname,
+    onReactionBurst: (msg) =>
+      reactionOverlayRef.current?.burst(msg.emoji, msg.count),
   });
+
+  // The reaction/position stack below is `fixed` to the viewport bottom (not
+  // `sticky`) so it stays put regardless of tab content length, instead of
+  // parking mid-screen after short content (beta feedback). Its rendered
+  // height varies — `ReactionBar` is always mounted, `PositionBar` mounts
+  // only once the guest has something queued — so a `ResizeObserver` tracks
+  // the real height and a same-height spacer keeps tab content (search
+  // results, queue list) from ever scrolling under it.
+  const bottomBarRef = useRef<HTMLDivElement>(null);
+  const [bottomBarHeight, setBottomBarHeight] = useState(0);
+
+  useEffect(() => {
+    const node = bottomBarRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setBottomBarHeight(entry.contentRect.height);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   // Host ended the party — the DO broadcast `room.closed`. Re-run the
   // loader so this route renders the friendly closed state instead of a
@@ -192,6 +220,7 @@ function JoinRoomView({
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 text-foreground">
+      <ReactionOverlay ref={reactionOverlayRef} variant="phone" />
       <header className="flex items-center justify-between gap-3">
         <span
           data-testid="join-room-code"
@@ -264,7 +293,23 @@ function JoinRoomView({
         )}
       </Tabs>
 
-      <PositionBar queue={state.queue} ownUserId={ownUserId} />
+      {/* Spacer — reserves flow space equal to the fixed bar's real height so
+          the last item in any tab (search results, queue list, controls)
+          never ends up hidden underneath it. */}
+      <div aria-hidden="true" style={{ height: bottomBarHeight }} />
+
+      <div
+        ref={bottomBarRef}
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-border/50 bg-gradient-to-t from-background via-background/95 to-background/70 pt-3 backdrop-blur"
+      >
+        <div className="mx-auto flex max-w-lg flex-col gap-2 px-4 pb-4">
+          <ReactionBar
+            send={send}
+            disabled={state.playback?.status !== "playing"}
+          />
+          <PositionBar queue={state.queue} ownUserId={ownUserId} />
+        </div>
+      </div>
     </div>
   );
 }

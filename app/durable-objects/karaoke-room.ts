@@ -224,6 +224,7 @@ export class KaraokeRoom extends DurableObject<Env> {
       return;
     }
 
+    const prev = this.liveState;
     this.liveState = applyClientMessage(this.liveState, clientMessage, {
       userId: session.userId,
       nickname: session.nickname,
@@ -233,7 +234,12 @@ export class KaraokeRoom extends DurableObject<Env> {
       newQueueItemId: crypto.randomUUID(),
       now: Date.now(),
     });
-    await this.persist();
+    // Reactions are ephemeral by design: the tally is reset on every song
+    // advance and is never read back after an eviction, so skip the SQLite
+    // write a `reaction.send` would otherwise incur on every ~300ms batch.
+    if (clientMessage.type !== "reaction.send") {
+      await this.persist();
+    }
 
     // `room.setGuestReorder` is the one WS message whose effect must outlive
     // this DO instance: a reopened (evicted-then-fresh) room seeds its live
@@ -249,7 +255,13 @@ export class KaraokeRoom extends DurableObject<Env> {
       );
     }
 
-    for (const outgoing of broadcastsForMessage(clientMessage, this.liveState)) {
+    // Broadcast to ALL sockets (no exclude) — a reactor's own phone shows the
+    // fly-up too, so it must receive its own `reaction.burst`.
+    for (const outgoing of broadcastsForMessage(
+      clientMessage,
+      prev,
+      this.liveState
+    )) {
       this.broadcast(outgoing);
     }
   }

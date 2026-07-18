@@ -1,7 +1,6 @@
 {
   "player": {
-    "start_party": "Start the party",
-    "resume": "Resume",
+    "tap_to_play": "Tap to play",
     "error_skipping": "That video can't be played — skipping to the next song"
   },
   "banner": {
@@ -103,6 +102,14 @@
   },
   "now_up": {
     "headline": "You're up, {{name}}!"
+  },
+  "reactions": {
+    "bar_label": "Send a reaction",
+    "recap_title": "{{name}} got the crowd going!",
+    "recap_total_one": "{{count}} reaction",
+    "recap_total_other": "{{count}} reactions",
+    "aria_recap": "Recap: {{name}} received {{count}} reactions",
+    "aria_sent": "Reaction sent"
   },
   "sounds": {
     "mute_label": "Mute party sounds",
