@@ -1,0 +1,50 @@
+[
+  {
+    "id": "mrpecz2f9qwiev",
+    "shot": "features/emoji-reactions/screenshots/09-tv-recap-card.png",
+    "x": 75.4,
+    "y": 51.5,
+    "note": "Let's make the opacity of the reactions to be 100",
+    "at": "2026-07-17T20:35:07.527Z",
+    "shotMtimeMs": 1784320501874.356,
+    "shotSize": 349716,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:38:40.824Z"
+  },
+  {
+    "id": "mrpeey9d7l1du5",
+    "shot": "features/emoji-reactions/screenshots/02-guest-joined-room.png",
+    "x": 43.4,
+    "y": 35.5,
+    "note": "I think we should make this float on the bottom, ensure the other pages compensate for this so nothing gets hidden",
+    "at": "2026-07-17T20:36:39.793Z",
+    "shotMtimeMs": 1784320497664.8462,
+    "shotSize": 23832,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:38:40.824Z"
+  },
+  {
+    "id": "mrpefmh4okxspp",
+    "shot": "features/emoji-reactions/screenshots/02-guest-joined-room.png",
+    "x": 46.9,
+    "y": 36.3,
+    "note": "This should also be visible regardless of the tab we're in",
+    "at": "2026-07-17T20:37:11.176Z",
+    "shotMtimeMs": 1784320497664.8462,
+    "shotSize": 23832,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:38:40.824Z"
+  },
+  {
+    "id": "mrpeg5eeomy6x4",
+    "shot": "features/emoji-reactions/screenshots/07-tv-emoji-particles.png",
+    "x": 57.5,
+    "y": 43.5,
+    "note": "make the confetti when we start the party even better, maybe use confetti.js?",
+    "at": "2026-07-17T20:37:35.702Z",
+    "shotMtimeMs": 1784320501080.3086,
+    "shotSize": 285622,
+    "superseded": false,
+    "sentAt": "2026-07-17T20:38:40.824Z"
+  }
+]

@@ -21,6 +21,44 @@
 
 ---
 
+## 2026-07-17 — feat-010 emoji-reactions PR #8 opened (feat/emoji-reactions → main, 6 commits ea569f4..613d3d5). Beta annotation pass (4 pins: fixed bottom bar, opacity-100 fly-ups, canvas-confetti — all superseded after live re-verify). Greptile pre-PR review: 3 findings all auto-fixed 613d3d5 (RECAP_TOTAL_MS deferral so You're-up entrance isn't hidden behind recap exit; EXIT_FALLBACK_MS export; sendRef in reaction-bar flush). 482 tests green.
+- branch: `feat/emoji-reactions`
+- in-progress feature: none
+- run note: none
+- next: Await human review/merge of PR #8. Follow-up candidate: party-end recap feature (D1-persisted reaction totals).
+
+---
+
+## 2026-07-17 — PR opened for emoji-reactions: https://github.com/SeanningTatum/home-karaoke/pull/8
+- branch: `feat/emoji-reactions`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-17 — shipped emoji-reactions: Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (op
+- branch: `feat/emoji-reactions`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-17 — feat-010 plan reviewed round 1 (plans/emoji-reactions.html, session ended by user): all 4 decisions answered — (1) sequence recap 3.5s then You're-up 5s, (2) v1 no DO throttle (client 300ms batch + count<=20 clamp + 40-particle cap), (3) palette 👏🔥❤️😭🤩🎉, (4) phone fly-up yes / recap TV-only. Party-end recap confirmed future feature. Build starting: Phase 1 opus (protocol+reducers+DO+hook+overlay), then parallel sonnet TV/phone.
+- branch: `feat/emoji-reactions`
+- in-progress feature: none
+- run note: none
+- next: Phase 1 opus builder: room-ws messages, reactions.ts, room-state reducers, DO selective persist, hook callbacks, ReactionOverlay, i18n keys
+
+---
+
+## 2026-07-17 — feat-010 emoji-reactions started (coordinator + opus/sonnet subagents)
+- branch: `feat/emoji-reactions`
+- in-progress feature: feat-010
+- run note: .brain/runs/2026-07-17-emoji-reactions.md
+- next: Explore agents map room-ws/room-state/DO/TV/phone extension points, then opus architect blueprint.
+
+---
+
 ## 2026-07-17 — PR opened for TV remote-start + End-party/mic cleanup: https://github.com/SeanningTatum/home-karaoke/pull/7
 - branch: `beaver/5cf4b14b`
 - in-progress feature: none (group-karaoke beta polish)

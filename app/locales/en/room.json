@@ -93,6 +93,14 @@
   "now_up": {
     "headline": "You're up, {{name}}!"
   },
+  "reactions": {
+    "bar_label": "Send a reaction",
+    "recap_title": "{{name}} got the crowd going!",
+    "recap_total_one": "{{count}} reaction",
+    "recap_total_other": "{{count}} reactions",
+    "aria_recap": "Recap: {{name}} received {{count}} reactions",
+    "aria_sent": "Reaction sent"
+  },
   "sounds": {
     "mute_label": "Mute party sounds",
     "unmute_label": "Unmute party sounds"

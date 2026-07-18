@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Emoji Reactions — feat-010 plan</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 72ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  code { font-size: 0.9em; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0 4px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-in-review { background: var(--highlight); color: var(--fg);
+    border-color: var(--highlight); }
+  .chip-high { color: var(--accent); border-color: var(--accent); }
+  .chip-low { color: var(--muted); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue, .btn-approve, .btn-request-changes {
+    border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em;
+  }
+  .btn-queue, .btn-approve { background: var(--fg); color: #fff; }
+  .btn-request-changes { background: transparent; color: var(--fg);
+    border: 1px solid var(--border); }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  pre.mermaid { text-align: center; }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Emoji Reactions</h1>
+  <div>
+    <span>2026-07-17</span> ·
+    <span>feature: emoji-reactions (feat-010)</span> ·
+    <span class="chip chip-status-in-review">in-review</span> ·
+    <span>round 1</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>Guests tap emoji on their phones while someone sings; the reactions fly up the
+  TV screen Google-Meet-style, and when the song ends the TV shows a short recap
+  ("Alice got 47 reactions 🔥❤️👏") before the existing "You're up" card. Everything
+  rides the existing WebSocket protocol and pure-reducer architecture — <mark>no new
+  D1 tables, no new bindings</mark>; per-song tallies live in the Durable Object and
+  reset on every song change.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>feat-007 group-karaoke, feat-008 ui-overhaul, and feat-009 tv-beta-polish are all
+  shipped (PR #5 squash-merged to main 2026-07-17, 429 tests green). Latest checkpoint
+  (2026-07-17): "feat-010 emoji-reactions started (coordinator + opus/sonnet subagents)"
+  on branch <code>feat/emoji-reactions</code>. Per plan <code>tv-beta-feedback</code>
+  (reviewed 2026-07-16), the TV lost all its playback controls — the TV is a passive
+  display and phones are the only input surface; this plan keeps that rule. The
+  "You're up" overlay (5s, animated exit) and the synth jingle sound system from
+  feat-009 are the two building blocks this feature extends. feat-010 is registered
+  in-progress in <code>feature_list.json</code>; run note
+  <code>.brain/runs/2026-07-17-emoji-reactions.md</code>.</p>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture</h2>
+  <pre class="mermaid">
+flowchart TD
+  P["Guest phone — ReactionBar<br/>(tap 👏🔥❤️😂🎤🎉, 300ms batch)"] -->|"WS reaction.send {emoji, count}"| DO["KaraokeRoom Durable Object<br/>canPerform: only while playing<br/>pure reducer: tally += count<br/>(no SQLite write for reactions)"]
+  DO -->|"broadcast reaction.burst {emoji, count}"| TV["Host TV — ReactionOverlay<br/>emoji float up over video"]
+  DO -->|"broadcast reaction.burst"| P2["All phones — small fly-up<br/>(shared feedback)"]
+  DO -->|"on skip / videoEnded:<br/>reaction.recap {singer, total, breakdown}<br/>then queue.updated + playback.updated"| TV2["Host TV — ReactionRecap card 3.5s<br/>then 'You're up' card 5s"]
+  </pre>
+  <p>Reactions are <strong>transient events, not snapshot state</strong> — they bypass
+  the <code>RoomSocketState</code> snapshot merge entirely (handled like the existing
+  <code>room.closed</code> early-return) and reach the UI as callbacks. The per-song
+  tally lives inside the DO's <code>RoomLiveState</code>, mutated by a pure reducer and
+  reset by the existing <code>advanceToNext</code>; the DO skips its SQLite persist for
+  reaction messages so 50 taps ≠ 50 storage writes.</p>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-recap-choreo" data-brain-action>
+    <p><strong>1. End-of-song choreography — how do the recap and the "You're up" card share the transition?</strong>
+    <span class="chip chip-high">needs sign-off</span></p>
+    <p>Playback is never delayed — the next video starts server-side regardless; these are
+    passive overlays on top of it.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-recap-choreo" id="opt-sequence"
+            value="Sequence: recap 3.5s, then You're-up 5s" checked data-brain-action></td>
+          <td><label for="opt-sequence">Sequence: recap card ~3.5s first, then the existing
+            "You're up" card (5s) <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Each card gets full attention; recap feels like a mini award moment</td>
+          <td>~8.5s total overlay time at the start of the next song</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-recap-choreo" id="opt-coexist"
+            value="Coexist: compact recap banner beside You're-up card, both 5s" data-brain-action></td>
+          <td><label for="opt-coexist">Coexist: compact recap banner shows alongside the
+            "You're up" card, both dismiss at 5s</label></td>
+          <td>Shorter total; one transition beat</td>
+          <td>Two competing messages on screen; recap loses impact</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-recap-choreo" id="opt-merged"
+            value="Merge recap INTO the You're-up card (one combined card, 6s)" data-brain-action></td>
+          <td><label for="opt-merged">Merge: one combined card — "Alice got 47 reactions —
+            you're up, Bob!" (6s)</label></td>
+          <td>Single card, simplest visual</td>
+          <td>Requires rework of the just-shipped NowUpOverlay; mixes outgoing + incoming singer in one sentence</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-recap-choreo',
+        'End-of-song choreography (recap vs You are-up card)')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-recap-choreo"></span>
+  </div>
+
+  <div class="decision-card" id="decision-rate-limit" data-brain-action>
+    <p><strong>2. Rate-limit depth — ship v1 with or without a DO-side per-user throttle?</strong>
+    <span class="chip chip-high">needs sign-off</span></p>
+    <p>v1 always has: client-side 300ms tap batching, <code>count ≤ 20</code> per message
+    enforced by schema + reducer clamp, and a 40-particle DOM cap on the TV. The question
+    is one extra server-side guard.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-rate-limit" id="opt-no-bucket"
+            value="Client batching + clamp only (no DO throttle)" checked data-brain-action></td>
+          <td><label for="opt-no-bucket">Client batching + schema clamp only
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Less DO state; home-party audience, not adversarial; escape hatch specced if abuse appears</td>
+          <td>A hand-rolled WS client could spam bursts (bounded at 20/message)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-rate-limit" id="opt-bucket"
+            value="Also add DO-side per-user window cap now (~15 lines)" data-brain-action></td>
+          <td><label for="opt-bucket">Also add DO-side per-user/second window cap now</label></td>
+          <td>Defense in depth from day one</td>
+          <td>~15 lines of ephemeral per-user timestamp state in the DO + tests; hibernation-fragile</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-rate-limit',
+        'Rate-limit depth for v1')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-rate-limit"></span>
+  </div>
+
+  <div class="decision-card" id="decision-palette" data-brain-action>
+    <p><strong>3. Emoji palette — fixed set of 6, validated on the wire.</strong>
+    <span class="chip chip-low">worth a glance</span></p>
+    <p>Wire protocol validates via <code>Schema.Literal</code> union — anything else is
+    rejected at decode. Changing later = one-constant edit.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-palette" id="opt-palette-a"
+            value="👏 🔥 ❤️ 😂 🎤 🎉" checked data-brain-action></td>
+          <td><label for="opt-palette-a">👏 🔥 ❤️ 😂 🎤 🎉
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Applause, hype, love, laughter, karaoke identity, party</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-palette" id="opt-palette-b"
+            value="👏 🔥 ❤️ 😭 🤩 🎉" data-brain-action></td>
+          <td><label for="opt-palette-b">👏 🔥 ❤️ 😭 🤩 🎉</label></td>
+          <td>Swap 😂🎤 for 😭 ("so moved") + 🤩 (starstruck) — Meet-style</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-palette', 'Emoji palette')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-palette"></span>
+  </div>
+
+  <div class="decision-card" id="decision-phone-flyup" data-brain-action>
+    <p><strong>4. Do reactions also fly up on guests' phones?</strong>
+    <span class="chip chip-low">worth a glance</span></p>
+    <p>The burst already broadcasts to every socket; the overlay component is shared —
+    phone support is a <code>variant="phone"</code> prop, not a new build.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-phone-flyup" id="opt-phone-yes"
+            value="Yes - small fly-up on phones too (recap stays TV-only)" checked data-brain-action></td>
+          <td><label for="opt-phone-yes">Yes — smaller fly-up on all phones, recap stays TV-only
+            <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Google-Meet parity; reactors see their own tap land; near-zero extra effort</td>
+          <td>Slight battery/anim cost on phones</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-phone-flyup" id="opt-phone-no"
+            value="No - TV only" data-brain-action></td>
+          <td><label for="opt-phone-no">No — TV only</label></td>
+          <td>Simplest; phone stays quiet</td>
+          <td>Tapping feels dead — no feedback on the device you tapped</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-phone-flyup', 'Phone fly-up scope')">
+      Queue answer
+    </button>
+    <span class="queue-ack" id="ack-decision-phone-flyup"></span>
+  </div>
+
+  <h3>Settled by the architecture review (no click needed)</h3>
+  <ul>
+    <li><strong>Tally location</strong> — inside <code>RoomLiveState</code> via pure reducer
+      (unit-testable), reset by <code>advanceToNext</code>; DO skips SQLite persist for
+      reaction messages. Rejected: wire-schema field (leaks into every broadcast), raw DO
+      private field (untestable).</li>
+    <li><strong>Recap emission</strong> — <code>broadcastsForMessage</code> gains
+      <code>(prev, next)</code> states; emits <code>reaction.recap</code> <em>before</em>
+      <code>queue.updated</code>/<code>playback.updated</code>, only when the song actually
+      advanced and the tally is non-zero.</li>
+    <li><strong>Input surface</strong> — phones only (host reacts via own phone at
+      <code>/join/:code</code>); TV stays passive, per the feat-009 beta decision.</li>
+    <li><strong>Sounds</strong> — TV reaction pop throttled to ≤1 per 700ms + one recap
+      sting; both are new synth <code>JingleSpec</code>s respecting the existing mute.</li>
+    <li><strong>Reduced motion</strong> — fly-up skipped entirely (decorative); recap card
+      + aria-live regions still render (informational).</li>
+  </ul>
+</section>
+
+<section id="plan-of-record" data-brain-section="plan-of-record">
+  <h2>Plan of record</h2>
+  <ol>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 — shared contract (opus, sequential).</strong>
+      <span data-item-text data-brain-action>Wire messages (reaction.send / reaction.burst / reaction.recap) in room-ws.ts, pure tally + particle helpers in new app/lib/reactions.ts, reducer + canPerform + broadcastsForMessage(prev, next) changes in room-state.ts, DO selective-persist wiring, use-room-socket onReactionBurst/onReactionRecap callbacks, shared ReactionOverlay component, all i18n keys (en + zh). Acceptance: typecheck green; all new + updated unit tests pass (schema round-trips, tally reset on advance, recap-before-playback.updated ordering, canPerform playing-only gate).</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="1"><strong>Phase 2 — TV surface (sonnet, parallel with Phase 3).</strong>
+      <span data-item-text data-brain-action>ReactionRecap card component, room/$code.tsx wiring (overlay ref, recap state, deferred "You're up" via recapActiveRef), reaction-pop + recap-sting jingles in party-sounds.ts with tests, float-up CSS keyframes. Acceptance: typecheck + tests green; recap shows ~3.5s then You're-up card; sounds respect mute.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="2"><strong>Phase 3 — phone surface (sonnet, parallel with Phase 2).</strong>
+      <span data-item-text data-brain-action>ReactionBar (6 emoji buttons, 300ms tap batching, disabled unless playing) near PositionBar in join/$code.tsx, phone-variant ReactionOverlay mount. Acceptance: typecheck + tests green; bar disabled in lobby; taps send batched reaction.send.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+    <li data-brain-item="3"><strong>Phase 4 — review + verify (sequential).</strong>
+      <span data-item-text data-brain-action>effect-ts-enforcer sweep over the diff, /verify-done (typecheck, unit, e2e smoke, build), feature-verifier browser walk (TV + phone, golden path: react during song → fly-up → skip → recap → You're-up; error path: react in lobby rejected), verification doc + screenshots, feature MD + CHANGELOG, PR.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or step..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="files-changed">
+  <h2>Files that change</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>app/lib/reactions.ts (+ tests)</td><td>new</td>
+        <td>Pure domain logic: tally, clamp, breakdown, particle factory, caps</td></tr>
+      <tr><td>app/lib/schemas/room-ws.ts (+ tests)</td><td>edit</td>
+        <td>reaction.send / reaction.burst / reaction.recap message schemas, emoji literal union</td></tr>
+      <tr><td>app/lib/room-state.ts (+ tests)</td><td>edit</td>
+        <td>reactions tally in RoomLiveState, reducer case, canPerform gate, broadcastsForMessage(prev, next) + recap emission</td></tr>
+      <tr><td>app/durable-objects/karaoke-room.ts</td><td>edit</td>
+        <td>prev/next capture, skip persist for reaction.send, 3-arg broadcast call</td></tr>
+      <tr><td>app/hooks/use-room-socket.ts</td><td>edit</td>
+        <td>onReactionBurst / onReactionRecap callbacks (early-return before the snapshot switch, like room.closed)</td></tr>
+      <tr><td>app/components/room/reaction-overlay.tsx</td><td>new</td>
+        <td>Shared fly-up layer (tv / phone variants), imperative burst() handle, 40-particle cap, reduced-motion skip</td></tr>
+      <tr><td>app/components/room/reaction-recap.tsx</td><td>new</td>
+        <td>TV recap card (~3.5s, aria-live, NowUpOverlay-style exit)</td></tr>
+      <tr><td>app/components/join/reaction-bar.tsx</td><td>new</td>
+        <td>Phone emoji row, 300ms tap batching, disabled unless playing</td></tr>
+      <tr><td>app/routes/room/$code.tsx</td><td>edit</td>
+        <td>Mount overlay + recap, defer "You're up" while recap active, throttled pop sound</td></tr>
+      <tr><td>app/routes/join/$code.tsx</td><td>edit</td>
+        <td>Mount ReactionBar + phone overlay</td></tr>
+      <tr><td>app/lib/party-sounds.ts (+ tests)</td><td>edit</td>
+        <td>REACTION_POP_SOUND + REACTION_RECAP_SOUND jingles, playReactionPop / playRecap</td></tr>
+      <tr><td>app/app.css</td><td>edit</td>
+        <td>reaction-float-up keyframes + utility (rides existing reduced-motion net)</td></tr>
+      <tr><td>app/locales/{en,zh}/room.json</td><td>edit</td>
+        <td>reactions.* strings (bar label, recap title, pluralized totals, aria)</td></tr>
+      <tr><td>.brain/features/emoji-reactions/*, CHANGELOG</td><td>edit</td>
+        <td>Feature memo, verification doc, changelog entry</td></tr>
+    </tbody>
+  </table>
+  <p>No D1 schema change, no new bindings, no new tRPC procedures, no new tagged errors
+  (invalid WS messages already drop through the existing decode-error path).</p>
+</section>
+
+<section id="golden-path">
+  <h2>Golden path</h2>
+  <pre class="mermaid">
+sequenceDiagram
+  participant G as Guest phone
+  participant DO as KaraokeRoom DO
+  participant TV as Host TV
+  G->>G: taps 🔥 five times (300ms batch)
+  G->>DO: reaction.send {emoji 🔥, count 5}
+  DO->>DO: canPerform? playing ✓ · tally 🔥+=5 · no SQLite write
+  DO->>TV: reaction.burst {🔥, 5}
+  DO->>G: reaction.burst {🔥, 5}
+  TV->>TV: 5 emoji float up over video (+pop sound, throttled)
+  G->>G: small fly-up feedback
+  Note over TV: song ends
+  TV->>DO: playback.videoEnded
+  DO->>DO: capture prev state → advanceToNext (tally reset)
+  DO->>TV: reaction.recap {Alice, 47, breakdown} (FIRST)
+  DO->>TV: queue.updated + playback.updated
+  TV->>TV: recap card 3.5s → "You're up, Bob!" 5s (video already playing)
+  </pre>
+</section>
+
+<section id="error-paths">
+  <h2>Error paths</h2>
+  <table>
+    <tbody data-brain-section="error-paths">
+      <template>
+        <tr data-brain-item>
+          <td colspan="4"><span data-item-text data-brain-action></span>
+            <span class="item-controls">
+              <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+              <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+            </span></td>
+        </tr>
+      </template>
+      <tr>
+        <th>Failure</th><th>Detected by</th><th>Handled by</th><th>User sees</th>
+      </tr>
+      <tr data-brain-item="0">
+        <td><span data-item-text data-brain-action>Reaction sent while nothing is playing (lobby / paused)</span>
+          <span class="item-controls">
+            <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+            <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+          </span></td>
+        <td>canPerform gate in the DO</td>
+        <td>Message rejected server-side; bar also disabled client-side</td>
+        <td>Greyed-out reaction bar; nothing happens</td>
+      </tr>
+      <tr data-brain-item="1">
+        <td><span data-item-text data-brain-action>Malformed / unknown emoji or count &gt; 20</span>
+          <span class="item-controls">
+            <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+            <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+          </span></td>
+        <td>Schema.Literal decode failure</td>
+        <td>Existing decodeClientMessage error path drops it</td>
+        <td>Nothing (invalid input, silent drop)</td>
+      </tr>
+      <tr data-brain-item="2">
+        <td><span data-item-text data-brain-action>Reaction spam burst (rapid taps or hand-rolled client)</span>
+          <span class="item-controls">
+            <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+            <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+          </span></td>
+        <td>Client batch + count clamp + 40-particle DOM cap</td>
+        <td>Excess particles dropped; counts bounded per message</td>
+        <td>TV stays smooth; tally still counts clamped totals</td>
+      </tr>
+      <tr data-brain-item="3">
+        <td><span data-item-text data-brain-action>DO hibernated / evicted mid-song</span>
+          <span class="item-controls">
+            <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+            <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+          </span></td>
+        <td>Tally reloads as empty from last persist</td>
+        <td>Accepted: tallies are declared ephemeral; active reacting keeps DO awake</td>
+        <td>Recap may undercount that song (rare)</td>
+      </tr>
+      <tr data-brain-item="4">
+        <td><span data-item-text data-brain-action>TV refreshes during the 3.5s recap window</span>
+          <span class="item-controls">
+            <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+            <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+          </span></td>
+        <td>Recap is a one-shot broadcast, not in room.state snapshot</td>
+        <td>Accepted: that one recap is missed; next songs unaffected</td>
+        <td>Normal playing screen after reload</td>
+      </tr>
+      <tr data-brain-item="5">
+        <td><span data-item-text data-brain-action>Straggler reaction lands just after song advance</span>
+          <span class="item-controls">
+            <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+            <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+          </span></td>
+        <td>advanceToNext already reset the tally</td>
+        <td>Counts toward the new singer (status is already "playing")</td>
+        <td>Imperceptible seam; bounded mis-attribution</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="list-add-row" data-brain-section-add="error-paths">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a failure mode..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="testing-plan" data-brain-section="testing-plan">
+  <h2>Testing plan</h2>
+  <ul class="checklist">
+    <template>
+      <li data-brain-item>
+        <label><input type="checkbox"> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Unit: schema round-trips for all 3 new messages; invalid emoji + count &gt; 20 rejected</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="1"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Unit: tally increments, resets on advanceToNext, breakdown sorted desc, clamp bounds</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="2"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Unit: canPerform allows reaction only while playing (host + guest); recap emitted before playback.updated, only on real advance with non-zero tally</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="3"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Unit: particle factory deterministic under injected rng; 40-particle cap; new jingles schedule notes + respect mute</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="4"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Browser walk (feature-verifier): guest reacts during song → fly-up on TV + phone → skip → recap card → You're-up card; screenshots each step</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="5"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Browser walk error path: reaction bar disabled in lobby; zero-reaction song shows no recap (straight to You're-up)</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+    <li data-brain-item="6"><label><input type="checkbox">
+      <span data-item-text data-brain-action>Regression: e2e smoke 2/2, full unit suite, prod build, harness-check 11/11</span></label>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing-plan">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0">
+      <span data-item-text data-brain-action>Should reaction totals ever persist to D1 (e.g. "most-cheered singer of the night" recap when the party ends)? Out of scope for v1 — flag if you want it queued as a follow-up feature.</span>
+      <span class="item-controls">
+        <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+        <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+      </span>
+    </li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="verdict">
+  <h2>Verdict</h2>
+  <div>
+    <button type="button" class="btn-approve" data-brain-action
+      onclick="queueVerdict('approve')">Approve plan</button>
+    <button type="button" class="btn-request-changes" data-brain-action
+      onclick="queueVerdict('request-changes')">Request changes</button>
+    <span class="queue-ack" id="ack-verdict"></span>
+  </div>
+</section>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+
+  function queueVerdict(verdict) {
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "message",
+        queueKey: "verdict",
+        prompt: verdict === "approve"
+          ? "Plan approved as written."
+          : "Requesting changes — see annotations."
+      });
+    }
+    var ack = document.getElementById("ack-verdict");
+    if (ack) ack.textContent = "Queued: " + verdict;
+  }
+
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+
+</body>
+</html>

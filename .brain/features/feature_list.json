@@ -135,6 +135,23 @@
       "owners": [
         "sean"
       ]
+    },
+    {
+      "id": "feat-010",
+      "name": "Emoji Reactions",
+      "slug": "emoji-reactions",
+      "doc": ".brain/features/emoji-reactions/emoji-reactions.md",
+      "description": "Guests on phones send live emoji reactions while someone sings; emojis fly up the TV screen Google-Meet-style (WS broadcast via KaraokeRoom DO, pure reducers in room-state.ts); at end of each song the TV 'next up' transition shows a 3-5s recap of reaction counts for the singer who just finished. Per-song counts live in DO memory only (reset per song).",
+      "dependencies": [
+        "feat-007",
+        "feat-008",
+        "feat-009"
+      ],
+      "status": "shipped",
+      "evidence": "Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (opus Phase 1 contract, parallel sonnet TV/phone). Enforcer clean 0 findings. verify-done: typecheck 0, 482 unit tests (35 files), e2e smoke 2/2 (E2E_PORT=5199 isolated), prod build PASS, harness 11/11, i18n.md coherence gap fixed. Verification .brain/features/emoji-reactions/verifications/2026-07-17.md PASS 11/11 golden + error path, 0 app-origin errors (translucency finding withdrawn as capture artifact, 09b-tv-recap-steady.png).",
+      "owners": [
+        "sean"
+      ]
     }
   ]
 }

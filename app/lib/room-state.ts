@@ -9,17 +9,32 @@ import type {
   ClientMessage,
   PlaybackState,
   QueueItem,
+  ReactionEmoji,
   Role,
   RoomSettings,
   RosterEntry,
   ServerMessage,
 } from "@/lib/schemas/room-ws";
+import {
+  applyReactionTally,
+  clampReactionCount,
+  EMPTY_TALLY,
+  tallyBreakdown,
+  tallyTotal,
+  type ReactionTally,
+} from "@/lib/reactions";
 
 export interface RoomLiveState {
   readonly queue: readonly QueueItem[];
   readonly playback: PlaybackState;
   readonly roster: readonly RosterEntry[];
   readonly settings: RoomSettings;
+  /**
+   * Per-emoji reaction counts for the currently-playing song. Ephemeral by
+   * design — reset on every advance (`advanceToNext`) and deliberately NOT
+   * persisted to DO storage (see `karaoke-room.ts`).
+   */
+  readonly reactions: ReactionTally;
 }
 
 const DEFAULT_VOLUME = 80;
@@ -39,6 +54,7 @@ export const createInitialRoomState = (
   playback: { status: "idle", currentItem: null, volume: DEFAULT_VOLUME },
   roster: [],
   settings,
+  reactions: EMPTY_TALLY,
 });
 
 // --- Permissions -------------------------------------------------------------
@@ -82,6 +98,10 @@ export const canPerform = (
       return ctx.role === "host";
     case "room.setGuestReorder":
       return ctx.role === "host";
+    case "reaction.send":
+      // Host AND guest — anyone can cheer, but only while a song is actually
+      // playing (no reactions in the lobby, on pause, or between songs).
+      return ctx.state.playback.status === "playing";
     default:
       return false;
   }
@@ -175,7 +195,11 @@ export const moveToTopIndex = (
 
 // --- Playback transitions ----------------------------------------------------
 
-/** Pops the queue head into `currentItem`; `idle` when the queue is empty. */
+/**
+ * Pops the queue head into `currentItem`; `idle` when the queue is empty.
+ * Also resets the reaction tally — reactions belong to the song that just
+ * finished, so the next singer starts from an empty crowd.
+ */
 export const advanceToNext = (state: RoomLiveState): RoomLiveState => {
   const [next, ...rest] = state.queue;
   return {
@@ -186,6 +210,7 @@ export const advanceToNext = (state: RoomLiveState): RoomLiveState => {
       currentItem: next ?? null,
       status: next ? "playing" : "idle",
     },
+    reactions: EMPTY_TALLY,
   };
 };
 
@@ -340,6 +365,15 @@ export const applyClientMessage = (
       return setVolume(state, message.volume);
     case "room.setGuestReorder":
       return setGuestReorder(state, message.allowed);
+    case "reaction.send":
+      return {
+        ...state,
+        reactions: applyReactionTally(
+          state.reactions,
+          message.emoji,
+          message.count
+        ),
+      };
     default:
       return state;
   }
@@ -374,34 +408,82 @@ export const roomStateSnapshot = (state: RoomLiveState): ServerMessage => ({
   settings: state.settings,
 });
 
+const reactionBurst = (emoji: ReactionEmoji, count: number): ServerMessage => ({
+  type: "reaction.burst",
+  emoji,
+  count,
+});
+
+/**
+ * End-of-song recap built from the tally of the song that just finished
+ * (`prevState`). Callers only invoke this when an advance actually occurred,
+ * so `currentItem` is non-null in practice; the `?? ""` is a type-level
+ * safety net rather than an expected path.
+ */
+const reactionRecap = (prevState: RoomLiveState): ServerMessage => ({
+  type: "reaction.recap",
+  singerNickname: prevState.playback.currentItem?.singerNickname ?? "",
+  total: tallyTotal(prevState.reactions),
+  breakdown: tallyBreakdown(prevState.reactions),
+});
+
+/**
+ * Did this message actually advance to a new song? True when the previously-
+ * playing item is gone — either replaced by a different item or cleared to
+ * `null` at the end of the queue. An idempotent no-op (stale `currentItemId`
+ * guard) leaves `currentItem` unchanged, so this is false and no recap fires.
+ */
+const advanceOccurred = (
+  prevState: RoomLiveState,
+  nextState: RoomLiveState
+): boolean =>
+  prevState.playback.currentItem !== null &&
+  nextState.playback.currentItem?.id !== prevState.playback.currentItem.id;
+
 /**
  * Which server->client broadcast(s) follow a successfully-applied client
  * message. Pure and testable so the Durable Object doesn't need its own
- * branching logic beyond "apply, persist, broadcast these".
+ * branching logic beyond "apply, persist, broadcast these". Takes both the
+ * pre- and post-apply state: the pre-apply (`prevState`) reactions/currentItem
+ * drive the end-of-song recap, which must be derived from the song that just
+ * finished, not the one being advanced to.
  */
 export const broadcastsForMessage = (
   message: ClientMessage,
-  next: RoomLiveState
+  prevState: RoomLiveState,
+  nextState: RoomLiveState
 ): readonly ServerMessage[] => {
   switch (message.type) {
     case "queue.add":
     case "queue.remove":
     case "queue.reorder":
-      return [queueUpdated(next)];
+      return [queueUpdated(nextState)];
+    case "reaction.send":
+      // Ephemeral fan-out only — the tally isn't persisted, so no
+      // queue/playback snapshot rides along.
+      return [reactionBurst(message.emoji, clampReactionCount(message.count))];
     case "playback.play":
     case "playback.skip":
-    case "playback.videoEnded":
+    case "playback.videoEnded": {
       // These may have advanced the queue (popped the head into
       // currentItem) — broadcast both so clients never see a stale queue
       // alongside a fresh currentItem.
-      return [queueUpdated(next), playbackUpdated(next)];
+      const updates = [queueUpdated(nextState), playbackUpdated(nextState)];
+      // Ordering is load-bearing: PREPEND the recap so it arrives before the
+      // `playback.updated` that swaps in the next singer — the TV defers its
+      // "You're up" card until the recap has shown.
+      return advanceOccurred(prevState, nextState) &&
+        tallyTotal(prevState.reactions) > 0
+        ? [reactionRecap(prevState), ...updates]
+        : updates;
+    }
     case "playback.pause":
     case "playback.setVolume":
-      return [playbackUpdated(next)];
+      return [playbackUpdated(nextState)];
     case "room.setGuestReorder":
       // No dedicated `settings.updated` message in the wire protocol — a
       // settings change is rare enough that a full snapshot is simplest.
-      return [roomStateSnapshot(next)];
+      return [roomStateSnapshot(nextState)];
     default:
       return [];
   }
