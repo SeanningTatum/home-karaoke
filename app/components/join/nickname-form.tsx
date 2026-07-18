@@ -8,7 +8,7 @@ import { authClient } from "@/auth/client";
 import { effectResolver } from "@/lib/effect-form";
 import { randomPartyName } from "@/lib/party-names";
 import { JoinNicknameInput } from "@/lib/schemas/room";
-import { isAllowedAvatarType, isWithinAvatarSize } from "@/lib/avatar";
+import { isAllowedAvatarType, isWithinRawAvatarSize } from "@/lib/avatar";
 import { downscaleAvatar } from "@/lib/image/downscale";
 import { InitialsAvatar } from "@/components/room/initials-avatar";
 import {
@@ -112,7 +112,9 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
       setPhotoError(t("join.avatar.error_type"));
       return;
     }
-    if (!isWithinAvatarSize(file.size)) {
+    // Browser-memory guard on the RAW picker file only — the 2 MiB upload cap
+    // is enforced server-side on the downscaled JPEG, not on this file.
+    if (!isWithinRawAvatarSize(file.size)) {
       setPhotoError(t("join.avatar.error_size"));
       return;
     }

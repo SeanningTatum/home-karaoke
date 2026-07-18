@@ -5,6 +5,18 @@
 /** Hard cap on an uploaded avatar's size — 2 MiB. */
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
+/**
+ * Cap on the RAW picker file the client will feed into `createImageBitmap` —
+ * a browser-memory guard, not the upload cap. Phone photos (3–10 MB) must
+ * pass: the actual uploaded payload is the downscaled 512px JPEG, enforced
+ * server-side against `MAX_AVATAR_BYTES`.
+ */
+export const MAX_RAW_AVATAR_BYTES = 20 * 1024 * 1024;
+
+/** Inclusive at `MAX_RAW_AVATAR_BYTES` — mirrors `isWithinAvatarSize`. */
+export const isWithinRawAvatarSize = (size: number): boolean =>
+  size <= MAX_RAW_AVATAR_BYTES;
+
 /** MIME types accepted for an avatar upload. */
 export const ALLOWED_AVATAR_TYPES = [
   "image/jpeg",

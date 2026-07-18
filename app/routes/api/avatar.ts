@@ -14,12 +14,12 @@ import {
   avatarKey,
   avatarImageUrl,
 } from "@/lib/avatar";
+import type { Route } from "./+types/avatar";
 
 // Multipart framing overhead margin on top of the raw file cap — lets a
 // legitimate MAX_AVATAR_BYTES file through while still rejecting oversized
 // bodies before `request.formData()` buffers them.
 const MAX_UPLOAD_BODY_BYTES = MAX_AVATAR_BYTES + 64 * 1024;
-import type { Route } from "./+types/avatar";
 
 export async function action({ request, context }: Route.ActionArgs) {
   const session = await context.auth.api.getSession({ headers: request.headers });

@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   MAX_AVATAR_BYTES,
+  MAX_RAW_AVATAR_BYTES,
   ALLOWED_AVATAR_TYPES,
   isAllowedAvatarType,
   isWithinAvatarSize,
+  isWithinRawAvatarSize,
   avatarKey,
   avatarImageUrl,
 } from "../avatar";
@@ -32,6 +34,20 @@ describe("isWithinAvatarSize", () => {
 
   it("allows a small file", () => {
     expect(isWithinAvatarSize(1)).toBe(true);
+  });
+});
+
+describe("isWithinRawAvatarSize", () => {
+  it("allows a file exactly at the raw cap", () => {
+    expect(isWithinRawAvatarSize(MAX_RAW_AVATAR_BYTES)).toBe(true);
+  });
+
+  it("rejects a file one byte over the raw cap", () => {
+    expect(isWithinRawAvatarSize(MAX_RAW_AVATAR_BYTES + 1)).toBe(false);
+  });
+
+  it("allows a typical phone photo well above the upload cap", () => {
+    expect(isWithinRawAvatarSize(8 * 1024 * 1024)).toBe(true);
   });
 });
 

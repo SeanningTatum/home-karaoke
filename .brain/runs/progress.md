@@ -21,6 +21,21 @@
 
 ---
 
+## 2026-07-17 — PR #9 opened for feat-010 guest-avatars (feat/guest-avatars → main, 6 commits): annotation fix pass (3 pins: centered camera preview, flush-left lobby chips, avatar-only compact roster) + pre-PR Greptile (P1 Content-Length pre-check user-approved, P2 no-throw downscale) — both fixed, 458 tests green
+- branch: `feat/guest-avatars`
+- in-progress feature: none
+- run note: none
+- next: Watch PR #9 CI + human review; merge when green
+
+---
+
+## 2026-07-17 — PR opened for guest-avatars: https://github.com/SeanningTatum/home-karaoke/pull/9
+- branch: `feat/guest-avatars`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-17 — shipped guest-avatars: verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findi
 - branch: `beaver/08399871`
 - in-progress feature: none
