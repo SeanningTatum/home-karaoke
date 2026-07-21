@@ -80,6 +80,76 @@ describe("YouTubeLive.search", () => {
     }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
   );
 
+  it.effect("filters out videos whose owner disabled embedding", () =>
+    Effect.gen(function* () {
+      const fetchSpy = vi.mocked(fetch);
+      // 1st call: search.list → two hits.
+      fetchSpy.mockResolvedValueOnce(
+        jsonResponse(200, {
+          items: [
+            {
+              id: { videoId: "keep1" },
+              snippet: {
+                title: "Playable",
+                channelTitle: "KaraFun",
+                thumbnails: { medium: { url: "https://img/keep1.jpg" } },
+              },
+            },
+            {
+              id: { videoId: "drop1" },
+              snippet: {
+                title: "Embedding disabled",
+                channelTitle: "Sing King",
+                thumbnails: { medium: { url: "https://img/drop1.jpg" } },
+              },
+            },
+          ],
+        }) as unknown as Response
+      );
+      // 2nd call: videos.list?part=status → drop1 is not embeddable.
+      fetchSpy.mockResolvedValueOnce(
+        jsonResponse(200, {
+          items: [
+            { id: "keep1", status: { embeddable: true } },
+            { id: "drop1", status: { embeddable: false } },
+          ],
+        }) as unknown as Response
+      );
+
+      const yt = yield* YouTube;
+      const results = yield* yt.search("dancing queen");
+
+      expect(results.map((r) => r.videoId)).toEqual(["keep1"]);
+      // The status batch call is a videos.list against the returned ids.
+      const statusUrl = String(fetchSpy.mock.calls[1]?.[0]);
+      expect(statusUrl).toContain("/videos");
+      expect(statusUrl).toContain("part=status");
+      expect(statusUrl).toContain(encodeURIComponent("keep1,drop1"));
+    }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
+  );
+
+  it.effect("keeps results when the embeddability lookup fails", () =>
+    Effect.gen(function* () {
+      const fetchSpy = vi.mocked(fetch);
+      fetchSpy.mockResolvedValueOnce(
+        jsonResponse(200, {
+          items: [
+            {
+              id: { videoId: "v1" },
+              snippet: { title: "A", channelTitle: "C", thumbnails: {} },
+            },
+          ],
+        }) as unknown as Response
+      );
+      // videos.list errors → search must still return the unfiltered hit.
+      fetchSpy.mockResolvedValueOnce(jsonResponse(500, {}) as unknown as Response);
+
+      const yt = yield* YouTube;
+      const results = yield* yt.search("anything");
+      expect(results.map((r) => r.videoId)).toEqual(["v1"]);
+    }).pipe(Effect.provide(provideYouTube({ YOUTUBE_API_KEY: "test-key" } as Partial<Env>)))
+  );
+
   it.effect("does not duplicate 'karaoke' when already present in the query", () =>
     Effect.gen(function* () {
       const fetchSpy = vi.mocked(fetch);

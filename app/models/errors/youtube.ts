@@ -20,20 +20,23 @@ export class YouTubeUnavailableError extends Data.TaggedError(
   readonly cause?: unknown;
 }> {}
 
-// The requested video exists but `status.embeddable` is `false` — raised
-// by the `youtube.resolveVideo` tRPC procedure (app/trpc/routes/youtube.ts),
-// not by the service itself, since embeddability is a business rule about
-// what to do with the metadata rather than a fetch failure.
-export class VideoNotEmbeddableError extends Data.TaggedError(
-  "VideoNotEmbeddableError"
-)<{
-  readonly videoId: string;
-}> {}
-
 // `videos.list` (or the oEmbed fallback) returned no result for the given
 // video id / URL — either it never existed or it's been removed/made
 // private.
 export class VideoNotFoundError extends Data.TaggedError("VideoNotFoundError")<{
+  readonly videoId: string;
+}> {}
+
+// The requested video exists but its owner disabled embedding
+// (`status.embeddable === false`) — YouTube blocks it in any third-party
+// iframe with IFrame error 150/101, so it can never play in our embedded
+// player. `youtube.search` already filters these out of results; this guards
+// the paste-a-link path, where a user can still paste a non-embeddable URL
+// directly. Raised by the `youtube.resolveVideo` tRPC procedure, not the
+// service, since it's a business rule about what to do with the metadata.
+export class VideoNotEmbeddableError extends Data.TaggedError(
+  "VideoNotEmbeddableError"
+)<{
   readonly videoId: string;
 }> {}
 

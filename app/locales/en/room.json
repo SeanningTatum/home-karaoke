@@ -79,7 +79,7 @@
       "paste_placeholder": "Paste a YouTube link",
       "paste_submit": "Add link",
       "paste_error": "Couldn't add that link — check it's a YouTube video URL",
-      "not_embeddable": "That video can't be played here — try a different one",
+      "not_embeddable": "That video's owner disabled embedding, so it can't play here — try another karaoke version",
       "queue_almost_full_one": "Queue almost full — {{count}} spot left",
       "queue_almost_full_other": "Queue almost full — {{count}} spots left"
     }

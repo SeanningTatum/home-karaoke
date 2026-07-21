@@ -125,7 +125,7 @@ No WS activity for 1h (sliding window, re-armed on every connect/message)
 - **Room not found / bad code** — `room.get` / WS upgrade both surface `RoomNotFoundError` → 404 (tRPC) or a plain 404 `Response` (WS route).
 - **Room closed** — `RoomClosedError` → 409, shown as a friendly "this room has ended" message on `/join/:code` and the WS route.
 - **YouTube quota exceeded** — `youtube.search` fails `YouTubeQuotaExceededError` → `TOO_MANY_REQUESTS`; guest UI falls back to the always-available paste-a-link flow.
-- **Video not embeddable / not found** — `youtube.resolveVideo` fails `VideoNotEmbeddableError` (400) or `VideoNotFoundError` (404) with an inline error on the search/paste form.
+- **Video not embeddable / not found** — `youtube.resolveVideo` fails `VideoNotEmbeddableError` (400) or `VideoNotFoundError` (404) with an inline error on the search/paste form. Non-embeddable videos (owner disabled embedding — they can't play in the IFrame) are already filtered out of `youtube.search` results; the 400 is the paste-a-link safety net. See [`../features/group-karaoke/group-karaoke.md`](../features/group-karaoke/group-karaoke.md).
 - **Non-host attempts a host-only action** — `room.close` / `room.setGuestReorder` / `room.recordPlayed` throw `TRPCError({ code: "FORBIDDEN" })` directly (procedure-level control flow, not a tagged error).
 
 Key files: `app/routes/room/$code.tsx`, `app/routes/join/$code.tsx`, `app/components/room/*`, `app/components/join/*`, `app/hooks/use-room-socket.ts`, `app/routes/api/room.$code.ws.ts`, `app/durable-objects/karaoke-room.ts`. Full memory: [`../features/group-karaoke/group-karaoke.md`](../features/group-karaoke/group-karaoke.md).

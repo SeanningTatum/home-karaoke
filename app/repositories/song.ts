@@ -183,7 +183,11 @@ export class SongRepository extends Effect.Service<SongRepository>()(
               and(
                 eq(searchLog.normalizedQuery, input.normalizedQuery),
                 isNotNull(searchLog.pickedVideoId),
-                gte(searchLog.createdAt, input.since)
+                gte(searchLog.createdAt, input.since),
+                // Never surface a non-embeddable pick from the cache: it can't
+                // play in the embedded player (IFrame error 150), same as the
+                // live-search filter in app/services/youtube.ts.
+                eq(song.embeddable, true)
               )
             )
             .groupBy(song.videoId)

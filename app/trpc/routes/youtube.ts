@@ -8,8 +8,9 @@ import {
   YouTubeResolveVideoInput,
 } from "@/lib/schemas/youtube";
 import { normalizeSearchQuery, parseYouTubeUrl } from "@/lib/youtube";
-import { VideoNotEmbeddableError } from "@/models/errors/youtube";
 import { ValidationError } from "@/models/errors/repository";
+import { VideoNotEmbeddableError } from "@/models/errors/youtube";
+import type { YouTubeResolveVideoInput as ResolveVideoInput } from "@/lib/schemas/youtube";
 
 // D1 cache freshness window for `search` — a repeat query with at least one
 // prior pick inside this window skips the YouTube Data API call entirely
@@ -17,6 +18,64 @@ import { ValidationError } from "@/models/errors/repository";
 // conserving calls matters). Older picks fall through to a fresh API call.
 const CACHE_FRESHNESS_DAYS = 7;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Extracted from the `resolveVideo` procedure so the resolve logic is unit
+// testable (see app/trpc/routes/__tests__/youtube.test.ts) with the composable
+// `makeTestYouTube` + a stubbed `SongRepository`, without standing up a full
+// tRPC caller/runtime. Resolves a picked `videoId` or a pasted `url` into full
+// metadata and persists it to the song cache.
+//
+// Rejects a video whose owner disabled embedding (`embeddable === false`):
+// YouTube blocks it in any third-party iframe (IFrame error 150/101), so it
+// can never play in our embedded player. `youtube.search` already filters
+// these out of results, so this guard mainly protects the paste-a-link path,
+// where a user can paste a non-embeddable URL directly. Only the keyed
+// `getVideo` reports embeddability; the keyless oEmbed fallback can't, so a
+// pasted link resolved via oEmbed is assumed playable and the player's
+// `onError` (toast + auto-skip) is the last line of defense.
+export const resolveVideoProgram = (input: ResolveVideoInput, userId: string) =>
+  Effect.gen(function* () {
+    const videoId = input.videoId ?? parseYouTubeUrl(input.url ?? "");
+    if (!videoId) {
+      return yield* Effect.fail(
+        new ValidationError({
+          entity: "video",
+          field: "url",
+          message: "Not a recognizable YouTube URL",
+        })
+      );
+    }
+
+    const yt = yield* YouTube;
+    const metadata = yield* yt.getVideo(videoId);
+
+    if (metadata.embeddable === false) {
+      return yield* Effect.fail(new VideoNotEmbeddableError({ videoId }));
+    }
+
+    const songs = yield* SongRepository;
+    yield* songs.upsertSong({
+      videoId: metadata.videoId,
+      title: metadata.title,
+      channel: metadata.channel,
+      thumbnailUrl: metadata.thumbnailUrl,
+      embeddable: metadata.embeddable,
+      durationSeconds: metadata.durationSeconds,
+    });
+
+    if (input.searchLogId) {
+      yield* songs.markSearchPicked({
+        searchLogId: input.searchLogId,
+        videoId: metadata.videoId,
+        // Scope to the caller — a no-op if the search_log row belongs to a
+        // different user, so a pick can't be attributed to someone else's
+        // search.
+        userId,
+      });
+    }
+
+    return metadata;
+  });
 
 export const youtubeRouter = createTRPCRouter({
   // Anonymous (guest) sessions still satisfy `protectedProcedure` — Better
@@ -99,52 +158,6 @@ export const youtubeRouter = createTRPCRouter({
   resolveVideo: protectedProcedure
     .input(Schema.standardSchemaV1(YouTubeResolveVideoInput))
     .mutation(({ ctx, input }) =>
-      runProcedure(
-        ctx.runtime,
-        Effect.gen(function* () {
-          const videoId = input.videoId ?? parseYouTubeUrl(input.url ?? "");
-          if (!videoId) {
-            return yield* Effect.fail(
-              new ValidationError({
-                entity: "video",
-                field: "url",
-                message: "Not a recognizable YouTube URL",
-              })
-            );
-          }
-
-          const yt = yield* YouTube;
-          const metadata = yield* yt.getVideo(videoId);
-
-          if (metadata.embeddable === false) {
-            return yield* Effect.fail(
-              new VideoNotEmbeddableError({ videoId })
-            );
-          }
-
-          const songs = yield* SongRepository;
-          yield* songs.upsertSong({
-            videoId: metadata.videoId,
-            title: metadata.title,
-            channel: metadata.channel,
-            thumbnailUrl: metadata.thumbnailUrl,
-            embeddable: metadata.embeddable,
-            durationSeconds: metadata.durationSeconds,
-          });
-
-          if (input.searchLogId) {
-            yield* songs.markSearchPicked({
-              searchLogId: input.searchLogId,
-              videoId: metadata.videoId,
-              // Scope to the caller — a no-op if the search_log row belongs
-              // to a different user, so a pick can't be attributed to
-              // someone else's search.
-              userId: ctx.auth.user.id,
-            });
-          }
-
-          return metadata;
-        })
-      )
+      runProcedure(ctx.runtime, resolveVideoProgram(input, ctx.auth.user.id))
     ),
 });
