@@ -9,6 +9,7 @@ import {
 } from "@/lib/schemas/youtube";
 import { normalizeSearchQuery, parseYouTubeUrl } from "@/lib/youtube";
 import { ValidationError } from "@/models/errors/repository";
+import type { YouTubeResolveVideoInput as ResolveVideoInput } from "@/lib/schemas/youtube";
 
 // D1 cache freshness window for `search` — a repeat query with at least one
 // prior pick inside this window skips the YouTube Data API call entirely
@@ -16,6 +17,60 @@ import { ValidationError } from "@/models/errors/repository";
 // conserving calls matters). Older picks fall through to a fresh API call.
 const CACHE_FRESHNESS_DAYS = 7;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Extracted from the `resolveVideo` procedure so the resolve logic is unit
+// testable (see app/trpc/routes/__tests__/youtube.test.ts) with the composable
+// `makeTestYouTube` + a stubbed `SongRepository`, without standing up a full
+// tRPC caller/runtime. Resolves a picked `videoId` or a pasted `url` into full
+// metadata and persists it to the song cache.
+//
+// Deliberately does NOT reject on `metadata.embeddable === false`: the YouTube
+// Data API's `status.embeddable` flag is unreliable and over-conservative —
+// many karaoke channels (e.g. Sing King) report `false` yet embed and play
+// fine in the IFrame. Blocking here made those videos un-queueable. The
+// player's `onError` handler (app/components/room/youtube-player.tsx) is the
+// runtime ground truth: a genuinely non-embeddable video (codes 101/150) is
+// toasted and skipped at playback without being recorded as sung. This also
+// matches the keyless oEmbed path, which can't report embeddability at all.
+export const resolveVideoProgram = (input: ResolveVideoInput, userId: string) =>
+  Effect.gen(function* () {
+    const videoId = input.videoId ?? parseYouTubeUrl(input.url ?? "");
+    if (!videoId) {
+      return yield* Effect.fail(
+        new ValidationError({
+          entity: "video",
+          field: "url",
+          message: "Not a recognizable YouTube URL",
+        })
+      );
+    }
+
+    const yt = yield* YouTube;
+    const metadata = yield* yt.getVideo(videoId);
+
+    const songs = yield* SongRepository;
+    yield* songs.upsertSong({
+      videoId: metadata.videoId,
+      title: metadata.title,
+      channel: metadata.channel,
+      thumbnailUrl: metadata.thumbnailUrl,
+      embeddable: metadata.embeddable,
+      durationSeconds: metadata.durationSeconds,
+    });
+
+    if (input.searchLogId) {
+      yield* songs.markSearchPicked({
+        searchLogId: input.searchLogId,
+        videoId: metadata.videoId,
+        // Scope to the caller — a no-op if the search_log row belongs to a
+        // different user, so a pick can't be attributed to someone else's
+        // search.
+        userId,
+      });
+    }
+
+    return metadata;
+  });
 
 export const youtubeRouter = createTRPCRouter({
   // Anonymous (guest) sessions still satisfy `protectedProcedure` — Better
@@ -98,56 +153,6 @@ export const youtubeRouter = createTRPCRouter({
   resolveVideo: protectedProcedure
     .input(Schema.standardSchemaV1(YouTubeResolveVideoInput))
     .mutation(({ ctx, input }) =>
-      runProcedure(
-        ctx.runtime,
-        Effect.gen(function* () {
-          const videoId = input.videoId ?? parseYouTubeUrl(input.url ?? "");
-          if (!videoId) {
-            return yield* Effect.fail(
-              new ValidationError({
-                entity: "video",
-                field: "url",
-                message: "Not a recognizable YouTube URL",
-              })
-            );
-          }
-
-          const yt = yield* YouTube;
-          const metadata = yield* yt.getVideo(videoId);
-
-          // NOTE: we deliberately do NOT reject on `metadata.embeddable ===
-          // false`. The Data API's `status.embeddable` flag is unreliable and
-          // over-conservative — many karaoke channels (e.g. Sing King) report
-          // `false` yet embed and play perfectly in the IFrame. Blocking here
-          // made those videos un-queueable. The player's `onError` handler
-          // (app/components/room/youtube-player.tsx) is the ground truth: a
-          // genuinely non-embeddable video (codes 101/150) is toasted and
-          // skipped at playback time without being recorded as sung. This also
-          // matches the keyless oEmbed path, which can't report embeddability
-          // and already assumes playable.
-          const songs = yield* SongRepository;
-          yield* songs.upsertSong({
-            videoId: metadata.videoId,
-            title: metadata.title,
-            channel: metadata.channel,
-            thumbnailUrl: metadata.thumbnailUrl,
-            embeddable: metadata.embeddable,
-            durationSeconds: metadata.durationSeconds,
-          });
-
-          if (input.searchLogId) {
-            yield* songs.markSearchPicked({
-              searchLogId: input.searchLogId,
-              videoId: metadata.videoId,
-              // Scope to the caller — a no-op if the search_log row belongs
-              // to a different user, so a pick can't be attributed to
-              // someone else's search.
-              userId: ctx.auth.user.id,
-            });
-          }
-
-          return metadata;
-        })
-      )
+      runProcedure(ctx.runtime, resolveVideoProgram(input, ctx.auth.user.id))
     ),
 });
