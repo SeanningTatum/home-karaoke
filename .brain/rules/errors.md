@@ -66,7 +66,6 @@ The argument shape becomes readonly fields on the instance. Discriminate via `_t
 |-------|--------|-----------|
 | `YouTubeQuotaExceededError` | `cause?` | `TOO_MANY_REQUESTS` |
 | `YouTubeUnavailableError` | `cause?` | `BAD_GATEWAY` |
-| `VideoNotEmbeddableError` | `videoId` | `BAD_REQUEST` |
 | `VideoNotFoundError` | `videoId` | `NOT_FOUND` |
 
 ## Adding a new tagged error
@@ -158,7 +157,7 @@ Direct `Effect.fail(new SomeTaggedError(...))` inside an `Effect.gen` is still t
 | Tagged error | TRPC code |
 |--------------|-----------|
 | `NotFoundError`, `BucketNotFoundError`, `RoomNotFoundError`, `VideoNotFoundError` | `NOT_FOUND` |
-| `ValidationError`, `BucketValidationError`, `VideoNotEmbeddableError` | `BAD_REQUEST` |
+| `ValidationError`, `BucketValidationError` | `BAD_REQUEST` |
 | `CreationError`, `UpdateError`, `DeletionError`, `QueryError`, `ConfigurationError`, `Bucket{Binding,Upload,Get,Delete,List}Error`, `WorkflowTriggerError` | `INTERNAL_SERVER_ERROR` |
 | `ExternalServiceError`, `YouTubeUnavailableError` | `BAD_GATEWAY` |
 | `RoomClosedError` | `CONFLICT` |
