@@ -78,7 +78,6 @@
       "paste_placeholder": "粘贴 YouTube 链接",
       "paste_submit": "添加链接",
       "paste_error": "无法添加该链接 —— 请确认是 YouTube 视频链接",
-      "not_embeddable": "这个视频无法在此播放 —— 请换一个",
       "queue_almost_full_other": "队列快满了 —— 仅剩 {{count}} 个位置"
     }
   },

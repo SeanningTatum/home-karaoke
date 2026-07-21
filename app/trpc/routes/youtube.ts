@@ -8,7 +8,6 @@ import {
   YouTubeResolveVideoInput,
 } from "@/lib/schemas/youtube";
 import { normalizeSearchQuery, parseYouTubeUrl } from "@/lib/youtube";
-import { VideoNotEmbeddableError } from "@/models/errors/youtube";
 import { ValidationError } from "@/models/errors/repository";
 
 // D1 cache freshness window for `search` — a repeat query with at least one
@@ -116,12 +115,16 @@ export const youtubeRouter = createTRPCRouter({
           const yt = yield* YouTube;
           const metadata = yield* yt.getVideo(videoId);
 
-          if (metadata.embeddable === false) {
-            return yield* Effect.fail(
-              new VideoNotEmbeddableError({ videoId })
-            );
-          }
-
+          // NOTE: we deliberately do NOT reject on `metadata.embeddable ===
+          // false`. The Data API's `status.embeddable` flag is unreliable and
+          // over-conservative — many karaoke channels (e.g. Sing King) report
+          // `false` yet embed and play perfectly in the IFrame. Blocking here
+          // made those videos un-queueable. The player's `onError` handler
+          // (app/components/room/youtube-player.tsx) is the ground truth: a
+          // genuinely non-embeddable video (codes 101/150) is toasted and
+          // skipped at playback time without being recorded as sung. This also
+          // matches the keyless oEmbed path, which can't report embeddability
+          // and already assumes playable.
           const songs = yield* SongRepository;
           yield* songs.upsertSong({
             videoId: metadata.videoId,
