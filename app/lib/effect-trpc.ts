@@ -2,6 +2,7 @@ import { Cause, Effect, Exit, ManagedRuntime } from "effect";
 import { TRPCError } from "@trpc/server";
 import type { AppServices } from "@/runtime";
 import type { AppError } from "@/models/errors";
+import { VIDEO_NOT_EMBEDDABLE_MESSAGE_PREFIX } from "@/models/errors/youtube";
 import { loggers } from "@/lib/logger";
 
 // The literal set of tags every AppError union member can carry. Anything
@@ -29,6 +30,7 @@ const APP_ERROR_TAGS = new Set<AppError["_tag"]>([
   "RoomClosedError",
   "YouTubeQuotaExceededError",
   "YouTubeUnavailableError",
+  "VideoNotEmbeddableError",
   "VideoNotFoundError",
 ]);
 
@@ -173,6 +175,11 @@ const appErrorToTRPC = (e: AppError): TRPCError => {
         code: "BAD_GATEWAY",
         message: "YouTube is unavailable right now",
         cause: e.cause,
+      });
+    case "VideoNotEmbeddableError":
+      return new TRPCError({
+        code: "BAD_REQUEST",
+        message: `${VIDEO_NOT_EMBEDDABLE_MESSAGE_PREFIX}: ${e.videoId}`,
       });
     case "VideoNotFoundError":
       return new TRPCError({

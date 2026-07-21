@@ -161,7 +161,7 @@ Single mapping point: `tagToTRPC` in `app/lib/effect-trpc.ts`.
 | Tagged error | TRPC code |
 |--------------|-----------|
 | `NotFoundError`, `BucketNotFoundError`, `RoomNotFoundError`, `VideoNotFoundError` | `NOT_FOUND` |
-| `ValidationError`, `BucketValidationError` | `BAD_REQUEST` |
+| `ValidationError`, `BucketValidationError`, `VideoNotEmbeddableError` | `BAD_REQUEST` |
 | `CreationError`, `UpdateError`, `DeletionError`, `QueryError`, `ConfigurationError`, `Bucket{Binding,Upload,Get,Delete,List}Error`, `WorkflowTriggerError` | `INTERNAL_SERVER_ERROR` |
 | `ExternalServiceError`, `YouTubeUnavailableError` | `BAD_GATEWAY` |
 | `RoomClosedError` | `CONFLICT` |

@@ -31,6 +31,7 @@ import { RoomNotFoundError, RoomClosedError } from "@/models/errors/room";
 import {
   YouTubeQuotaExceededError,
   YouTubeUnavailableError,
+  VideoNotEmbeddableError,
   VideoNotFoundError,
 } from "@/models/errors/youtube";
 
@@ -201,6 +202,15 @@ describe("tagToTRPC error mapping", () => {
     Effect.gen(function* () {
       const exit = yield* failExit(new YouTubeUnavailableError({}));
       expectTRPC(exit, "BAD_GATEWAY");
+    })
+  );
+
+  it.effect("VideoNotEmbeddableError → BAD_REQUEST", () =>
+    Effect.gen(function* () {
+      const exit = yield* failExit(
+        new VideoNotEmbeddableError({ videoId: "v1" })
+      );
+      expectTRPC(exit, "BAD_REQUEST");
     })
   );
 

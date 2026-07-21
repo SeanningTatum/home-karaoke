@@ -7,13 +7,17 @@ import { YouTube, type YouTubeVideoMetadata } from "@/services/youtube";
 import { makeTestYouTube } from "@/services/youtube.test-layer";
 import { SongRepository } from "@/repositories/song";
 import { ValidationError } from "@/models/errors/repository";
-import { VideoNotFoundError } from "@/models/errors/youtube";
+import {
+  VideoNotFoundError,
+  VideoNotEmbeddableError,
+} from "@/models/errors/youtube";
 
 // The exact video the group-karaoke feature-verifier hit on the real YouTube
 // Data API: "ABBA - Dancing Queen (Karaoke Version)" by Sing King reports
-// `status.embeddable: false` yet embeds and plays fine. `resolveVideo` used to
-// reject this with a `VideoNotEmbeddableError`, making it un-queueable — this
-// suite locks the fix in place. See .brain/features/group-karaoke.
+// `status.embeddable: false`. Verified empirically (IFrame error 150) that its
+// owner disabled embedding, so it can NEVER play in the embedded player —
+// `resolveVideo` must reject it so an unplayable song can't reach the queue.
+// See .brain/features/group-karaoke.
 const SING_KING: YouTubeVideoMetadata = {
   videoId: "singking123",
   title: "ABBA - Dancing Queen (Karaoke Version)",
@@ -54,7 +58,7 @@ const failure = <E>(exit: Exit.Exit<unknown, E>): E | undefined => {
 };
 
 describe("resolveVideoProgram", () => {
-  it("queues a video the Data API flags embeddable:false (Sing King regression)", async () => {
+  it("rejects a video whose owner disabled embedding (Sing King regression)", async () => {
     const repo = makeSongRepoStub();
     const exit = await Effect.runPromiseExit(
       resolveVideoProgram(
@@ -70,26 +74,12 @@ describe("resolveVideoProgram", () => {
       )
     );
 
-    // The whole point of the fix: a non-embeddable video resolves instead of
-    // failing with VideoNotEmbeddableError.
-    expect(Exit.isSuccess(exit)).toBe(true);
-    if (Exit.isSuccess(exit)) {
-      expect(exit.value.videoId).toBe("singking123");
-      expect(exit.value.embeddable).toBe(false);
-    }
-    // ...and it was persisted (with the honest embeddable:false flag) and the
-    // originating search pick was marked.
-    expect(repo.upserts).toHaveLength(1);
-    expect(repo.upserts[0]).toMatchObject({
-      videoId: "singking123",
-      embeddable: false,
-    });
-    expect(repo.picks).toHaveLength(1);
-    expect(repo.picks[0]).toMatchObject({
-      searchLogId: "log-1",
-      videoId: "singking123",
-      userId: "user-1",
-    });
+    // embeddable:false can never play in the embedded player (IFrame error
+    // 150), so it must be rejected — not queued to then auto-skip.
+    expect(failure(exit)).toBeInstanceOf(VideoNotEmbeddableError);
+    // ...and nothing was persisted / no pick was marked.
+    expect(repo.upserts).toHaveLength(0);
+    expect(repo.picks).toHaveLength(0);
   });
 
   it("does not mark a search pick when no searchLogId is provided", async () => {

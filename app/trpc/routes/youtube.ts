@@ -9,6 +9,7 @@ import {
 } from "@/lib/schemas/youtube";
 import { normalizeSearchQuery, parseYouTubeUrl } from "@/lib/youtube";
 import { ValidationError } from "@/models/errors/repository";
+import { VideoNotEmbeddableError } from "@/models/errors/youtube";
 import type { YouTubeResolveVideoInput as ResolveVideoInput } from "@/lib/schemas/youtube";
 
 // D1 cache freshness window for `search` — a repeat query with at least one
@@ -24,14 +25,14 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // tRPC caller/runtime. Resolves a picked `videoId` or a pasted `url` into full
 // metadata and persists it to the song cache.
 //
-// Deliberately does NOT reject on `metadata.embeddable === false`: the YouTube
-// Data API's `status.embeddable` flag is unreliable and over-conservative —
-// many karaoke channels (e.g. Sing King) report `false` yet embed and play
-// fine in the IFrame. Blocking here made those videos un-queueable. The
-// player's `onError` handler (app/components/room/youtube-player.tsx) is the
-// runtime ground truth: a genuinely non-embeddable video (codes 101/150) is
-// toasted and skipped at playback without being recorded as sung. This also
-// matches the keyless oEmbed path, which can't report embeddability at all.
+// Rejects a video whose owner disabled embedding (`embeddable === false`):
+// YouTube blocks it in any third-party iframe (IFrame error 150/101), so it
+// can never play in our embedded player. `youtube.search` already filters
+// these out of results, so this guard mainly protects the paste-a-link path,
+// where a user can paste a non-embeddable URL directly. Only the keyed
+// `getVideo` reports embeddability; the keyless oEmbed fallback can't, so a
+// pasted link resolved via oEmbed is assumed playable and the player's
+// `onError` (toast + auto-skip) is the last line of defense.
 export const resolveVideoProgram = (input: ResolveVideoInput, userId: string) =>
   Effect.gen(function* () {
     const videoId = input.videoId ?? parseYouTubeUrl(input.url ?? "");
@@ -47,6 +48,10 @@ export const resolveVideoProgram = (input: ResolveVideoInput, userId: string) =>
 
     const yt = yield* YouTube;
     const metadata = yield* yt.getVideo(videoId);
+
+    if (metadata.embeddable === false) {
+      return yield* Effect.fail(new VideoNotEmbeddableError({ videoId }));
+    }
 
     const songs = yield* SongRepository;
     yield* songs.upsertSong({

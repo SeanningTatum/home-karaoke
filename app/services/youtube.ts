@@ -167,6 +167,43 @@ const mapSearchResponse = (
   return results;
 };
 
+/**
+ * `search.list` returns no embeddability info, so a second `videos.list`
+ * (part=status) resolves it for the whole result set at once. That's 1 quota
+ * unit for up to 50 ids — cheap next to search.list's 100 — and lets us drop
+ * videos whose owner disabled embedding (e.g. Sing King) before the user can
+ * pick one: they'd only fail with IFrame error 150 at playback and auto-skip.
+ * Returns the set of ids that are NOT embeddable.
+ */
+const fetchNonEmbeddableIds = (
+  apiKey: string,
+  ids: readonly string[]
+): Effect.Effect<
+  ReadonlySet<string>,
+  YouTubeQuotaExceededError | YouTubeUnavailableError
+> =>
+  Effect.gen(function* () {
+    if (ids.length === 0) return new Set<string>();
+    const url =
+      `${VIDEOS_ENDPOINT}?part=status` +
+      `&id=${encodeURIComponent(ids.join(","))}&key=${encodeURIComponent(apiKey)}`;
+    const body = yield* fetchYouTubeApi(url);
+    const items =
+      (
+        body as {
+          items?: ReadonlyArray<{
+            id?: string;
+            status?: { embeddable?: boolean };
+          }>;
+        }
+      )?.items ?? [];
+    const blocked = new Set<string>();
+    for (const item of items) {
+      if (item.id && item.status?.embeddable === false) blocked.add(item.id);
+    }
+    return blocked;
+  });
+
 const searchWithKey =
   (apiKey: string) =>
   (
@@ -180,7 +217,25 @@ const searchWithKey =
       `${SEARCH_ENDPOINT}?part=snippet&type=video` +
       `&maxResults=${MAX_SEARCH_RESULTS}` +
       `&q=${encodeURIComponent(q)}&key=${encodeURIComponent(apiKey)}`;
-    return fetchYouTubeApi(url).pipe(Effect.map(mapSearchResponse));
+    return fetchYouTubeApi(url).pipe(
+      Effect.map(mapSearchResponse),
+      Effect.flatMap((results) =>
+        fetchNonEmbeddableIds(
+          apiKey,
+          results.map((r) => r.videoId)
+        ).pipe(
+          Effect.map((blocked) =>
+            results.filter((r) => !blocked.has(r.videoId))
+          ),
+          // Never let the embeddability pass sink an otherwise-good search: if
+          // videos.list fails for any reason (quota/network/malformed), fall
+          // back to the unfiltered results. catchAllCause (not catchAll) so a
+          // defect degrades too. The resolveVideo guard + the player's onError
+          // still catch a non-embeddable pick downstream.
+          Effect.catchAllCause(() => Effect.succeed(results))
+        )
+      )
+    );
   };
 
 const getVideoWithKey =

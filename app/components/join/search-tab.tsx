@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/client";
+import { VIDEO_NOT_EMBEDDABLE_MESSAGE_PREFIX } from "@/models/errors/youtube";
 import { MAX_QUEUE_SIZE } from "@/lib/room-state";
 import type { ClientMessage } from "@/lib/schemas/room-ws";
 
@@ -76,7 +77,9 @@ export function SearchTab({ roomId, send, queueLength, onQueued }: SearchTabProp
     },
     onError: (error) => {
       setPendingId(null);
-      if (
+      if (error.message.startsWith(VIDEO_NOT_EMBEDDABLE_MESSAGE_PREFIX)) {
+        toast.error(t("join.search.not_embeddable"));
+      } else if (
         pasteMode &&
         (error.data?.code === "BAD_REQUEST" || error.data?.code === "NOT_FOUND")
       ) {
