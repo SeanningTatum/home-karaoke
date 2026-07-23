@@ -1,48 +1,58 @@
 # 🎤 home-karaoke
 
+**Turn your TV into a karaoke machine and everyone's phone into the remote.**
+
 [![Cloudflare Workers](https://img.shields.io/badge/runtime-Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![React Router](https://img.shields.io/badge/framework-React%20Router%20v7-CA4245?logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Effect TS](https://img.shields.io/badge/typed-Effect%20TS-1E1E2C)](https://effect.website/)
 [![TypeScript](https://img.shields.io/badge/typescript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-> **Open-source group karaoke for your living room.** One person hosts a room on the big screen; everyone else scans a QR code, searches YouTube from their phone, and drops songs into a shared queue that syncs live. No app install, no accounts — guests just pick a nickname and sing.
+![home-karaoke demo](docs/assets/demo.gif)
 
-**How it works**
-- **Host** signs in → creates a room → lands on `/room/:code`: a full-screen YouTube player, the live queue, playback controls, and a join QR code. Controls play/pause/skip/volume, drag-reorders the queue, toggles whether guests may reorder, ends the party.
-- **Guests** scan the QR → `/join/:code` → pick a nickname (anonymous session, no signup) → search YouTube (karaoke-biased, or paste a link) and add to the shared queue. The queue, playback, and roster sync live over one WebSocket per room; rooms auto-close after 1h idle.
-
-Live room state lives in the `KaraokeRoom` raw **Durable Object** (SQLite storage + WebSocket Hibernation; transitions are pure functions in [`app/lib/room-state.ts`](app/lib/room-state.ts)). D1 keeps durable room records + played-song history. Full feature memo: [`.brain/features/group-karaoke/group-karaoke.md`](.brain/features/group-karaoke/group-karaoke.md).
-
-Built on a **harness-first, AI-first** Cloudflare stack — retrieval-based docs, paste-able recipes, and deterministic verification gates so any agent (Claude Code, Cursor, Codex) can ship real features. The rest of this README is that developer/agent guide.
-
-If you're a human, scroll to [Quick Start](#quick-start). If you're an agent, scroll to [How To Work In This Repo](#how-to-work-in-this-repo) — it tells you which docs to open before writing code.
+One person opens a room on the big screen. Everyone else scans the QR code, picks a nickname, and starts adding songs from their phone. The queue, the video, and the crowd all stay in sync — no app to install, no accounts to create, no cables to pass around. It's group karaoke for your living room, built on YouTube.
 
 ---
 
-## What's in the box
+## See it in action
 
-**Stack**
-- **Runtime:** Cloudflare Workers (no Node), React Router v7 SSR
-- **Server logic:** tRPC v11 procedures wrapped in Effect TS
-- **Persistence:** D1 (SQLite) via Drizzle ORM 0.45, R2 for files
-- **Live state:** raw Durable Object (`KaraokeRoom`) — SQLite storage + WebSocket Hibernation
-- **Auth:** Better Auth 1.4 with Drizzle adapter + admin plugin (RBAC) + anonymous plugin (guests)
-- **External:** YouTube Data API v3 (karaoke-biased search) + keyless oEmbed paste-a-link fallback
-- **Validation:** Effect Schema everywhere — no Zod
-- **Errors:** `Data.TaggedError` mapped to tRPC codes via `tagToTRPC`
-- **UI:** ShadCN/Radix + Tailwind v4 (oklch), next-themes, react-hook-form + Effect resolver
-- **i18n:** remix-i18next + i18next, route-level namespaces, fully typed
-- **Testing:** Vitest 3 (unit) + Playwright 1.58 (e2e) + `@effect/vitest`
-- **Background:** Cloudflare Workflows (`ExampleWorkflow`)
+**Land on the page and start a party.** Type a room code to join one, or hit "Host a party" to open your own on the TV.
 
-**Agent harness**
-- `.brain/` — retrieval-first docs (rules, architecture, features, recipes, runs)
-- `.brain/recipes/` — paste-able runbooks bookended by `00-before-task.md` (init) and `99-verify-done.md` (termination check)
-- `.brain/runs/` — per-task continuity log so multi-session work survives compaction
-- `.githooks/pre-commit` — typecheck + tests block broken commits (no-dep, auto-installs)
-- `.claude/hooks/brain-reminder.sh` — staged-path → relevant-doc reminder before commit
-- `.claude/commands/verify-done.md` — `/verify-done` slash command runs the full termination checklist
-- `CLAUDE.md` / `AGENTS.md` — kept byte-identical, both are the agent entry point
+![Landing page](docs/assets/landing.png)
+
+**The host screen is the stage.** A full-screen YouTube player fills the TV, with a side rail showing who's in the room, what's queued next, and the QR code + room code for anyone still joining.
+
+![Host TV screen mid-song](docs/assets/host-tv-playing.png)
+
+**Guests join in seconds.** Scan the QR, pick a name the room will cheer for, and add a profile photo if you want one. No signup, no password — just a nickname.
+
+![Guest join screen](docs/assets/guest-join.png)
+
+**Everyone queues from their phone.** Search YouTube (results are biased toward karaoke versions) or paste a link, tap to add, and you'll see exactly where you land: "Added! You're #1."
+
+![Guest searching and adding a song](docs/assets/guest-search-add.png)
+
+**The crowd reacts in real time.** Guests tap emojis on their phones and they fly up the TV screen, Google-Meet-style, while the current singer performs.
+
+![Emoji reactions flying up the TV](docs/assets/emoji-reactions-tv.png)
+
+**Every song gets an ending.** When a song wraps, the TV shows a quick recap card tallying the reactions the singer just earned — a little applause before the next person is up.
+
+![End-of-song recap card](docs/assets/recap-card.png)
+
+**Faces, not just names.** Guest avatars show up across the TV — in the roster, the queue, and the "you're up" overlay — with a colorful initials avatar when someone skips the photo.
+
+![TV roster with guest avatars](docs/assets/host-roster-avatars.png)
+
+---
+
+## Why it's built this way
+
+- **No app install, no accounts for guests.** Karaoke night shouldn't start with an app-store download. Guests scan a QR and pick a nickname — that's it. Under the hood that's an anonymous [Better Auth](https://better-auth.com/) session, so there's a real identity behind each guest without anyone signing up.
+- **Everything syncs live.** Add a song on your phone and it appears on the TV instantly; the host hits skip and every phone updates. Each room runs on a single WebSocket connection to a raw Cloudflare **Durable Object** (`KaraokeRoom`, backed by SQLite storage with WebSocket Hibernation), which owns the live queue, playback state, and roster. State transitions are pure functions in [`app/lib/room-state.ts`](app/lib/room-state.ts), so the behavior is testable without a browser.
+- **It runs entirely on Cloudflare's edge.** No servers to babysit. The app is a Cloudflare Worker (React Router v7 for SSR), durable room records + played-song history live in **D1** (SQLite via Drizzle), guest photos live in **R2**, and search comes from the **YouTube Data API v3** with a keyless paste-a-link fallback so it works even without an API key.
+- **Rooms clean up after themselves.** A room auto-closes after 1 hour idle via a Durable Object alarm — no lingering sessions.
+
+Full feature write-up: [`.brain/features/group-karaoke/group-karaoke.md`](.brain/features/group-karaoke/group-karaoke.md).
 
 ---
 
@@ -78,7 +88,38 @@ bun run dev                 # http://localhost:5173
 
 ---
 
-## How To Work In This Repo
+# Developer & agent guide
+
+Everything below is for people (and agents) working *on* home-karaoke. The app is built on a **harness-first, AI-first** Cloudflare stack — retrieval-based docs, paste-able recipes, and deterministic verification gates so any coding agent (Claude Code, Cursor, Codex) can ship real features without drifting.
+
+If you're a human contributor, read [`CLAUDE.md`](CLAUDE.md) once — it points to everything else. If you're an agent, start at [How to work in this repo](#how-to-work-in-this-repo).
+
+## What's in the box
+
+**Stack**
+- **Runtime:** Cloudflare Workers (no Node), React Router v7 SSR
+- **Server logic:** tRPC v11 procedures wrapped in Effect TS
+- **Persistence:** D1 (SQLite) via Drizzle ORM 0.45, R2 for files
+- **Live state:** raw Durable Object (`KaraokeRoom`) — SQLite storage + WebSocket Hibernation
+- **Auth:** Better Auth 1.4 with Drizzle adapter + admin plugin (RBAC) + anonymous plugin (guests)
+- **External:** YouTube Data API v3 (karaoke-biased search) + keyless oEmbed paste-a-link fallback
+- **Validation:** Effect Schema everywhere — no Zod
+- **Errors:** `Data.TaggedError` mapped to tRPC codes via `tagToTRPC`
+- **UI:** ShadCN/Radix + Tailwind v4 (oklch), next-themes, react-hook-form + Effect resolver
+- **i18n:** remix-i18next + i18next, route-level namespaces, fully typed
+- **Testing:** Vitest 3 (unit) + Playwright 1.58 (e2e) + `@effect/vitest`
+- **Background:** Cloudflare Workflows (`ExampleWorkflow`)
+
+**Agent harness**
+- `.brain/` — retrieval-first docs (rules, architecture, features, recipes, runs)
+- `.brain/recipes/` — paste-able runbooks bookended by `00-before-task.md` (init) and `99-verify-done.md` (termination check)
+- `.brain/runs/` — per-task continuity log so multi-session work survives compaction
+- `.githooks/pre-commit` — typecheck + tests block broken commits (no-dep, auto-installs)
+- `.claude/hooks/brain-reminder.sh` — staged-path → relevant-doc reminder before commit
+- `.claude/commands/verify-done.md` — `/verify-done` slash command runs the full termination checklist
+- `CLAUDE.md` / `AGENTS.md` — kept byte-identical, both are the agent entry point
+
+## How to work in this repo
 
 ### For humans
 
@@ -118,8 +159,6 @@ You're working in a codebase with strict conventions. Skipping the brain will co
 4. **Unit test every helper, repository, and service.** See [`.brain/codebase/testing.md`](.brain/codebase/testing.md).
 5. **Cloudflare Workers, not Node.** Bindings via the `CloudflareEnv` Tag. Never `process.env`.
 
----
-
 ## Harness — the system around the agent
 
 This repo follows the [walkinglabs 5-subsystem harness framework](https://github.com/walkinglabs/learn-harness-engineering/tree/main/skills/harness-creator). The harness is everything that keeps coding agents reliable across sessions: instructions, state, verification, scope, and lifecycle.
@@ -141,7 +180,7 @@ Single explainer: [`.brain/HARNESS.md`](.brain/HARNESS.md). The 5 subsystems map
 | [`/start-task`](.claude/commands/start-task.md) | Kickoff: `init.sh --baseline` + brain read + framing + run note + progress entry. Refuses if scope policy violated. |
 | [`/verify-done`](.claude/commands/verify-done.md) | Full verification: typecheck/test/e2e/build/UI/brain coherence/non-negotiables. |
 | [`/ship-feature`](.claude/commands/ship-feature.md) | Close out: `/verify-done` + flip `feature_list.json` + update feature MD + close run note + `/harness-check`. |
-| [`/harness-check`](.claude/commands/harness-check.md) | 10 deterministic invariants via [`scripts/harness-check.sh`](scripts/harness-check.sh) (no LLM, exits non-zero on drift). |
+| [`/harness-check`](.claude/commands/harness-check.md) | 11 deterministic invariants via [`scripts/harness-check.sh`](scripts/harness-check.sh) (no LLM, exits non-zero on drift). |
 
 The two scripts (`init.sh` + `scripts/harness-check.sh`) are pure shell — run them yourself anytime to verify state without invoking Claude.
 
@@ -158,8 +197,6 @@ Five subagents wrap specific harness pieces. The main thread delegates to these 
 | [`feature-tracker`](.claude/agents/feature-tracker.md) | Status changes (start / ship / block / scope a feature) |
 
 See [`.claude/agents/README.md`](.claude/agents/README.md) for invocation flow + complementary plugin agents.
-
----
 
 ## The `.brain/` directory
 
@@ -195,8 +232,6 @@ Retrieval-over-recall. Each subdirectory has an `index.md` that signals "read me
 | Designing a feature | [`features/index.md`](.brain/features/index.md) → `_TEMPLATE.md` → existing examples |
 | Tracing a constraint with no obvious "why" | [`transcripts/`](.brain/transcripts/) and [`emails/`](.brain/emails/) |
 
----
-
 ## Recipes — paste-able runbooks
 
 Each recipe is a deterministic checklist with code snippets, brain-doc updates, and a "definition of done". Designed for one-shot agent execution.
@@ -214,8 +249,6 @@ Each recipe is a deterministic checklist with code snippets, brain-doc updates, 
 | [`add-feature.md`](.brain/recipes/add-feature.md) | End-to-end feature combining the above |
 
 [`recipes/index.md`](.brain/recipes/index.md) also has decision trees (e.g. "tRPC vs Workflow vs Queue?", "D1 vs R2 vs KV?") to disambiguate before you start.
-
----
 
 ## Guardrails
 
@@ -258,8 +291,6 @@ cp CLAUDE.md AGENTS.md
 
 (There's no CI check yet — that's tracked.)
 
----
-
 ## Project layout
 
 ```
@@ -292,15 +323,13 @@ workflows/            Cloudflare Workflow definitions
 init.sh               Harness bootstrap — install + migrate + typecheck + test
 ```
 
----
-
 ## Commands
 
 ```bash
 ./init.sh                     # Harness bootstrap — install + migrate + typecheck + test
 ./init.sh --baseline          # Baseline only (typecheck + test) — used by /start-task
 ./init.sh --quick             # Skip install + migrate (assume already done)
-./scripts/harness-check.sh    # 10 deterministic harness invariants (also: /harness-check)
+./scripts/harness-check.sh    # 11 deterministic harness invariants (also: /harness-check)
 
 bun run dev                   # Dev server (auto-runs local DB migrations) → :5173
 bun run build                 # Production build
@@ -326,8 +355,6 @@ bun run hooks:install         # Re-install pre-commit gate
 bun run setup                 # First-time wizard
 bun run teardown              # Tear down Cloudflare resources
 ```
-
----
 
 ## Authentication
 
@@ -377,8 +404,6 @@ Gives you `admin@preview.local` / `Password123!` (plus `user@preview.local`
 and `banned@preview.local`). See [Database](#database) below and
 [`.brain/rules/repository.md`](.brain/rules/repository.md) ("Seed data").
 
----
-
 ## Database
 
 D1 (SQLite) accessed through Drizzle. Schema lives in [`app/db/schema.ts`](app/db/schema.ts) — single file at current scale.
@@ -397,8 +422,6 @@ bun run db:migrate:remote
 ```
 
 > Use SQL defaults for timestamps (`unixepoch('subsecond') * 1000`), not JS-side `new Date()`. See [`recipes/add-db-table.md`](.brain/recipes/add-db-table.md).
-
----
 
 ## UI / Design system
 
@@ -432,8 +455,6 @@ const { t } = useTranslation("dashboard");
 ```
 
 Strings live in [`app/locales/en/<namespace>.json`](app/locales/en/). Types in [`app/i18n/i18n.d.ts`](app/i18n/i18n.d.ts).
-
----
 
 ## Deployment
 
@@ -487,14 +508,10 @@ CLOUDFLARE_ENV=preview bun run build \
 
 > **Gotcha:** `wrangler deploy --env preview` does **not** work with the Cloudflare Vite plugin. The plugin selects the environment at *build* time via the `CLOUDFLARE_ENV` env var and writes a redirected config to `build/server/wrangler.json` that has no `env` block — so any `--env` flag passed to a post-build `wrangler` command has nothing to select. Always set `CLOUDFLARE_ENV` before building instead (as `deploy:preview` and the commands above do).
 
----
-
 ## Editor integrations
 
 - **VS Code / Cursor** — uses the local TypeScript server. The `typescript-lsp` Claude plugin (auto-enabled in `.claude/settings.json`) gives agents diagnostics inline.
 - **MCP servers** — optional. If you want richer tool access (Tavily search, Playwright control, etc.), set them up via Claude Code's `/plugin` system instead of repo-local config.
-
----
 
 ## Contributing
 
@@ -506,3 +523,5 @@ CLOUDFLARE_ENV=preview bun run build \
 6. Open the PR
 
 When in doubt: read first, code second.
+</content>
+</invoke>
