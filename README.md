@@ -523,5 +523,3 @@ CLOUDFLARE_ENV=preview bun run build \
 6. Open the PR
 
 When in doubt: read first, code second.
-</content>
-</invoke>
