@@ -15,5 +15,35 @@
     "description": "Better Auth issued the cookie that's letting you read this page right now.",
     "role_admin": "Admin",
     "role_user": "User"
+  },
+  "sessions": {
+    "title": "Previous sessions",
+    "empty": "Your first party will show up here.",
+    "live": "Live",
+    "rejoin": "Rejoin",
+    "songs_one": "{{count}} song",
+    "songs_other": "{{count}} songs"
+  },
+  "playlists": {
+    "title": "Featured playlists",
+    "coming_soon": "Coming soon",
+    "items": {
+      "throwbacks": {
+        "title": "2000s Throwbacks",
+        "body": "The hits everyone still knows every word to."
+      },
+      "duets": {
+        "title": "Duet Night",
+        "body": "Two mics, one song — pair up the room."
+      },
+      "opm": {
+        "title": "OPM Classics",
+        "body": "Timeless Filipino anthems for the whole crowd."
+      },
+      "crowd_pleasers": {
+        "title": "Crowd Pleasers",
+        "body": "Guaranteed sing-alongs to keep the queue moving."
+      }
+    }
   }
 }

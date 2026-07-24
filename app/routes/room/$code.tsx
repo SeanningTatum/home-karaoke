@@ -454,27 +454,26 @@ function RoomHostView({
           just hidden, in the lobby so the YoutubePlayer IFrame survives the
           lobby -> playing transition) or the lobby's two-column layout. */}
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Top bar: "Party lobby" acts as a navbar title on the LEFT in the
-            lobby (annotation D); connection status on the RIGHT. The
-            party-sounds toggle and End party button were removed per beta
-            feedback — the TV is a display surface; ending the party lives in
-            the phone Controls tab. The persisted sounds-mute default is
-            still honored, there's just no TV control for it. */}
-        <div className="flex items-center justify-between gap-3 pb-4">
-          <div className="flex min-w-0 items-center">
-            {!hasCurrentItem && (
-              <h1
-                data-testid="room-lobby-heading"
-                className="tv-title-sm uppercase tracking-[0.12em] text-muted-foreground"
-              >
-                {t("lobby.heading")}
-              </h1>
-            )}
+        {/* Top bar — LOBBY ONLY: "Party lobby" as a navbar title on the LEFT
+            (annotation D), connection status on the RIGHT. In the playing
+            state this whole row is gone (feat-013 spacing pass) — the pill
+            moves into the right rail's header and the reclaimed height goes
+            to the video. The party-sounds toggle and End party button were
+            removed per beta feedback — the TV is a display surface; ending
+            the party lives in the phone Controls tab. */}
+        {!hasCurrentItem && (
+          <div className="flex items-center justify-between gap-3 pb-6">
+            <h1
+              data-testid="room-lobby-heading"
+              className="tv-title-sm uppercase tracking-[0.12em] text-muted-foreground"
+            >
+              {t("lobby.heading")}
+            </h1>
+            <div className="flex shrink-0 items-center gap-3">
+              <ConnectionStatusPill status={connectionStatus} />
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <ConnectionStatusPill status={connectionStatus} />
-          </div>
-        </div>
+        )}
 
         {/* Playing video — the single largest element on the TV. `fill`
             letterboxes it against the black surface so it's as big as the
@@ -482,7 +481,7 @@ function RoomHostView({
             mounted, hidden in the lobby (see MAIN column comment). */}
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col gap-3",
+            "flex min-h-0 flex-1 flex-col gap-4",
             !hasCurrentItem && "hidden"
           )}
         >
@@ -516,26 +515,30 @@ function RoomHostView({
             data-testid="room-lobby"
             className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden"
           >
-            <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(420px,540px)_1fr]">
+            <div className="mx-auto grid min-h-0 w-full max-w-[1700px] flex-1 grid-cols-1 gap-8 lg:grid-cols-[minmax(420px,540px)_1fr]">
               {/* LEFT: QR hero, filling the full column height. */}
               <div className="flex min-h-0">
                 <JoinPanel joinUrl={joinUrl} code={code} size="lg" />
               </div>
 
-              {/* RIGHT: participants (top, ~1/3) + queue (below, fills). */}
-              <div className="flex min-h-0 flex-col gap-5">
+              {/* RIGHT: participants (top, content-sized) + queue (fills).
+                  The roster board sizes to its chips — floor of 200px so the
+                  empty state reads as a panel, ceiling of 40% so a packed
+                  room never starves the queue (feat-013: was a fixed h-1/3
+                  that left 2 guests floating in dead space). */}
+              <div className="flex min-h-0 flex-col gap-6">
                 <div
                   data-testid="room-lobby-roster-panel"
-                  className="flex h-1/3 min-h-0 shrink-0 overflow-hidden rounded-3xl border border-border/70 bg-card/40"
+                  className="flex max-h-[40%] min-h-[200px] shrink-0 overflow-hidden rounded-3xl border border-border/70 bg-card/40"
                 >
                   <RosterStrip roster={roster} />
                 </div>
 
                 <div
                   data-testid="room-lobby-queue"
-                  className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border/70 bg-card/40 p-6"
+                  className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border/70 bg-card/40 p-8"
                 >
-                  <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+                  <div className="mb-6 flex shrink-0 items-center justify-between gap-3">
                     <h2 className="tv-title-sm flex items-center gap-2 text-foreground">
                       <IconPlaylist className="size-6 text-primary" />
                       {t("queue.title")}
@@ -572,23 +575,23 @@ function RoomHostView({
                   ) : (
                     <ul
                       data-testid="room-lobby-queue-summary"
-                      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
+                      className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1"
                     >
                       {queue.map((item) => (
                         <li
                           key={item.id}
                           data-testid="room-lobby-queue-item"
-                          className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                          className="flex items-center gap-4 rounded-xl border border-border bg-card p-4"
                         >
                           {item.thumbnailUrl ? (
                             <img
                               src={item.thumbnailUrl}
                               alt=""
-                              className="size-12 shrink-0 rounded-lg object-cover"
+                              className="size-14 shrink-0 rounded-lg object-cover"
                             />
                           ) : (
-                            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
-                              <IconMusic className="size-5 text-muted-foreground" />
+                            <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-muted">
+                              <IconMusic className="size-6 text-muted-foreground" />
                             </span>
                           )}
                           <div className="min-w-0 flex-1">
@@ -634,12 +637,18 @@ function RoomHostView({
       <div
         data-testid="room-playing-rail"
         className={cn(
-          "flex min-h-0 w-full shrink-0 flex-col gap-4 border-t border-border pt-4 lg:w-[336px] lg:-mr-[calc(var(--tv-safe-inline)_-_4px)] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0",
+          "flex min-h-0 w-full shrink-0 flex-col gap-6 border-t border-border pt-6 lg:w-[336px] lg:-mr-[calc(var(--tv-safe-inline)_-_4px)] lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0",
           !hasCurrentItem && "hidden"
         )}
       >
-        <div data-testid="room-playing-participants" className="shrink-0">
-          <RosterStrip roster={roster} size="compact" />
+        {/* The connection pill lives here in the playing state (feat-013) —
+            the MAIN column's top bar only renders in the lobby, so the video
+            keeps that height. */}
+        <div className="flex shrink-0 items-start justify-between gap-3">
+          <div data-testid="room-playing-participants" className="min-w-0 flex-1">
+            <RosterStrip roster={roster} size="compact" />
+          </div>
+          <ConnectionStatusPill status={connectionStatus} />
         </div>
 
         <div className="min-h-0 flex-1">

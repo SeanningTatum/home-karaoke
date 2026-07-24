@@ -42,7 +42,11 @@ export function NowSingingBanner({
               1080p TV. Down to `tv-title` (36px) and allowed to wrap up to
               two lines (`line-clamp-2` + `break-words`) so the video below
               gets the vertical space while a long title stays readable. */}
-          <p className="tv-title text-foreground line-clamp-2 break-words">
+          {/* `min-h-[2lh]` reserves the full two-line height whether the
+              title wraps or not (feat-013 spacing pass) — the video below
+              keeps a stable size instead of jumping between short and long
+              titles mid-party. */}
+          <p className="tv-title text-foreground line-clamp-2 min-h-[2lh] break-words">
             {currentItem.title}
           </p>
           <span className="tv-label block truncate normal-case text-brass">

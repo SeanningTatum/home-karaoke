@@ -96,7 +96,7 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
   return (
     <div
       data-testid="room-roster-strip"
-      className="flex h-full min-h-0 w-full flex-col gap-5 p-6 lg:p-8"
+      className="flex h-full min-h-0 w-full flex-col gap-6 p-8"
     >
       <p className="tv-label shrink-0 text-muted-foreground">
         {t("lobby.roster_title", { count: guests.length })}
