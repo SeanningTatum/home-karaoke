@@ -21,6 +21,21 @@
 
 ---
 
+## 2026-07-24 — feat-013 layout-evolution shipped + PR #13 opened (feat/layout-evolution → feat/visual-redesign, stacked on PR #12). Marketing landing (nav/hero/features/CTA/footer), host-hub dashboard (stage hero + real sessions rail on new room.listMine + coming-soon playlists rail), party-screen spacing pass (24/32 scale, content-sized roster, playing top bar folded into rail). Verification PASS 6/6 + error path, 523 unit, e2e 3/3, build green, brain check 11/11.
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #12 then PR #13 (GitHub retargets to main). Deferred: session detail view, real featured-playlists feature, wordmark refresh.
+
+---
+
+## 2026-07-24 — PR opened for layout-evolution: https://github.com/SeanningTatum/home-karaoke/pull/13
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-24 — shipped layout-evolution: Verification .brain/features/layout-evolution/verifications/2026-07-24.md PASS 6/6 golden path + 1/1 error path, zero ap
 - branch: `feat/layout-evolution`
 - in-progress feature: none
