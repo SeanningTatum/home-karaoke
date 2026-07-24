@@ -21,6 +21,21 @@
 
 ---
 
+## 2026-07-24 — feat-014 party-screen-cinema shipped; folded into PR #13 alongside feat-013 (user's call: keep both in one PR rather than split). Playing screen reworked as a cinema: theater surface (dark class pins the playing subtree regardless of app theme), one-line now-playing bar 112px->59px, channel-aware cleanSongTitle helper (18 tests), rail as one 3-zone instrument panel, NEXT UP callout + 3px progress line (both approved open questions). Also fixed a pre-existing e2e hydration race (attributed by stashing: fails worse on clean tree) via e2e/helpers/hydration.ts polling React's __reactProps$ key. Verification PASS 10/10 + error path, 541 unit, e2e 3/3, build green, brain check 11/11.
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #12 then PR #13. Deferred: featured-playlists/queue-ahead feature, wordmark refresh, phone Controls-tab queue title truncation (verifier's out-of-scope find).
+
+---
+
+## 2026-07-24 — PR opened for party-screen-cinema: https://github.com/SeanningTatum/home-karaoke/pull/13
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-24 — shipped party-screen-cinema: Verification .brain/features/party-screen-cinema/verifications/2026-07-24.md PASS — golden path (lobby regression, 3-son
 - branch: `feat/layout-evolution`
 - in-progress feature: none
