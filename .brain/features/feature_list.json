@@ -1,6 +1,6 @@
 {
   "$schema": "Machine-readable feature state tracker. Source of truth for status; per-feature MD docs are source of truth for design/runtime.",
-  "updated": "2026-07-23",
+  "updated": "2026-07-24",
   "policy": {
     "one_in_progress_at_a_time": true,
     "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent"
@@ -180,8 +180,8 @@
         "feat-008",
         "feat-009"
       ],
-      "status": "in-progress",
-      "evidence": "",
+      "status": "shipped",
+      "evidence": "Verification .brain/features/visual-redesign/verifications/2026-07-23.md PASS 10/10 golden + 1/1 error path, zero console errors; 521/521 unit tests; e2e smoke 3/3; build green; 12 screenshots; plan plans/visual-redesign.html reviewed round 1 (5/5 decisions).",
       "owners": [
         "sean"
       ]

@@ -21,6 +21,13 @@
 
 ---
 
+## 2026-07-24 — shipped visual-redesign: Verification .brain/features/visual-redesign/verifications/2026-07-23.md PASS 10/10 golden + 1/1 error path, zero consol
+- branch: `feat/visual-redesign`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-23 — started feat-012 visual-redesign (Velvet Stage design system)
 - branch: `docs/readme-marketing-rewrite`
 - in-progress feature: feat-012
