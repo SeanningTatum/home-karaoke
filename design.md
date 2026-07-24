@@ -226,3 +226,15 @@ Where shipped light-theme (and dark `--destructive`) values were tuned for contr
 | `--radius` | `0.625rem` (boilerplate default) | `1rem` | Fits the "warm, huggable" pillar; derived radii (`sm/md/lg/xl`) still calc from it, no component changes required. |
 
 `--background`, `--card`, and the dark-theme `--primary`/`--success`/`--brass` ship at their intended identity values — they already cleared their respective bars.
+
+---
+
+## 11. Layout (feat-013 layout-evolution)
+
+Per-surface layout notes — structure only; every token/type/accent rule above is unchanged.
+
+| Surface | Layout |
+|---|---|
+| **Landing** (`app/routes/home.tsx`) | Single-scroll marketing page: sticky NavBar → two-column Hero (copy left, framed product screenshot right) → HowItWorks → FeatureGrid (6 shipped features) → CtaBand (marquee `KQ7-3FP` motif) → Footer with GitHub link. |
+| **Dashboard** (`app/routes/dashboard/_index.tsx`) | Host hub: slim top bar (account role chip), full-width `bg-stagelight` stage hero carrying the Start-a-party CTA, then horizontal rails — Previous sessions (on `room.listMine`; live rooms get a Rejoin card + LIVE badge, errors degrade to the empty state) and Featured playlists (visible coming-soon placeholder, static and non-interactive). |
+| **Party screen** (`app/routes/room/$code.tsx`) | Unified spacing scale: **24px inside panels, 32px between them** (queue panel `p-8`, queue items `p-4` with `size-14` thumbs, playing rail `p-6`/`gap-6`). The lobby top bar renders **only in the lobby** — the playing state gives that height to the video and the connection pill moves into the right-rail header row. Roster board is content-sized (`min-h` 200px / `max-h` 40%, not a fixed third), and the now-singing title reserves 2 lines via `min-h-[2lh]` so the rail doesn't jump between short and long titles. |

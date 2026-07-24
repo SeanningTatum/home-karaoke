@@ -60,6 +60,7 @@ export class WidgetRepository extends Effect.Service<WidgetRepository>()(
 ### Existing method inventory notes
 
 - `UserRepository.setUserImage({ userId, image })` (feat-011) — sole write path for the Better Auth `user.image` column (versioned avatar serving URL, or `null` to clear). Called from the avatar upload action with the authenticated `session.user.id` — never a client-supplied id. Uses `tryUpdate`; details in [`features/guest-avatars/guest-avatars.md`](../features/guest-avatars/guest-avatars.md).
+- `RoomRepository.listRoomsByHost({ hostUserId, limit = 12 })` (feat-013) — rooms for a host, newest-first, each with a per-room played-song count: a single grouped `leftJoin` on `room_song` counting rows with non-null `played_at` (a `leftJoin`, so rooms with zero played songs still appear with `songCount: 0`). Identity comes in as the `hostUserId` input per the no-context rule — the `room.listMine` procedure passes `ctx.auth.user.id`. Backs the dashboard sessions rail; details in [`features/layout-evolution/layout-evolution.md`](../features/layout-evolution/layout-evolution.md).
 
 ## Wire into runtime
 
@@ -177,7 +178,7 @@ Deterministic fixtures for local dev + per-PR preview D1 databases live in [`scr
 - **IDs**: always deterministic (`seed-<name>`, `seed-<name>-account`), never random — reruns must be stable.
 - **Invocation**: `bun run db:seed` (local D1, `--local`) and `bun run db:seed:preview` (preview-env D1, `--env preview --remote`); CI runs the latter on every PR push (`.github/workflows/preview.yml`, step "Seed per-PR D1").
 - **`--describe`**: emits a markdown summary of the fixtures (accounts table + seeded-data description) — `preview.yml` embeds it in the PR sticky comment, so extending `FIXTURES` (or `describeMarkdown()` for new tables) automatically updates every future preview comment. Keep `describeMarkdown()` accurate when adding seeded tables.
-- **RULE — seed evolves with features**: every feature that adds a table or user-visible data **MUST** extend the fixtures in `scripts/seed-preview.ts` in the same diff. Reviewers rely on preview URLs having representative data — a preview with an empty DB defeats the point of per-PR previews.
+- **RULE — seed evolves with features**: every feature that adds a table or user-visible data **MUST** extend the fixtures in `scripts/seed-preview.ts` in the same diff. Reviewers rely on preview URLs having representative data — a preview with an empty DB defeats the point of per-PR previews. Live example: `PAST_ROOM_FIXTURES` (feat-013) seeds 2 closed rooms hosted by `seed-admin` (`MAB-2QK` with 3 played songs, `ZTR-88L` with 1, `daysAgo`-staggered `created_at` so newest-first ordering is visible) so the dashboard "Previous sessions" rail renders populated on previews.
 - **Never seed production** by default — the script refuses `--remote` (top-level prod D1) unless `--force-production` is also passed. That escape hatch exists for emergencies only (e.g. bootstrapping a fresh prod DB), not routine use.
 
 ## Bucket repository: `get` fails on missing key
