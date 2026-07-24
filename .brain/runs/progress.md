@@ -21,6 +21,21 @@
 
 ---
 
+## 2026-07-24 — feat-012 visual-redesign shipped + PR #12 opened (feat/visual-redesign → main, 2 commits). Velvet Stage: wine-black stagelight tokens, Fraunces+JetBrains Mono, gradient retirement (13 sites), marquee room-code signature, per-page passes (landing w/ real product shots, auth vignette, dashboard, TV, phone). Verification PASS 10/10 + error path, 521 unit, e2e 3/3, build green, brain check 11/11.
+- branch: `feat/visual-redesign`
+- in-progress feature: none
+- run note: none
+- next: PR #12 review/merge; future: wordmark refresh, matinee art-direction if needed
+
+---
+
+## 2026-07-24 — PR opened for visual-redesign: https://github.com/SeanningTatum/home-karaoke/pull/12
+- branch: `feat/visual-redesign`
+- in-progress feature: none
+- run note: none
+
+---
+
 ## 2026-07-24 — shipped visual-redesign: Verification .brain/features/visual-redesign/verifications/2026-07-23.md PASS 10/10 golden + 1/1 error path, zero consol
 - branch: `feat/visual-redesign`
 - in-progress feature: none
