@@ -2,7 +2,7 @@
 
 _Last updated: 2026-07-23_
 
-_Status: in-progress — kicked off 2026-07-23. Plan `plans/visual-redesign.html` (reviewed 2026-07-23, round 1, 5/5 decisions on recommended options)._
+_Status: shipped — 2026-07-23. Plan `plans/visual-redesign.html` (reviewed 2026-07-23, round 1, 5/5 decisions on recommended options). Verified [2026-07-23 ✅ PASS](verifications/2026-07-23.md)._
 
 ## Purpose
 
@@ -68,3 +68,4 @@ None expected — visual/layout feature, no new error paths.
 | Date | Type | Description |
 |------|------|-------------|
 | 2026-07-23 | feature | Scoped and started feat-012. Plan `plans/visual-redesign.html` reviewed round 1, 5/5 decisions on recommended options. 6 phases planned: tokens+type, shared components, TV surfaces, phone surface, desktop surfaces, verification+ship. Implementation not yet started. |
+| 2026-07-23 | feature | Shipped feat-012 — all 6 phases landed. Verification [2026-07-23 ✅ PASS](verifications/2026-07-23.md): 10/10 golden path + 1/1 error path, zero console errors, 12 screenshots; 521/521 unit tests; e2e smoke 3/3; build green. |
