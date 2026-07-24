@@ -1,220 +1,220 @@
 {
- "$schema": "Machine-readable feature state tracker. Source of truth for status; per-feature MD docs are source of truth for design/runtime.",
- "updated": "2026-07-24",
- "policy": {
-  "one_in_progress_at_a_time": true,
-  "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent"
- },
- "features": [
-  {
-   "id": "feat-001",
-   "name": "Authentication",
-   "slug": "authentication",
-   "doc": ".brain/features/authentication/authentication.md",
-   "description": "Email/password auth with role-based access (user/admin) and ban system, Better Auth + D1 + Drizzle.",
-   "dependencies": [],
-   "status": "shipped",
-   "evidence": "shipped 2026-05-07; tests: app/repositories/__tests__/user.test.ts; e2e gap noted",
-   "owners": [
-    "sean"
-   ]
+  "$schema": "Machine-readable feature state tracker. Source of truth for status; per-feature MD docs are source of truth for design/runtime.",
+  "updated": "2026-07-24",
+  "policy": {
+    "one_in_progress_at_a_time": true,
+    "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent"
   },
-  {
-   "id": "feat-002",
-   "name": "Admin Dashboard",
-   "slug": "admin-dashboard",
-   "doc": ".brain/features/admin-dashboard/admin-dashboard.md",
-   "description": "Admin-only area at /admin/* for user management and analytics; data-side gating via adminProcedure.",
-   "dependencies": [
-    "feat-001"
-   ],
-   "status": "shipped",
-   "evidence": "shipped 2026-05-07; known gap: layout has no loader auth gate (data-side only)",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-003",
-   "name": "File Upload",
-   "slug": "file-upload",
-   "doc": ".brain/features/file-upload/file-upload.md",
-   "description": "Server-side multipart upload to Cloudflare R2 via /api/upload-file using BucketRepository.",
-   "dependencies": [],
-   "status": "cut",
-   "evidence": "cut 2026-07-16 by feat-008 ui-overhaul Phase 2 (plan plans/karaoke-ui-overhaul.html decision 2); repo layer retained/removed as noted \u2014 BucketRepository + its tests kept; FileUpload UI component, /api/upload-file route, upload.json i18n namespace, and lib/constants/upload.ts removed",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-004",
-   "name": "Analytics",
-   "slug": "analytics",
-   "doc": ".brain/features/analytics/analytics.md",
-   "description": "Read-only admin analytics at /admin: user growth, role + verification distribution, recent signups.",
-   "dependencies": [
-    "feat-001",
-    "feat-002"
-   ],
-   "status": "cut",
-   "evidence": "cut 2026-07-16 by feat-008 ui-overhaul Phase 2 (plan plans/karaoke-ui-overhaul.html decision 2); repo layer retained/removed as noted \u2014 AnalyticsRepository was only consumed by the deleted admin/_index.tsx dashboard, so repo + its tests + tRPC analyticsRouter + components/analytics/* + lib/insights.ts + lib/schemas/analytics.ts all removed; /admin/ now redirects to /admin/users",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-005",
-   "name": "Preview Deployments",
-   "slug": "preview-deployments",
-   "doc": ".brain/features/preview-deployments/preview-deployments.md",
-   "description": "Per-PR preview deployments on Cloudflare Workers: dedicated `preview` wrangler environment (isolated worker/D1/R2/workflow) + GitHub Actions workflow uploading versions with `--preview-alias pr-<N>` for stable preview URLs.",
-   "dependencies": [],
-   "status": "shipped",
-   "evidence": "shipped 2026-07-11; live-verified: per-PR D1 (pr-999 binding test), alias URL auth signup 200 on pr-test, prod signup 200; run note .brain/features/preview-deployments/runs/2026-07-10-preview-deployments.md; workflows .github/workflows/preview.yml + preview-cleanup.yml",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-006",
-   "name": "Feature Verification",
-   "slug": "feature-verification",
-   "doc": ".brain/features/feature-verification/feature-verification.md",
-   "description": "feature-verifier sub-agent drives the live app via the Playwright CLI (throwaway headless script), screenshots the golden + one error path, and writes a per-feature verdict doc. Replaces per-feature e2e specs; thin CI smoke specs remain the regression net.",
-   "dependencies": [
-    "feat-001"
-   ],
-   "status": "shipped",
-   "evidence": "shipped 2026-07-13; self-verified: .brain/features/authentication/verifications/2026-07-13.md (PASS); harness-check 11/11; hardened clean-browser launch after dry-run extension artifact; agent .claude/agents/feature-verifier.md",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-007",
-   "name": "Group Karaoke Rooms",
-   "slug": "group-karaoke",
-   "doc": ".brain/features/group-karaoke/group-karaoke.md",
-   "description": "Host creates a karaoke room (big-screen YouTube player + live queue + join QR); guests scan QR on phones, get anonymous Better Auth sessions + nickname, search YouTube (Data API v3, \"karaoke\"-biased, results persisted to D1 song/search_log tables), add songs to a shared queue. Live state (queue/playback/roster) lives in a per-room raw Durable Object (KaraokeRoom, SQLite storage, WS hibernation \u2014 @cloudflare/actors was spiked and rejected as immature); D1 keeps durable room records + played-song history. Host controls play/pause/skip/volume/reorder (dnd-kit); reorder rights gated by per-room allowGuestReorder toggle; rooms auto-close after 1h idle via a DO alarm.",
-   "dependencies": [
-    "feat-001"
-   ],
-   "status": "shipped",
-   "evidence": "Phases 1-6 complete 2026-07-16. Plan plans/group-karaoke.html (reviewed, 4 decisions). Verification .brain/features/group-karaoke/verifications/2026-07-16.md PASS (11/11 golden steps, friendly error path, 0 app-origin errors). verify-done: typecheck PASS, 400 unit tests PASS (33 files), e2e smoke 2/2, build PASS (prod+preview), harness-check 11/11. Enforcer-reviewed all 5 phases (all findings fixed). Known gaps: YOUTUBE_API_KEY unset (paste-link fallback verified), drag-reorder headless-untestable (reducers unit-tested). Post-review (2026-07-16): all Greptile threads resolved incl. P1 r3593261839 (guest-reorder made single-writer \u2014 DO owns live+D1, client WS-only; dead tRPC/repo/schema removed); 401 tests. PR #1 merged to main. Feature wall-clock ~1h 55m (first commit \u2192 merge).",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-008",
-   "name": "Karaoke UI/UX Overhaul",
-   "slug": "ui-overhaul",
-   "doc": ".brain/features/ui-overhaul/ui-overhaul.md",
-   "description": "Strip all SaaS-boilerplate surfaces and reskin the app with a karaoke-first 'dark night-club stage' design system (pink\u2192gold gradient accent, Google Fonts display face, 10-foot TV type scale on /room). New playful landing (hero + enter-room-code + host CTA), slim host-hub dashboard, reskinned auth, host TV screen (lobby state, persistent QR, added-by queue chips, celebrations) and guest phone flow (nickname spinner, Verse-style search/add, tap-based move-up/move-to-top reorder, position bar). Join/add pop sounds behind host mute toggle. Both themes kept (dark default). No singer rotation, no audio normalization. Plan: plans/karaoke-ui-overhaul.html (reviewed 2026-07-16, round 1, all 5 decisions answered).",
-   "dependencies": [
-    "feat-007"
-   ],
-   "status": "shipped",
-   "evidence": "Shipped 2026-07-16. Phases 1-6a complete (7 commits f44c013..915e2fd + this ship). Plan plans/karaoke-ui-overhaul.html (reviewed round 1, 5 decisions). Verification .brain/features/ui-overhaul/verifications/2026-07-16.md PASS (11/11 golden TV+phone, 2 error paths, 16 screenshots, 0 app-origin console errors; verifier-found lobby regression fixed same day 915e2fd). verify-done: typecheck 0, 401 unit tests, e2e smoke 2/2, prod+preview builds PASS, harness-check 11/11 after brain-coherence cleanup. Enforcer-reviewed all phases (1 major + 4 minors, all fixed). Known follow-up: tRPC room.close doesn't broadcast to DO guests (pre-existing feat-007 gap, logged in ui-overhaul.md).",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-009",
-   "name": "TV Beta Feedback Polish",
-   "slug": "tv-beta-polish",
-   "doc": ".brain/features/tv-beta-polish/tv-beta-polish.md",
-   "description": "Beta-session feedback pass on the TV screen (/room/:code). Lobby becomes horizontal two-column (QR hero left, roster right, no page scroll at 1080p). Playing state maximizes the video: left column video + smaller wrapping title (56px\u2192~36px, 2-line clamp); right rail (~300-320px) stacks participants / queue (heading 36px\u2192~22px) / QR at bottom. TV play/skip removed entirely \u2014 phone Controls tab is the only playback surface. 'You're up' overlay: 100% opacity, 5s, animated exit. Sounds gamified: multi-note synth jingles + 'your turn' fanfare, no audio assets. Corner QR stays lobby-only. Plan: plans/tv-beta-feedback.html (reviewed 2026-07-16 round 1, 3 decisions answered).",
-   "status": "shipped",
-   "evidence": "Shipped 2026-07-17. Plan plans/tv-beta-feedback.html (reviewed 2026-07-16 round 1, 3 decisions). 4 build commits on feat/tv-beta-polish (lobby horizontal eb5aa63, playing layout + TV-controls removal 6b4b29b, opaque 5s overlay w/ exit anim, gamified jingles + fanfare). Enforcer: all 5 non-negotiables clean. verify-done: typecheck 0, 424 unit tests, e2e smoke 2/2, prod build PASS, harness 11/11. Verification .brain/features/tv-beta-polish/verifications/2026-07-17.md PASS 7/7 golden + 2 edges, 12 screenshots, 0 console errors.",
-   "dependencies": [
-    "feat-008"
-   ],
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-010",
-   "name": "Emoji Reactions",
-   "slug": "emoji-reactions",
-   "doc": ".brain/features/emoji-reactions/emoji-reactions.md",
-   "description": "Guests on phones send live emoji reactions while someone sings; emojis fly up the TV screen Google-Meet-style (WS broadcast via KaraokeRoom DO, pure reducers in room-state.ts); at end of each song the TV 'next up' transition shows a 3-5s recap of reaction counts for the singer who just finished. Per-song counts live in DO memory only (reset per song).",
-   "dependencies": [
-    "feat-007",
-    "feat-008",
-    "feat-009"
-   ],
-   "status": "shipped",
-   "evidence": "Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (opus Phase 1 contract, parallel sonnet TV/phone). Enforcer clean 0 findings. verify-done: typecheck 0, 482 unit tests (35 files), e2e smoke 2/2 (E2E_PORT=5199 isolated), prod build PASS, harness 11/11, i18n.md coherence gap fixed. Verification .brain/features/emoji-reactions/verifications/2026-07-17.md PASS 11/11 golden + error path, 0 app-origin errors (translucency finding withdrawn as capture artifact, 09b-tv-recap-steady.png).",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-011",
-   "name": "Guest Avatars",
-   "slug": "guest-avatars",
-   "doc": ".brain/features/guest-avatars/guest-avatars.md",
-   "description": "Guests upload a profile picture on /join/:code; avatar renders in host TV lobby roster, compact roster strip, queue rail, lobby queue summary, and now-up overlay, falling back to gradient InitialsAvatar. Stored in R2 (existing BUCKET binding + BucketRepository), URL persisted on Better Auth user.image, threaded to the KaraokeRoom DO via x-avatar-url WS header into RosterEntry.avatarUrl / QueueItem.singerAvatarUrl.",
-   "dependencies": [
-    "feat-001",
-    "feat-007"
-   ],
-   "status": "shipped",
-   "evidence": "verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findings; plan plans/guest-avatars.html reviewed round 1",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-012",
-   "name": "Visual Redesign",
-   "slug": "visual-redesign",
-   "doc": ".brain/features/visual-redesign/visual-redesign.md",
-   "description": "Replace the flat near-black + pink-to-gold gradient look with a 'Velvet Stage' identity: warm wine-black stagelight backgrounds, spotlight pink as the single accent, brass punctuation, Fraunces display serif, JetBrains Mono for codes. Per-page layout rethink of landing, auth, dashboard, room TV (lobby + playing), and join phone flow. Admin inherits tokens only (no bespoke redesign). All data-testids, i18n keys, and TV >=24px + tv-safe rules are frozen (not renegotiated by this feature). Plan: plans/visual-redesign.html (reviewed 2026-07-23, round 1, 5/5 decisions on recommended options).",
-   "dependencies": [
-    "feat-007",
-    "feat-008",
-    "feat-009"
-   ],
-   "status": "shipped",
-   "evidence": "Verification .brain/features/visual-redesign/verifications/2026-07-23.md PASS 10/10 golden + 1/1 error path, zero console errors; 521/521 unit tests; e2e smoke 3/3; build green; 12 screenshots; plan plans/visual-redesign.html reviewed round 1 (5/5 decisions).",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-013",
-   "name": "Layout Evolution",
-   "slug": "layout-evolution",
-   "doc": ".brain/features/layout-evolution/layout-evolution.md",
-   "description": "Layout rethink on three surfaces, building on Velvet Stage (feat-012): (1) landing becomes a full single-scroll marketing site (sticky nav, product-shot hero with join card, how-it-works, 6-feature grid, marquee CTA band, footer with GitHub link); (2) dashboard re-imagined as a host hub \u2014 stagelight hero with Start-a-party CTA, Previous-sessions rail on real data (new RoomRepository.listRoomsByHost + room.listMine tRPC query), Featured-playlists rail as visible coming-soon placeholder; (3) party screen spacing pass (unified 24/32px TV rhythm, content-sized roster panel, playing top bar folded into the rail). Session cards are summary-only (no detail view). Plan: plans/layout-evolution.html (reviewed 2026-07-24, round 1, 5/5 decisions on recommended options).",
-   "dependencies": [
-    "feat-012"
-   ],
-   "status": "shipped",
-   "evidence": "Verification .brain/features/layout-evolution/verifications/2026-07-24.md PASS 6/6 golden path + 1/1 error path, zero app console errors; 523/523 unit tests; e2e smoke 3/3; build green; 8 screenshots; plan plans/layout-evolution.html reviewed round 1 (5/5 decisions on recommended options).",
-   "owners": [
-    "sean"
-   ]
-  },
-  {
-   "id": "feat-014",
-   "name": "Party Screen Cinema",
-   "slug": "party-screen-cinema",
-   "doc": ".brain/features/party-screen-cinema/party-screen-cinema.md",
-   "description": "Rethink the playing state of /room/:code as a cinema \u2014 the video is the hero, everything else is instrumentation. (1) Playing state pins itself to the dark theater surface regardless of app theme (lobby/dashboard/landing still follow the theme). (2) Now-playing collapses from a 128px two-line block to a ~64px single-line bar: NOW SINGING eyebrow + cleaned 28px title + singer avatar chip, recovering ~10% of viewport height for the video. (3) New channel-aware cleanSongTitle helper (app/lib/song-title.ts) strips karaoke/quality noise and splits song from artist using the queue item's channel field to decide direction. (4) Right rail becomes one continuous instrument panel: guest avatar cluster band, UP NEXT list filling the middle with a top-anchored empty state, QR ticket stub at the bottom \u2014 removing the ~250px void an empty queue used to leave. Plus (approved from the plan's open questions) a NEXT UP callout on the first queued song and a quiet song-progress/remaining-time indicator on the TV. Plan: plans/party-screen-cinema.html (reviewed 2026-07-24, round 1, 4/4 decisions on recommended options + both open questions approved for exploration).",
-   "dependencies": [
-    "feat-013"
-   ],
-   "status": "in-progress",
-   "evidence": "Plan reviewed 2026-07-24: always-dark playing surface; single-line now-playing bar; channel-aware title cleaning; rail as one instrument panel; next-up callout + progress indicator both approved to explore. Measured baseline: now-playing 112px+16, video 76% of viewport, 250px rail void, rail 4px vs 80px page inset.",
-   "owners": [
-    "sean"
-   ]
-  }
- ]
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "Authentication",
+      "slug": "authentication",
+      "doc": ".brain/features/authentication/authentication.md",
+      "description": "Email/password auth with role-based access (user/admin) and ban system, Better Auth + D1 + Drizzle.",
+      "dependencies": [],
+      "status": "shipped",
+      "evidence": "shipped 2026-05-07; tests: app/repositories/__tests__/user.test.ts; e2e gap noted",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-002",
+      "name": "Admin Dashboard",
+      "slug": "admin-dashboard",
+      "doc": ".brain/features/admin-dashboard/admin-dashboard.md",
+      "description": "Admin-only area at /admin/* for user management and analytics; data-side gating via adminProcedure.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "shipped",
+      "evidence": "shipped 2026-05-07; known gap: layout has no loader auth gate (data-side only)",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-003",
+      "name": "File Upload",
+      "slug": "file-upload",
+      "doc": ".brain/features/file-upload/file-upload.md",
+      "description": "Server-side multipart upload to Cloudflare R2 via /api/upload-file using BucketRepository.",
+      "dependencies": [],
+      "status": "cut",
+      "evidence": "cut 2026-07-16 by feat-008 ui-overhaul Phase 2 (plan plans/karaoke-ui-overhaul.html decision 2); repo layer retained/removed as noted — BucketRepository + its tests kept; FileUpload UI component, /api/upload-file route, upload.json i18n namespace, and lib/constants/upload.ts removed",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-004",
+      "name": "Analytics",
+      "slug": "analytics",
+      "doc": ".brain/features/analytics/analytics.md",
+      "description": "Read-only admin analytics at /admin: user growth, role + verification distribution, recent signups.",
+      "dependencies": [
+        "feat-001",
+        "feat-002"
+      ],
+      "status": "cut",
+      "evidence": "cut 2026-07-16 by feat-008 ui-overhaul Phase 2 (plan plans/karaoke-ui-overhaul.html decision 2); repo layer retained/removed as noted — AnalyticsRepository was only consumed by the deleted admin/_index.tsx dashboard, so repo + its tests + tRPC analyticsRouter + components/analytics/* + lib/insights.ts + lib/schemas/analytics.ts all removed; /admin/ now redirects to /admin/users",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-005",
+      "name": "Preview Deployments",
+      "slug": "preview-deployments",
+      "doc": ".brain/features/preview-deployments/preview-deployments.md",
+      "description": "Per-PR preview deployments on Cloudflare Workers: dedicated `preview` wrangler environment (isolated worker/D1/R2/workflow) + GitHub Actions workflow uploading versions with `--preview-alias pr-<N>` for stable preview URLs.",
+      "dependencies": [],
+      "status": "shipped",
+      "evidence": "shipped 2026-07-11; live-verified: per-PR D1 (pr-999 binding test), alias URL auth signup 200 on pr-test, prod signup 200; run note .brain/features/preview-deployments/runs/2026-07-10-preview-deployments.md; workflows .github/workflows/preview.yml + preview-cleanup.yml",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-006",
+      "name": "Feature Verification",
+      "slug": "feature-verification",
+      "doc": ".brain/features/feature-verification/feature-verification.md",
+      "description": "feature-verifier sub-agent drives the live app via the Playwright CLI (throwaway headless script), screenshots the golden + one error path, and writes a per-feature verdict doc. Replaces per-feature e2e specs; thin CI smoke specs remain the regression net.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "shipped",
+      "evidence": "shipped 2026-07-13; self-verified: .brain/features/authentication/verifications/2026-07-13.md (PASS); harness-check 11/11; hardened clean-browser launch after dry-run extension artifact; agent .claude/agents/feature-verifier.md",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-007",
+      "name": "Group Karaoke Rooms",
+      "slug": "group-karaoke",
+      "doc": ".brain/features/group-karaoke/group-karaoke.md",
+      "description": "Host creates a karaoke room (big-screen YouTube player + live queue + join QR); guests scan QR on phones, get anonymous Better Auth sessions + nickname, search YouTube (Data API v3, \"karaoke\"-biased, results persisted to D1 song/search_log tables), add songs to a shared queue. Live state (queue/playback/roster) lives in a per-room raw Durable Object (KaraokeRoom, SQLite storage, WS hibernation — @cloudflare/actors was spiked and rejected as immature); D1 keeps durable room records + played-song history. Host controls play/pause/skip/volume/reorder (dnd-kit); reorder rights gated by per-room allowGuestReorder toggle; rooms auto-close after 1h idle via a DO alarm.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "shipped",
+      "evidence": "Phases 1-6 complete 2026-07-16. Plan plans/group-karaoke.html (reviewed, 4 decisions). Verification .brain/features/group-karaoke/verifications/2026-07-16.md PASS (11/11 golden steps, friendly error path, 0 app-origin errors). verify-done: typecheck PASS, 400 unit tests PASS (33 files), e2e smoke 2/2, build PASS (prod+preview), harness-check 11/11. Enforcer-reviewed all 5 phases (all findings fixed). Known gaps: YOUTUBE_API_KEY unset (paste-link fallback verified), drag-reorder headless-untestable (reducers unit-tested). Post-review (2026-07-16): all Greptile threads resolved incl. P1 r3593261839 (guest-reorder made single-writer — DO owns live+D1, client WS-only; dead tRPC/repo/schema removed); 401 tests. PR #1 merged to main. Feature wall-clock ~1h 55m (first commit → merge).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-008",
+      "name": "Karaoke UI/UX Overhaul",
+      "slug": "ui-overhaul",
+      "doc": ".brain/features/ui-overhaul/ui-overhaul.md",
+      "description": "Strip all SaaS-boilerplate surfaces and reskin the app with a karaoke-first 'dark night-club stage' design system (pink→gold gradient accent, Google Fonts display face, 10-foot TV type scale on /room). New playful landing (hero + enter-room-code + host CTA), slim host-hub dashboard, reskinned auth, host TV screen (lobby state, persistent QR, added-by queue chips, celebrations) and guest phone flow (nickname spinner, Verse-style search/add, tap-based move-up/move-to-top reorder, position bar). Join/add pop sounds behind host mute toggle. Both themes kept (dark default). No singer rotation, no audio normalization. Plan: plans/karaoke-ui-overhaul.html (reviewed 2026-07-16, round 1, all 5 decisions answered).",
+      "dependencies": [
+        "feat-007"
+      ],
+      "status": "shipped",
+      "evidence": "Shipped 2026-07-16. Phases 1-6a complete (7 commits f44c013..915e2fd + this ship). Plan plans/karaoke-ui-overhaul.html (reviewed round 1, 5 decisions). Verification .brain/features/ui-overhaul/verifications/2026-07-16.md PASS (11/11 golden TV+phone, 2 error paths, 16 screenshots, 0 app-origin console errors; verifier-found lobby regression fixed same day 915e2fd). verify-done: typecheck 0, 401 unit tests, e2e smoke 2/2, prod+preview builds PASS, harness-check 11/11 after brain-coherence cleanup. Enforcer-reviewed all phases (1 major + 4 minors, all fixed). Known follow-up: tRPC room.close doesn't broadcast to DO guests (pre-existing feat-007 gap, logged in ui-overhaul.md).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-009",
+      "name": "TV Beta Feedback Polish",
+      "slug": "tv-beta-polish",
+      "doc": ".brain/features/tv-beta-polish/tv-beta-polish.md",
+      "description": "Beta-session feedback pass on the TV screen (/room/:code). Lobby becomes horizontal two-column (QR hero left, roster right, no page scroll at 1080p). Playing state maximizes the video: left column video + smaller wrapping title (56px→~36px, 2-line clamp); right rail (~300-320px) stacks participants / queue (heading 36px→~22px) / QR at bottom. TV play/skip removed entirely — phone Controls tab is the only playback surface. 'You're up' overlay: 100% opacity, 5s, animated exit. Sounds gamified: multi-note synth jingles + 'your turn' fanfare, no audio assets. Corner QR stays lobby-only. Plan: plans/tv-beta-feedback.html (reviewed 2026-07-16 round 1, 3 decisions answered).",
+      "status": "shipped",
+      "evidence": "Shipped 2026-07-17. Plan plans/tv-beta-feedback.html (reviewed 2026-07-16 round 1, 3 decisions). 4 build commits on feat/tv-beta-polish (lobby horizontal eb5aa63, playing layout + TV-controls removal 6b4b29b, opaque 5s overlay w/ exit anim, gamified jingles + fanfare). Enforcer: all 5 non-negotiables clean. verify-done: typecheck 0, 424 unit tests, e2e smoke 2/2, prod build PASS, harness 11/11. Verification .brain/features/tv-beta-polish/verifications/2026-07-17.md PASS 7/7 golden + 2 edges, 12 screenshots, 0 console errors.",
+      "dependencies": [
+        "feat-008"
+      ],
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-010",
+      "name": "Emoji Reactions",
+      "slug": "emoji-reactions",
+      "doc": ".brain/features/emoji-reactions/emoji-reactions.md",
+      "description": "Guests on phones send live emoji reactions while someone sings; emojis fly up the TV screen Google-Meet-style (WS broadcast via KaraokeRoom DO, pure reducers in room-state.ts); at end of each song the TV 'next up' transition shows a 3-5s recap of reaction counts for the singer who just finished. Per-song counts live in DO memory only (reset per song).",
+      "dependencies": [
+        "feat-007",
+        "feat-008",
+        "feat-009"
+      ],
+      "status": "shipped",
+      "evidence": "Shipped 2026-07-17. Plan plans/emoji-reactions.html (reviewed round 1, 4 decisions). 2 build commits ea569f4+78d54c3 (opus Phase 1 contract, parallel sonnet TV/phone). Enforcer clean 0 findings. verify-done: typecheck 0, 482 unit tests (35 files), e2e smoke 2/2 (E2E_PORT=5199 isolated), prod build PASS, harness 11/11, i18n.md coherence gap fixed. Verification .brain/features/emoji-reactions/verifications/2026-07-17.md PASS 11/11 golden + error path, 0 app-origin errors (translucency finding withdrawn as capture artifact, 09b-tv-recap-steady.png).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-011",
+      "name": "Guest Avatars",
+      "slug": "guest-avatars",
+      "doc": ".brain/features/guest-avatars/guest-avatars.md",
+      "description": "Guests upload a profile picture on /join/:code; avatar renders in host TV lobby roster, compact roster strip, queue rail, lobby queue summary, and now-up overlay, falling back to gradient InitialsAvatar. Stored in R2 (existing BUCKET binding + BucketRepository), URL persisted on Better Auth user.image, threaded to the KaraokeRoom DO via x-avatar-url WS header into RosterEntry.avatarUrl / QueueItem.singerAvatarUrl.",
+      "dependencies": [
+        "feat-001",
+        "feat-007"
+      ],
+      "status": "shipped",
+      "evidence": "verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findings; plan plans/guest-avatars.html reviewed round 1",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-012",
+      "name": "Visual Redesign",
+      "slug": "visual-redesign",
+      "doc": ".brain/features/visual-redesign/visual-redesign.md",
+      "description": "Replace the flat near-black + pink-to-gold gradient look with a 'Velvet Stage' identity: warm wine-black stagelight backgrounds, spotlight pink as the single accent, brass punctuation, Fraunces display serif, JetBrains Mono for codes. Per-page layout rethink of landing, auth, dashboard, room TV (lobby + playing), and join phone flow. Admin inherits tokens only (no bespoke redesign). All data-testids, i18n keys, and TV >=24px + tv-safe rules are frozen (not renegotiated by this feature). Plan: plans/visual-redesign.html (reviewed 2026-07-23, round 1, 5/5 decisions on recommended options).",
+      "dependencies": [
+        "feat-007",
+        "feat-008",
+        "feat-009"
+      ],
+      "status": "shipped",
+      "evidence": "Verification .brain/features/visual-redesign/verifications/2026-07-23.md PASS 10/10 golden + 1/1 error path, zero console errors; 521/521 unit tests; e2e smoke 3/3; build green; 12 screenshots; plan plans/visual-redesign.html reviewed round 1 (5/5 decisions).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-013",
+      "name": "Layout Evolution",
+      "slug": "layout-evolution",
+      "doc": ".brain/features/layout-evolution/layout-evolution.md",
+      "description": "Layout rethink on three surfaces, building on Velvet Stage (feat-012): (1) landing becomes a full single-scroll marketing site (sticky nav, product-shot hero with join card, how-it-works, 6-feature grid, marquee CTA band, footer with GitHub link); (2) dashboard re-imagined as a host hub — stagelight hero with Start-a-party CTA, Previous-sessions rail on real data (new RoomRepository.listRoomsByHost + room.listMine tRPC query), Featured-playlists rail as visible coming-soon placeholder; (3) party screen spacing pass (unified 24/32px TV rhythm, content-sized roster panel, playing top bar folded into the rail). Session cards are summary-only (no detail view). Plan: plans/layout-evolution.html (reviewed 2026-07-24, round 1, 5/5 decisions on recommended options).",
+      "dependencies": [
+        "feat-012"
+      ],
+      "status": "shipped",
+      "evidence": "Verification .brain/features/layout-evolution/verifications/2026-07-24.md PASS 6/6 golden path + 1/1 error path, zero app console errors; 523/523 unit tests; e2e smoke 3/3; build green; 8 screenshots; plan plans/layout-evolution.html reviewed round 1 (5/5 decisions on recommended options).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-014",
+      "name": "Party Screen Cinema",
+      "slug": "party-screen-cinema",
+      "doc": ".brain/features/party-screen-cinema/party-screen-cinema.md",
+      "description": "Rethink the playing state of /room/:code as a cinema — the video is the hero, everything else is instrumentation. (1) Playing state pins itself to the dark theater surface regardless of app theme (lobby/dashboard/landing still follow the theme). (2) Now-playing collapses from a 128px two-line block to a ~64px single-line bar: NOW SINGING eyebrow + cleaned 28px title + singer avatar chip, recovering ~10% of viewport height for the video. (3) New channel-aware cleanSongTitle helper (app/lib/song-title.ts) strips karaoke/quality noise and splits song from artist using the queue item's channel field to decide direction. (4) Right rail becomes one continuous instrument panel: guest avatar cluster band, UP NEXT list filling the middle with a top-anchored empty state, QR ticket stub at the bottom — removing the ~250px void an empty queue used to leave. Plus (approved from the plan's open questions) a NEXT UP callout on the first queued song and a quiet song-progress/remaining-time indicator on the TV. Plan: plans/party-screen-cinema.html (reviewed 2026-07-24, round 1, 4/4 decisions on recommended options + both open questions approved for exploration).",
+      "dependencies": [
+        "feat-013"
+      ],
+      "status": "shipped",
+      "evidence": "Verification .brain/features/party-screen-cinema/verifications/2026-07-24.md PASS — golden path (lobby regression, 3-song queue, start party, cinema playing state, theater-surface light/dark split) + error path, zero app console errors, 12 screenshots. 541/541 unit (18 new song-title tests); e2e 3/3 after fixing a pre-existing hydration race; typecheck clean; build green. Measured: now-playing 112px+16 -> 59px, video 76%->80% (1512x900) and 79%->82% (1920x1080), empty up-next anchored 14px under its label (was ~250px void). Plan plans/party-screen-cinema.html reviewed round 1 (4/4 decisions + 2 open questions).",
+      "owners": [
+        "sean"
+      ]
+    }
+  ]
 }
