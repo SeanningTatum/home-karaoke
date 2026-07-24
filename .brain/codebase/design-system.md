@@ -4,44 +4,49 @@
 
 ## Direction
 
-"Night-club stage" — dark theme is the **default**, "morning karaoke" (light) is fully maintained, not a stripped-down fallback. One signature gradient accent (pink → gold), used sparingly (primary CTA, now-singing highlight, add-song `+` — never as a default surface). One display face (Bricolage Grotesque) for hero moments; Inter stays the workhorse for everything else. Full rationale, full palette (light + dark, with hex/oklch and contrast numbers), typography scale (including the `/room` 10-foot TV scale), radius/shadow/glow, motion, sound, component notes, and accessibility are all in `design.md` — read it before touching visual surfaces, don't re-derive it here.
+**"Velvet Stage"** (feat-012 visual-redesign) — warm wine-black stagelight dark theme is the **default**; light is **"Matinee"** (warm paper, token-level variant only — AA-safe but QA'd dark-only, art direction lives in dark). One interactive accent: spotlight pink `--primary` (`#ff3d9a` dark / `#d31d70` light). The old pink→gold gradient is **retired** — the only sanctioned gradients are the ambient `bg-stagelight` / `bg-stagelight-dim` background utilities. `--brass` is punctuation only (singer credit, marquee underline rule, now-singing avatar ring) — never a control color; violet is retired everywhere except `--chart-3`. One display face (Fraunces, serif) for marquee moments; Inter stays the workhorse; JetBrains Mono for room codes at small sizes. Full rationale, full palette (light + dark, exact oklch + contrast), typography scale (including the `/room` 10-foot TV scale), radius/shadow/glow, motion, sound, component notes, and accessibility are all in `design.md` — read it before touching visual surfaces, don't re-derive it here.
 
-This supersedes the old boilerplate-era doc (refero-synthesized Cursor/Linear tokens for the marketing surface only) — the whole app now shares one karaoke-first visual language, not a split "marketing vs. internal" language.
+This supersedes both the boilerplate-era doc and the feat-008 "night-club stage" identity (pink→gold gradient + Bricolage Grotesque).
 
 ## Where the tokens live
 
 `app/app.css`, following [`.brain/rules/frontend.md`](../rules/frontend.md)'s 5-step process (`:root` = light, `.dark` = dark, registered into Tailwind via `@theme inline`). **Never hardcode hex/rgb/oklch in JSX** — use the semantic classes below.
 
-Existing semantic vars (unchanged names — only values changed): `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`, `--primary(-foreground)`, `--secondary(-foreground)`, `--muted(-foreground)`, `--accent(-foreground)`, `--destructive`, `--border`, `--input`, `--ring`, `--chart-{1..5}`, `--sidebar*`, `--radius`.
+Existing semantic vars (unchanged names — only values changed): `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`, `--primary(-foreground)`, `--secondary(-foreground)`, `--muted(-foreground)`, `--accent(-foreground)`, `--destructive`, `--border`, `--input`, `--ring`, `--chart-{1..5}`, `--sidebar*`, `--radius`. Note `--secondary` is now a **soft plum surface** for quiet secondary controls (dark `oklch(0.295 0.045 345)`), not a violet accent.
 
-New tokens added this phase:
+Karaoke tokens:
 
 | Token | Use |
 |---|---|
 | `--success` / `--success-foreground` | Success/confirmation states — `bg-success text-success-foreground` |
-| `--accent-start` / `--accent-end` | Gradient accent stops (pink → gold) — `bg-accent-start`, `text-accent-end`, or via the composed utilities below |
-| `--glow-accent` / `--glow-success` | Colored, translucent `box-shadow` values registered under Tailwind's `shadow-*` namespace — `shadow-glow-accent`, `shadow-glow-success` |
+| `--brass` / `--brass-foreground` *(feat-012)* | Brass punctuation — `text-brass`, `border-brass/60`, `ring-brass/70`. Dark `oklch(0.84 0.115 85)` ~`#e8c268`, light `oklch(0.6 0.105 85)` ~`#a37c1e` (AA-tuned for paper). **Never interactive.** |
+| `--glow-accent` / `--glow-success` | Colored, translucent `box-shadow` values under Tailwind's `shadow-*` namespace — `shadow-glow-accent` (now **pink-only**, gold stop retired), `shadow-glow-success` |
+| `--stage-glow` / `--stage-glow-dim` *(feat-012)* | Radial stagelight stops driving the utilities below |
 
-Composed utilities (also in `app.css`, not manually re-derived per component):
+**Removed (feat-012):** `--accent-start`, `--accent-end`, `.bg-gradient-accent`, `.text-gradient-accent` — do not reintroduce; no gradients on controls or text.
+
+Composed utilities (in `app.css`, not manually re-derived per component):
 
 ```
-.bg-gradient-accent    /* linear-gradient(135deg, accent-start, accent-end) */
-.text-gradient-accent  /* same gradient, clipped to text */
+.bg-stagelight      /* warm radial spotlight halo from top into --background — hero/lobby/overlay surfaces */
+.bg-stagelight-dim  /* dimmer falloff — playing mode / secondary pages */
+.code-marquee       /* room code at small sizes: JetBrains Mono, 600, 0.18em tracking, uppercase, tabular-nums */
 ```
 
 ## Typography
 
-- **Workhorse**: Inter, self-hosted via `@fontsource-variable/inter` (`--font-sans`, `font-sans` — Tailwind default, no class needed for body text).
-- **Display**: Bricolage Grotesque, self-hosted via `@fontsource-variable/bricolage-grotesque` (`--font-display`, `font-display` utility). Hero moments only — landing hero, page headlines, section titles, and all TV-scale roles on `/room`. Never for long/dynamic strings (singer nicknames, song titles in a list) — those stay on `font-sans`.
-- Both fonts are bundled at build time (CSS `@import` in `app/app.css`) — **no runtime Google Fonts CDN request**, matching the Cloudflare Workers deployment model. `app/root.tsx`'s `links` export no longer references `fonts.googleapis.com`.
+- **Workhorse**: Inter, self-hosted via `@fontsource-variable/inter` (`--font-sans` — Tailwind default, no class needed for body text).
+- **Display**: Fraunces (serif), self-hosted via `@fontsource-variable/fraunces` (`--font-display`, `font-display` utility). Marquee moments only — landing hero, page headlines, room code, You're-up, recap, and all TV display roles on `/room`. Weights 560–640 with per-role `opsz` + `SOFT 40` variation settings (see the `tv-*` utilities). Never for long/dynamic strings (nicknames, song titles in a list) — those stay `font-sans`. Bricolage Grotesque is removed from `package.json`.
+- **Mono**: JetBrains Mono, self-hosted via `@fontsource-variable/jetbrains-mono` (`--font-mono`) — room codes at small sizes via `code-marquee`.
+- All three bundled at build time (CSS `@import` in `app/app.css`) — **no runtime Google Fonts CDN request**.
 
 ### TV type scale (`/room` only)
 
-Nothing under 24px. Utilities: `.tv-display` (96px), `.tv-headline` (56px), `.tv-title` (36px), `.tv-body` (28px), `.tv-label` (24px, uppercase). Safe-margin utilities: `.tv-safe` / `.tv-safe-x` / `.tv-safe-y` (`clamp()`-based ~5% padding). See `design.md` §4 for the full role table.
+Nothing under 24px (exception: `tv-title-sm` 22px, scoped to the narrow playing rail). Utilities: `.tv-display` (96px), `.tv-headline` (56px), `.tv-code` (80px, 0.08em tracking — the room-code marquee over a `border-brass/60` rule in `join-panel.tsx`), `.tv-title` (36px), `.tv-title-sm` (22px), `.tv-body` (28px, Inter), `.tv-label` (24px, Inter uppercase). Safe-margin utilities: `.tv-safe` / `.tv-safe-x` / `.tv-safe-y` (`clamp()`-based ~5%, `--tv-safe-inline` is the single source of truth). See `design.md` §4 for the full role table.
 
 ## Theme default
 
-Dark is the default theme (`app/root.tsx`'s `<ThemeProvider defaultTheme="dark" enableSystem>`), light stays fully available via the existing toggle (`app/components/theme-toggle.tsx`, unchanged component — `themeItems` still lists light/dark/system).
+Dark ("Velvet Stage") is the default theme (`app/root.tsx`'s `<ThemeProvider defaultTheme="dark" enableSystem>`), light ("Matinee") stays available via the existing toggle (`app/components/theme-toggle.tsx` — `themeItems` still lists light/dark/system) but is token-level only.
 
 ## Motion & reduced motion
 
@@ -49,16 +54,19 @@ Dark is the default theme (`app/root.tsx`'s `<ThemeProvider defaultTheme="dark" 
 
 ## Component notes (carried from `design.md` §8 — don't re-litigate per component)
 
-- **Queue rows**: `tv-body`/`text-base` for singer+song; the now-singing row is the one place `bg-gradient-accent` + `shadow-glow-accent` apply together.
+- **Queue rows**: `tv-body`/`text-base` for singer+song; own rows tinted `border-primary/50 bg-primary/5`. Now-singing is marked by the **brass singer credit** (`text-brass` in `now-singing-banner.tsx`) + **brass avatar ring** (`ring-brass/70`) — no gradient fill.
+- **Full-screen overlays** (NowUpOverlay, ReactionRecap): `bg-stagelight`, not a pink gradient wall.
 - **QR code**: always a literal `bg-white` tile regardless of theme (scanner contrast requirement, not a themed surface — intentional exception to "no hardcoded colors").
-- **Avatar initials**: render on `bg-gradient-accent` with white text when there's no photo — the one persistent (non-momentary) use of the gradient, because it's small/decorative.
+- **Avatar initials**: `InitialsAvatar` fallback is `bg-secondary` + `text-primary` initials — the gradient fill is retired.
+- **Confetti** (`celebration-burst.tsx` `PALETTE`): primary/brass/foreground/success per theme — violet removed.
 
 ## Accessibility
 
-Every shipped foreground/background pairing targets WCAG AA (≥4.5:1) for text — see `design.md` §9–10 for the full contrast table and the specific hex values tuned away from the plan's starting palette (mainly `--destructive` dark, `--success` light, and `--primary`/`--accent-start`/`--accent-end` light, all darkened for legibility on their respective backgrounds). Focus rings (`--ring`) now render in the signature pink/deep-pink rather than gray — more visible, not less.
+Every shipped foreground/background text pairing targets WCAG AA (≥4.5:1) for text; `--brass` never carries body text — its punctuation roles fall under the 3:1 large-text/non-text bar, which both theme values clear (the light value was darkened to `oklch(0.6 0.105 85)` ~`#a37c1e` for exactly this). See `design.md` §9–10 for the full contrast table and tuning deltas. Focus rings (`--ring`) render in spotlight pink — more visible, not less.
 
 ## Changelog
 
 | Date | Change |
 |---|---|
+| 2026-07-23 | Rewritten for feat-012 visual-redesign "Velvet Stage": gradient retired (stagelight ambient-only), brass punctuation token, Fraunces display serif + JetBrains Mono, plum `--secondary`, Matinee light theme (token-level only). |
 | 2026-07-16 | Replaced boilerplate refero-synthesized (Cursor/Linear) marketing-surface doc wholesale with the karaoke "night-club stage" design system (feat-008 ui-overhaul, Phase 1). Source of truth moved to repo-root `design.md`. |

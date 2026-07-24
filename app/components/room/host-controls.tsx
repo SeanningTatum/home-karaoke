@@ -51,7 +51,7 @@ export function HostControls({
           // design.md §3 it gets the gradient accent in BOTH sizes (TV: big
           // + glow; compact/phone: same fill, unchanged footprint) rather
           // than the plain `secondary` fill every other control keeps.
-          "bg-gradient-accent text-primary-foreground hover:opacity-90",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
           isTv ? "size-16 rounded-full shadow-glow-accent" : "rounded-full"
         )}
       >

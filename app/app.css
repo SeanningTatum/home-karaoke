@@ -3,15 +3,19 @@
 
 /* Self-hosted fonts (no runtime Google Fonts CDN dependency — see design.md §Typography). */
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
   --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque",
-    "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Display serif — the "Velvet Stage" brand voice. Marquee moments only
+     (hero, room code, You're-up, recap); body/UI stays Inter. */
+  --font-display: "Fraunces Variable", "Fraunces", Charter, Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace,
+    SFMono-Regular, Menlo, monospace;
 }
 
 html,
@@ -67,8 +71,8 @@ body {
   /* Karaoke design system additions — see design.md */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
-  --color-accent-start: var(--accent-start);
-  --color-accent-end: var(--accent-end);
+  --color-brass: var(--brass);
+  --color-brass-foreground: var(--brass-foreground);
   --shadow-glow-accent: var(--glow-accent);
   --shadow-glow-success: var(--glow-success);
 }
@@ -76,91 +80,99 @@ body {
 :root {
   --radius: 1rem;
 
-  /* "Morning karaoke" — light theme. Warm off-white stage-lights-off palette. */
-  --background: oklch(0.986 0.006 75.4); /* #fdfaf6 */
-  --foreground: oklch(0.204 0.025 307.1); /* #1a1420 */
-  --card: oklch(1 0 0); /* #ffffff */
-  --card-foreground: oklch(0.204 0.025 307.1);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.204 0.025 307.1);
-  --primary: oklch(0.57 0.217 0.9); /* #d31d70 — deep pink, AA-safe on light bg */
+  /* "Matinee" — light theme. Warm paper + wine ink; same structure as the
+     dark stage, house lights on. Token-level variant only (Decision 4):
+     functional and AA-safe, art direction lives in the dark theme. */
+  --background: oklch(0.975 0.012 80); /* ~#faf4ea warm paper */
+  --foreground: oklch(0.235 0.035 355); /* ~#31121f wine ink */
+  --card: oklch(0.993 0.005 85); /* warm near-white */
+  --card-foreground: oklch(0.235 0.035 355);
+  --popover: oklch(0.993 0.005 85);
+  --popover-foreground: oklch(0.235 0.035 355);
+  --primary: oklch(0.57 0.217 0.9); /* #d31d70 — spotlight pink, AA on light */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.497 0.246 299.2); /* #7b1fd6 — violet */
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.955 0.012 313.2); /* #f3eef6 */
-  --muted-foreground: oklch(0.517 0.032 301.2); /* #6b6478 */
-  --accent: oklch(0.946 0.025 305.9); /* #f1e9fb — violet-tinted hover surface */
-  --accent-foreground: oklch(0.204 0.025 307.1);
+  --secondary: oklch(0.93 0.022 350); /* plum-tinted raised surface */
+  --secondary-foreground: oklch(0.235 0.035 355);
+  --muted: oklch(0.945 0.015 70); /* warm parchment */
+  --muted-foreground: oklch(0.49 0.035 350); /* dim mauve ink */
+  --accent: oklch(0.93 0.028 355); /* pink-tinted hover surface */
+  --accent-foreground: oklch(0.235 0.035 355);
   --destructive: oklch(0.575 0.209 26.9); /* #d92b2b */
-  --border: oklch(0.911 0.014 314.8); /* #e5dfe8 */
-  --input: oklch(0.868 0.02 312.8); /* #d8d0dd */
+  --border: oklch(0.89 0.02 65); /* warm hairline */
+  --input: oklch(0.85 0.022 65);
   --ring: oklch(0.57 0.217 0.9);
   --chart-1: oklch(0.677 0.238 356.8); /* pink */
   --chart-2: oklch(0.879 0.163 91.1); /* gold */
   --chart-3: oklch(0.596 0.27 302.8); /* violet */
   --chart-4: oklch(0.827 0.154 170.5); /* mint */
   --chart-5: oklch(0.727 0.176 41.2); /* ember orange */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.204 0.025 307.1);
+  --sidebar: oklch(0.993 0.005 85);
+  --sidebar-foreground: oklch(0.235 0.035 355);
   --sidebar-primary: oklch(0.57 0.217 0.9);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.946 0.025 305.9);
-  --sidebar-accent-foreground: oklch(0.204 0.025 307.1);
-  --sidebar-border: oklch(0.911 0.014 314.8);
+  --sidebar-accent: oklch(0.93 0.028 355);
+  --sidebar-accent-foreground: oklch(0.235 0.035 355);
+  --sidebar-border: oklch(0.89 0.02 65);
   --sidebar-ring: oklch(0.57 0.217 0.9);
 
   /* Karaoke additions */
   --success: oklch(0.516 0.103 167.8); /* #087a5c — deepened mint, AA on light bg */
   --success-foreground: oklch(1 0 0);
-  --accent-start: oklch(0.57 0.217 0.9); /* #d31d70 — gradient pink stop, light-safe */
-  --accent-end: oklch(0.679 0.142 76.5); /* #c98a00 — gradient gold stop, light-safe */
-  --glow-accent: 0 0 20px oklch(0.57 0.217 0.9 / 30%),
-    0 0 44px oklch(0.679 0.142 76.5 / 18%);
+  --brass: oklch(0.6 0.105 85); /* ~#a37c1e — darkened brass, AA on paper */
+  --brass-foreground: oklch(1 0 0);
+  --glow-accent: 0 0 20px oklch(0.57 0.217 0.9 / 25%);
   --glow-success: 0 0 18px oklch(0.516 0.103 167.8 / 30%);
+  /* Stagelight falloff — warm glow behind hero/lobby surfaces. */
+  --stage-glow: oklch(0.93 0.045 60 / 75%);
+  --stage-glow-dim: oklch(0.95 0.025 65 / 55%);
 }
 
 .dark {
-  /* "Night-club stage" — dark theme, DEFAULT. */
-  --background: oklch(0.156 0.015 297.7); /* #0d0b12 */
-  --foreground: oklch(0.967 0.006 308.4); /* #f5f3f7 */
-  --card: oklch(0.204 0.02 298.4); /* #18151f */
-  --card-foreground: oklch(0.967 0.006 308.4);
-  --popover: oklch(0.241 0.023 299.9); /* #211d29 */
-  --popover-foreground: oklch(0.967 0.006 308.4);
-  --primary: oklch(0.677 0.238 356.8); /* #ff3d9a — signature pink */
-  --primary-foreground: oklch(0.156 0.015 297.7);
-  --secondary: oklch(0.596 0.27 302.8); /* #a238ff — violet */
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.246 0.027 297.5); /* #221e2c */
-  --muted-foreground: oklch(0.777 0.025 301.8); /* #b9b3c4 */
-  --accent: oklch(0.277 0.028 299.8); /* #2a2534 — hover surface */
-  --accent-foreground: oklch(0.967 0.006 308.4);
+  /* "Velvet Stage" — dark theme, DEFAULT. Warm wine-black under a spotlight;
+     pink is the only interactive accent, brass is punctuation (now-singing
+     ring, live dot, recap), never a control color. */
+  --background: oklch(0.168 0.028 348); /* ~#1a0a13 wine-black */
+  --foreground: oklch(0.94 0.02 78); /* ~#f4e9d8 house-lights cream */
+  --card: oklch(0.215 0.035 346); /* ~#2a1421 curtain */
+  --card-foreground: oklch(0.94 0.02 78);
+  --popover: oklch(0.245 0.038 345); /* raised curtain */
+  --popover-foreground: oklch(0.94 0.02 78);
+  --primary: oklch(0.677 0.238 356.8); /* #ff3d9a — spotlight pink */
+  --primary-foreground: oklch(0.168 0.028 348);
+  --secondary: oklch(0.295 0.045 345); /* soft plum — quiet secondary controls */
+  --secondary-foreground: oklch(0.94 0.02 78);
+  --muted: oklch(0.235 0.032 346); /* ~#2e1824 */
+  --muted-foreground: oklch(0.73 0.03 340); /* ~#b09aa5 dim mauve */
+  --accent: oklch(0.27 0.042 345); /* hover surface */
+  --accent-foreground: oklch(0.94 0.02 78);
   --destructive: oklch(0.578 0.207 26.6); /* #d92e2e — tuned from #ff4d4d for AA */
-  --border: oklch(0.34 0.035 298.3); /* #3a3448 */
-  --input: oklch(0.34 0.035 298.3);
+  --border: oklch(0.315 0.042 345); /* warm plum hairline */
+  --input: oklch(0.315 0.042 345);
   --ring: oklch(0.677 0.238 356.8);
   --chart-1: oklch(0.677 0.238 356.8); /* pink */
   --chart-2: oklch(0.879 0.163 91.1); /* gold */
   --chart-3: oklch(0.596 0.27 302.8); /* violet */
   --chart-4: oklch(0.827 0.154 170.5); /* mint */
   --chart-5: oklch(0.727 0.176 41.2); /* ember orange */
-  --sidebar: oklch(0.204 0.02 298.4);
-  --sidebar-foreground: oklch(0.967 0.006 308.4);
+  --sidebar: oklch(0.215 0.035 346);
+  --sidebar-foreground: oklch(0.94 0.02 78);
   --sidebar-primary: oklch(0.677 0.238 356.8);
-  --sidebar-primary-foreground: oklch(0.156 0.015 297.7);
-  --sidebar-accent: oklch(0.277 0.028 299.8);
-  --sidebar-accent-foreground: oklch(0.967 0.006 308.4);
-  --sidebar-border: oklch(0.34 0.035 298.3);
+  --sidebar-primary-foreground: oklch(0.168 0.028 348);
+  --sidebar-accent: oklch(0.27 0.042 345);
+  --sidebar-accent-foreground: oklch(0.94 0.02 78);
+  --sidebar-border: oklch(0.315 0.042 345);
   --sidebar-ring: oklch(0.677 0.238 356.8);
 
   /* Karaoke additions */
   --success: oklch(0.827 0.154 170.5); /* #2fe6b8 */
-  --success-foreground: oklch(0.156 0.015 297.7);
-  --accent-start: oklch(0.677 0.238 356.8); /* #ff3d9a — gradient pink stop */
-  --accent-end: oklch(0.879 0.163 91.1); /* #ffd23d — gradient gold stop */
-  --glow-accent: 0 0 28px oklch(0.677 0.238 356.8 / 45%),
-    0 0 64px oklch(0.879 0.163 91.1 / 25%);
+  --success-foreground: oklch(0.168 0.028 348);
+  --brass: oklch(0.84 0.115 85); /* ~#e8c268 — brass punctuation */
+  --brass-foreground: oklch(0.168 0.028 348);
+  --glow-accent: 0 0 32px oklch(0.677 0.238 356.8 / 38%); /* pink only — gold stop retired */
   --glow-success: 0 0 24px oklch(0.827 0.154 170.5 / 40%);
+  /* Stagelight falloff — the spotlight halo behind hero/lobby surfaces. */
+  --stage-glow: oklch(0.34 0.075 345 / 62%);
+  --stage-glow-dim: oklch(0.26 0.05 345 / 50%);
 }
 
 @layer base {
@@ -172,60 +184,67 @@ body {
   }
 }
 
-/* Gradient-accent utilities — sparing use only (primary CTA, now-singing highlight,
-   add-song +). See design.md §Gradient accent usage rules. */
-@utility bg-gradient-accent {
-  background-image: linear-gradient(
-    135deg,
-    var(--accent-start) 0%,
-    var(--accent-end) 100%
+/* Stagelight surfaces — ambient gradients are the ONLY sanctioned gradient
+   use (Decision 3: pink→gold retired from controls & text). A warm radial
+   spotlight falls from the top of the surface into the base background. */
+@utility bg-stagelight {
+  background-color: var(--background);
+  background-image: radial-gradient(
+    120% 85% at 50% -10%,
+    var(--stage-glow) 0%,
+    transparent 62%
   );
 }
 
-@utility text-gradient-accent {
-  background-image: linear-gradient(
-    135deg,
-    var(--accent-start) 0%,
-    var(--accent-end) 100%
+/* Dimmer variant for playing mode / secondary pages — the video is the light
+   source, the room falls back. */
+@utility bg-stagelight-dim {
+  background-color: var(--background);
+  background-image: radial-gradient(
+    110% 70% at 50% -10%,
+    var(--stage-glow-dim) 0%,
+    transparent 55%
   );
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
 }
 
-/* 10-foot TV type scale for /room — nothing under 24px. See design.md §Typography. */
+/* 10-foot TV type scale for /room — nothing under 24px. See design.md §Typography.
+   Display roles are Fraunces (optical-size + soft axes tuned per role); the
+   serif carries the marquee voice, so weights sit at 560-640, not 800. */
 @utility tv-display {
   font-family: var(--font-display);
   font-size: 6rem; /* 96px */
-  line-height: 1.05;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  line-height: 1.02;
+  font-weight: 620;
+  font-variation-settings: "opsz" 144, "SOFT" 40;
 }
 
 @utility tv-headline {
   font-family: var(--font-display);
   font-size: 3.5rem; /* 56px */
-  line-height: 1.1;
-  font-weight: 700;
+  line-height: 1.08;
+  font-weight: 600;
+  font-variation-settings: "opsz" 72, "SOFT" 40;
 }
 
-/* Room join code in the lobby QR hero. Smaller than `tv-display` (96px)
-   on purpose: a 7-char "XXX-XXX" code at 96px overflows the QR card and
-   wraps mid-code. 80px + a nowrap at the call site keeps it on one line
-   inside the ~520px lobby column. */
+/* Room join code in the lobby QR hero — THE marquee (design signature).
+   Smaller than `tv-display` (96px) on purpose: a 7-char "XXX-XXX" code at
+   96px overflows the QR card and wraps mid-code. 80px + a nowrap at the
+   call site keeps it on one line inside the ~520px lobby column. */
 @utility tv-code {
   font-family: var(--font-display);
   font-size: 5rem; /* 80px */
   line-height: 1.05;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 640;
+  letter-spacing: 0.08em;
+  font-variation-settings: "opsz" 144, "SOFT" 40;
 }
 
 @utility tv-title {
   font-family: var(--font-display);
   font-size: 2.25rem; /* 36px */
-  line-height: 1.15;
-  font-weight: 700;
+  line-height: 1.12;
+  font-weight: 600;
+  font-variation-settings: "opsz" 40, "SOFT" 40;
 }
 
 /* Slimmer TV heading for the playing-state right rail (~300-320px wide),
@@ -235,7 +254,18 @@ body {
   font-family: var(--font-display);
   font-size: 1.375rem; /* 22px */
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: 600;
+  font-variation-settings: "opsz" 24, "SOFT" 40;
+}
+
+/* Marquee code treatment at non-TV sizes (phone header, corner ticket,
+   dashboard session row) — JetBrains Mono, spaced like letterboard tiles. */
+@utility code-marquee {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 @utility tv-body {

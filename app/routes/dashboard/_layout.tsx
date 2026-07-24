@@ -9,7 +9,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-stagelight-dim min-h-screen">
       <Outlet context={loaderData} />
     </div>
   );

@@ -119,7 +119,7 @@ function RoomUnavailable({
   return (
     <div
       data-testid="room-unavailable"
-      className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center"
+      className="bg-stagelight-dim flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center"
     >
       <h1 className="text-2xl font-semibold text-foreground">
         {status === "closed" ? t("state.closed_title") : t("state.not_found_title")}
@@ -441,7 +441,12 @@ function RoomHostView({
   return (
     <div
       data-testid="room-host-view"
-      className="tv-safe flex h-screen flex-col overflow-hidden bg-background text-foreground lg:flex-row"
+      className={cn(
+        "tv-safe flex h-screen flex-col overflow-hidden text-foreground lg:flex-row",
+        // Lobby gets the full stagelight halo (the party poster); playing
+        // mode dims the room so the video is the light source.
+        hasCurrentItem ? "bg-stagelight-dim" : "bg-stagelight"
+      )}
     >
       {/* MAIN column — the navbar-style top bar sits INSIDE this column (not
           spanning the rail) so the rail can extend the full viewport height

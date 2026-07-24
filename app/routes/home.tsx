@@ -44,7 +44,7 @@ export default function Home() {
   const { t: tc } = useTranslation("common");
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
+    <div className="bg-stagelight flex min-h-svh flex-col">
       <div className="flex items-center justify-between gap-1 p-4">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           <IconMicrophone2 className="size-3.5 text-primary" />
@@ -60,11 +60,11 @@ export default function Home() {
         {/* Soft gradient glow behind the hero wordmark — decorative only. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/4 left-1/2 -z-10 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-accent opacity-15 blur-3xl"
+          className="pointer-events-none absolute top-1/4 left-1/2 -z-10 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary opacity-10 blur-3xl"
         />
 
         <div className="flex max-w-2xl flex-col items-center gap-5">
-          <h1 className="animate-hero-in motion-reduce:animate-none text-balance font-display text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="animate-hero-in motion-reduce:animate-none text-balance font-display text-5xl font-semibold sm:text-6xl lg:text-7xl">
             {t("hero.headline")}
           </h1>
           <p className="max-w-md text-balance text-base text-muted-foreground sm:text-lg">
@@ -154,7 +154,6 @@ function JoinRoomCard() {
             type="submit"
             size="lg"
             data-testid="landing-join-button"
-            className="bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
           >
             {t("join.submit")}
             <IconArrowRight className="ml-1 size-4" />
@@ -168,32 +167,42 @@ function JoinRoomCard() {
 function HowItWorks() {
   const { t } = useTranslation("home");
 
+  // Real product captures (public/marketing/, from the feat-012 verification
+  // walk) instead of icon cards — re-capture after any future TV/phone
+  // redesign so the landing never shows a stale UI. Decorative (alt=""):
+  // each card's title/body carries the information.
   const steps = [
-    { icon: IconDeviceTv, key: "step_1" },
-    { icon: IconQrcode, key: "step_2" },
-    { icon: IconPlaylistAdd, key: "step_3" },
+    { icon: IconDeviceTv, image: "/marketing/step-tv-lobby.png", key: "step_1" },
+    { icon: IconQrcode, image: "/marketing/step-phone-add.png", key: "step_2" },
+    { icon: IconPlaylistAdd, image: "/marketing/step-tv-playing.png", key: "step_3" },
   ] as const;
 
   return (
-    <section className="flex w-full max-w-3xl flex-col items-center gap-6 pt-4">
+    <section className="flex w-full max-w-4xl flex-col items-center gap-6 pt-4">
       <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
         {t("how_it_works.title")}
       </h2>
       <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-        {steps.map(({ icon: Icon, key }) => (
+        {steps.map(({ icon: Icon, image, key }) => (
           <div
             key={key}
-            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card px-4 py-6 text-center"
+            className="flex flex-col overflow-hidden rounded-xl border border-border bg-card text-center"
           >
-            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <Icon className="size-5" />
-            </span>
-            <p className="text-sm font-medium text-foreground">
-              {t(`how_it_works.${key}.title`)}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t(`how_it_works.${key}.body`)}
-            </p>
+            <img
+              src={image}
+              alt=""
+              loading="lazy"
+              className="aspect-video w-full border-b border-border/60 object-cover object-top"
+            />
+            <div className="flex flex-col items-center gap-2 px-4 py-5">
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Icon className="size-4 text-primary" />
+                {t(`how_it_works.${key}.title`)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t(`how_it_works.${key}.body`)}
+              </p>
+            </div>
           </div>
         ))}
       </div>

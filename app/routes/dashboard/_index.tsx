@@ -42,7 +42,7 @@ export default function DashboardIndex() {
             <IconSparkles className="size-3" />
             {t("eyebrow")}
           </span>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="font-display text-3xl font-semibold tracking-tight">
             {t("welcome", { name: user.name })}
           </h1>
         </div>
@@ -64,10 +64,10 @@ export default function DashboardIndex() {
       <section className="mb-12">
         <Card
           data-testid="dashboard-host-room"
-          className="border-primary/20 bg-gradient-to-br from-card to-primary/5"
+          className="border-border/70 bg-card/70"
         >
           <CardHeader className="gap-3">
-            <span className="flex size-12 items-center justify-center rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent">
+            <span className="flex size-12 items-center justify-center rounded-full bg-primary/15 text-primary">
               <IconMicrophone className="size-6" />
             </span>
             <CardTitle className="font-display text-xl">
@@ -83,7 +83,6 @@ export default function DashboardIndex() {
               data-testid="dashboard-host-room-button"
               disabled={createRoom.isPending}
               onClick={() => createRoom.mutate({})}
-              className="bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
             >
               {createRoom.isPending ? (
                 <IconLoader2 className="size-4 animate-spin" />

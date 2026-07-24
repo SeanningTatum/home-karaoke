@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 
 export interface NowSingingBannerProps {
   readonly currentItem: QueueItem | null;
-  /** "tv" — the host TV screen (`/room/:code`): tv-headline size + gradient
-   * accent text, singer name stacked below. "compact" (default) — the
+  /** "tv" — the host TV screen (`/room/:code`): tv-title cream text with the
+   * singer credit in brass stacked below. "compact" (default) — the
    * guest phone Queue tab (`/join/:code`), unchanged single-row layout. */
   readonly size?: "tv" | "compact";
 }
@@ -42,10 +42,10 @@ export function NowSingingBanner({
               1080p TV. Down to `tv-title` (36px) and allowed to wrap up to
               two lines (`line-clamp-2` + `break-words`) so the video below
               gets the vertical space while a long title stays readable. */}
-          <p className="tv-title text-gradient-accent line-clamp-2 break-words">
+          <p className="tv-title text-foreground line-clamp-2 break-words">
             {currentItem.title}
           </p>
-          <span className="tv-label block truncate normal-case text-muted-foreground">
+          <span className="tv-label block truncate normal-case text-brass">
             {t("banner.singer", { name: currentItem.singerNickname })}
           </span>
         </div>

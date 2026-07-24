@@ -123,14 +123,16 @@ export function NowUpOverlay({ singer }: NowUpOverlayProps) {
           data-testid="room-now-up-overlay"
           onAnimationEnd={handleAnimationEnd}
           className={cn(
-            "pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-primary to-secondary",
+            // Spotlight moment, not a pink wall: wine-black stage with the
+            // warm halo, the singer's avatar carries the light.
+            "bg-stagelight pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-6",
             isExiting ? "animate-now-up-out" : "animate-now-up"
           )}
         >
           <InitialsAvatar
             name={displayedSinger.nickname}
             size="lg"
-            className="shadow-glow-accent"
+            className="shadow-glow-accent ring-4 ring-brass/70"
             src={displayedSinger.avatarUrl}
           />
           <p className="tv-headline text-center text-foreground">

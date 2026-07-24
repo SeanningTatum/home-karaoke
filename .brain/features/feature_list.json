@@ -1,6 +1,6 @@
 {
   "$schema": "Machine-readable feature state tracker. Source of truth for status; per-feature MD docs are source of truth for design/runtime.",
-  "updated": "2026-07-18",
+  "updated": "2026-07-23",
   "policy": {
     "one_in_progress_at_a_time": true,
     "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent"
@@ -165,6 +165,23 @@
       ],
       "status": "shipped",
       "evidence": "verifications/2026-07-17.md PASS 12/12 golden + error path; 458 unit tests; e2e smoke 2/2; build green; enforcer 0 findings; plan plans/guest-avatars.html reviewed round 1",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-012",
+      "name": "Visual Redesign",
+      "slug": "visual-redesign",
+      "doc": ".brain/features/visual-redesign/visual-redesign.md",
+      "description": "Replace the flat near-black + pink-to-gold gradient look with a 'Velvet Stage' identity: warm wine-black stagelight backgrounds, spotlight pink as the single accent, brass punctuation, Fraunces display serif, JetBrains Mono for codes. Per-page layout rethink of landing, auth, dashboard, room TV (lobby + playing), and join phone flow. Admin inherits tokens only (no bespoke redesign). All data-testids, i18n keys, and TV >=24px + tv-safe rules are frozen (not renegotiated by this feature). Plan: plans/visual-redesign.html (reviewed 2026-07-23, round 1, 5/5 decisions on recommended options).",
+      "dependencies": [
+        "feat-007",
+        "feat-008",
+        "feat-009"
+      ],
+      "status": "in-progress",
+      "evidence": "",
       "owners": [
         "sean"
       ]

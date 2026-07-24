@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-07-23 — started feat-012 visual-redesign (Velvet Stage design system)
+- branch: `docs/readme-marketing-rewrite`
+- in-progress feature: feat-012
+- run note: none
+- next: Phase 1 — tokens + type (Fraunces display serif, JetBrains Mono, wine-black/spotlight-pink/brass tokens); plan `plans/visual-redesign.html` reviewed round 1, 5/5 decisions
+
+---
+
 ## 2026-07-18 — merged origin/main into feat/guest-avatars; emoji-reactions keeps feat-010, guest-avatars renumbered feat-010 → feat-011
 - branch: `feat/guest-avatars`
 - in-progress feature: none

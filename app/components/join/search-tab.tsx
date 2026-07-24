@@ -257,7 +257,7 @@ export function SearchTab({ roomId, send, queueLength, onQueued }: SearchTabProp
               title={t("join.search.add")}
               data-testid="join-search-add"
               className={cn(
-                "shrink-0 rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
+                "shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
               )}
             >
               {resolveVideo.isPending && pendingId === result.videoId ? (

@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visual Redesign — design system + per-page rethink</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 72ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-in-review { background: var(--highlight); color: var(--fg);
+    border-color: var(--highlight); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue { border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em; background: var(--fg); color: #fff; }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  pre.mermaid { text-align: center; }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .refs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .refs figure { margin: 0; }
+  .refs img { width: 100%; border: 1px solid var(--border); border-radius: 8px; display: block; }
+  .refs figcaption { font-size: 0.8em; color: var(--muted); margin-top: 4px; }
+  .swatch-row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+  .swatch { width: 120px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    font-size: 0.72em; color: var(--muted); background: var(--surface); }
+  .swatch .c { height: 44px; }
+  .swatch .l { padding: 4px 8px; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Visual Redesign — design system + per-page rethink</h1>
+  <div>
+    <span>2026-07-23</span> ·
+    <span>feature: visual-redesign (proposed feat-012)</span> ·
+    <span class="chip chip-status-in-review">in-review</span> ·
+    <span>round 1</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>Replace the current "flat near-black + pink→gold gradient" look — which reads as a
+  generic AI-era dark app — with a <mark>cinematic "Velvet Stage" identity</mark>: warm
+  dark stagelight backgrounds with real depth, an editorial display serif for marquee
+  moments, one disciplined accent, and a rethought type scale per surface (TV / phone /
+  desktop). Every page gets a layout rethink, not just a re-skin; all existing
+  <code>data-testid</code>s, i18n keys, and the TV 10-foot rules are preserved.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>Plan <em>2026-07-16-karaoke-ui-overhaul</em> (reviewed, shipped as feat-008) built the
+  current visual layer: OKLCH tokens in <code>app/app.css</code>, Bricolage Grotesque +
+  Inter, pink→gold gradient accents, TV type scale (<code>tv-display</code>…<code>tv-label</code>),
+  <code>tv-safe</code> margins. feat-009 tv-beta-polish, feat-010 emoji-reactions, feat-011
+  guest-avatars layered on top. Last checkpoint 2026-07-18; no feature currently in-progress —
+  clean slate for feat-012. Sean's ask: "more professional and sleek… rethink our pages,
+  font sizes and components", explicitly inviting a Refero-driven redesign.</p>
+  <p>What the audit of current screenshots shows (ui-overhaul/screenshots 01–14,
+  group-karaoke singking-05):</p>
+  <ul>
+    <li>Landing hero headline is low-contrast grey on black; glow blob + gradient CTA is the
+      most common AI-dark-app trope.</li>
+    <li>Lobby is a small card floating in a huge black void — the most-seen screen at a party
+      has the least design.</li>
+    <li>Host playing view titles the song in pink→gold gradient text that fights the video
+      content; the queue rail is a bare column.</li>
+    <li>Dashboard and login right-pane are mostly empty black; cards use faint pink border
+      glows that read unfinished.</li>
+    <li>Gradient (pink→gold) is used for buttons, avatars, text, and icons simultaneously —
+      the accent has no hierarchy.</li>
+  </ul>
+</section>
+
+<section id="references">
+  <h2>Reference points (Refero)</h2>
+  <div class="refs">
+    <figure>
+      <img src="https://images.refero.design/screenshots/partiful.com/desktop/873e68bf-b378-4776-bfa6-c3f4a714583f_preview.jpg" alt="Partiful — dark burgundy event page, serif display type, glass modal" />
+      <figcaption><strong>Partiful</strong> — party + premium: cinematic gradient base, editorial serif display, frosted glass, slim action rail.</figcaption>
+    </figure>
+    <figure>
+      <img src="https://images.refero.design/screenshots/tidal.com/desktop/99649d7a-136c-4180-a72c-bebe089d38c9_preview.jpg" alt="Tidal — video left, queue rail right, bottom transport bar" />
+      <figcaption><strong>Tidal</strong> — host playing layout: media left, grouped "Next up" queue rail right, quiet bottom transport.</figcaption>
+    </figure>
+    <figure>
+      <img src="https://images.refero.design/screenshots/162/mobile/3c14a51c-cfe7-49ed-99a0-8c5dad35f9ff_thumb.jpg" alt="Verse — Add a song sheet: search, thumbnail rows, right-aligned plus" />
+      <figcaption><strong>Verse</strong> — guest phone "Add a song": search-first sheet, compact rows, right-aligned +.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture</h2>
+  <p>This is a token-first cascade: change the foundation once, then re-lay each page on top.
+  No data-layer, tRPC, or DO changes — purely <code>app/app.css</code>, components, and route
+  JSX/layout.</p>
+  <pre class="mermaid">
+flowchart TD
+  T["Phase 1 — Tokens<br/>app.css: palette, fonts, type scales, radius, glow"] --> C["Phase 2 — Shared components<br/>Button, Card, inputs, avatars, pills, queue rows"]
+  C --> TV["Phase 3 — TV surfaces<br/>/room lobby + playing"]
+  C --> PH["Phase 4 — Phone surface<br/>/join tabs + sheets"]
+  C --> DK["Phase 5 — Desktop surfaces<br/>landing, login/signup, dashboard"]
+  TV --> V["Phase 6 — feature-verifier walks + screenshots"]
+  PH --> V
+  DK --> V
+  </pre>
+</section>
+
+<section id="direction">
+  <h2>The proposed identity: "Velvet Stage"</h2>
+  <p>Ground truth of the subject: a living-room stage at night. The design vocabulary comes
+  from stagecraft — <mark>spotlight falloff, velvet curtain depth, marquee lettering,
+  a printed setlist</mark> — not from SaaS dashboards.</p>
+  <h3>Palette (direction A, recommended — see Decision 1)</h3>
+  <div class="swatch-row">
+    <div class="swatch"><div class="c" style="background:#17090f"></div><div class="l">stage — base bg (warm wine-black)</div></div>
+    <div class="swatch"><div class="c" style="background:#2b1020"></div><div class="l">curtain — raised surfaces</div></div>
+    <div class="swatch"><div class="c" style="background:#f43f8e"></div><div class="l">spotlight pink — THE accent (kept from brand, used alone)</div></div>
+    <div class="swatch"><div class="c" style="background:#e8c268"></div><div class="l">brass — tiny highlights only (live dot, crown, recap)</div></div>
+    <div class="swatch"><div class="c" style="background:#f5ead9"></div><div class="l">house-lights — primary text (warm off-white)</div></div>
+    <div class="swatch"><div class="c" style="background:#9c8896"></div><div class="l">dim — muted text</div></div>
+  </div>
+  <p>Backgrounds stop being flat: every surface sits on a <mark>radial "stagelight"
+  gradient</mark> (warm plum falling to near-black at edges), tuned per page (bright center
+  on lobby, dim in playing mode so video wins). The pink→gold <em>gradient</em> retires from
+  controls; pink stands alone as the single interactive accent, brass appears only as
+  punctuation. Light theme keeps the same structure as a "matinee" variant (warm paper,
+  ink text, same pink) — tokens only, no separate layouts.</p>
+  <h3>Typography</h3>
+  <table>
+    <thead><tr><th>Role</th><th>Now</th><th>Proposed</th></tr></thead>
+    <tbody>
+      <tr><td>Display / marquee</td><td>Bricolage Grotesque (everywhere, bold)</td>
+        <td><strong>Fraunces</strong> (variable serif, soft+wonk axes) — hero, lobby poster, room code, "You're up", recap. Used with restraint; it IS the brand voice.</td></tr>
+      <tr><td>Body / UI</td><td>Inter (default sizing, lots of bold)</td>
+        <td>Inter stays, but re-scaled: phone body 14px, labels 12px medium (not bold), tighter line-heights; weight expresses hierarchy instead of size-inflation.</td></tr>
+      <tr><td>Codes / data</td><td>system mono</td>
+        <td><strong>JetBrains Mono</strong> (fontsource) for room codes, timers, counts — the room code becomes a marquee: huge, letterspaced, brass-underlined.</td></tr>
+    </tbody>
+  </table>
+  <h3>Signature element</h3>
+  <p>The <mark>room code as theater marquee</mark>: on the TV lobby, the code renders as a
+  poster headline in Fraunces with letterboxed spacing and a faint spotlight halo — the
+  thing guests photograph. The same marquee treatment shrinks to the corner card while
+  playing and to the guest phone header, so one signature travels across all three screens.</p>
+  <h3>Component rules (system-wide)</h3>
+  <ul>
+    <li>Buttons: solid pink primary + soft ghost secondary; no gradient fills, no glow-shadow soup. One glow allowed: the primary CTA on TV.</li>
+    <li>Cards: 1px warm border on translucent curtain surface (subtle glass), radius stays 1rem; drop the pink border-glow.</li>
+    <li>Queue rows: thumbnail + title + singer chip, brass "now" marker; consistent row anatomy on TV rail and phone tab.</li>
+    <li>Avatars: solid curtain bg + pink initials (gradient avatars retire); photo avatars get a 1px brass ring when "now singing".</li>
+    <li>Motion: keep existing entrance/reaction animations; retune to slower, softer curves. <code>prefers-reduced-motion</code> stays wired.</li>
+  </ul>
+</section>
+
+<section id="pages">
+  <h2>Per-page rethink</h2>
+  <table>
+    <thead><tr><th>Page</th><th>Rethink (not just re-skin)</th></tr></thead>
+    <tbody>
+      <tr><td>Landing <code>/</code></td><td>Poster hero: Fraunces headline at full contrast on stagelight gradient, join-code input inline in the hero (no card-in-void), single pink CTA. "How it works" becomes a slim 3-beat strip with real UI vignettes instead of icon cards.</td></tr>
+      <tr><td>Login / Sign-up</td><td>Right pane stops being empty: a live "lobby poster" vignette (marquee + roster avatars) sells the product while the form stays quiet on the left.</td></tr>
+      <tr><td>Dashboard</td><td>Collapses to one "Your stage" hero card (host CTA) + compact session row; kills the empty second card. Feels like a green room, not an admin panel.</td></tr>
+      <tr><td>Room lobby (TV)</td><td>The party poster: marquee room code center-stage, QR on a ticket-shaped card, roster as a "guest list" row of avatars along the bottom, ambient spotlight animation. Empty-queue copy becomes an invitation, not a status.</td></tr>
+      <tr><td>Room playing (TV)</td><td>Tidal-pattern rail: video keeps letterbox; right rail groups <em>Now</em> / <em>Up next</em> with the row anatomy above; song title strip loses gradient text (house-lights white + singer chip); corner QR becomes the mini-marquee ticket.</td></tr>
+      <tr><td>Join (phone)</td><td>Verse-pattern: search becomes the primary surface with the queue one swipe away; sticky bottom now-playing bar carries reactions + your position; nickname gate restyled as a ticket stub. Tabs stay (testids preserved) but restyled as segmented pills.</td></tr>
+      <tr><td>Admin</td><td>Out of scope (internal tooling) — tokens will cascade automatically, no layout work. See Decision 5.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-direction" data-brain-action>
+    <p><strong>1. Aesthetic direction</strong></p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-direction" id="opt-velvet" value="A — Velvet Stage: warm wine-black + spotlight pink + brass, Fraunces serif" checked data-brain-action></td>
+          <td><label for="opt-velvet">A — Velvet Stage <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Party-premium like Partiful; keeps pink brand equity; distinctive vs generic dark apps</td>
+          <td>Warm-dark needs careful contrast tuning on TV</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-direction" id="opt-neon" value="B — Refined Neon: keep current cool near-black, pink as lone accent, kill gradients" data-brain-action></td>
+          <td><label for="opt-neon">B — Refined Neon</label></td>
+          <td>Smallest visual delta; safest</td>
+          <td>Still lives in the most common AI-dark-app neighborhood; "sleeker" but not memorable</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-direction" id="opt-mono" value="C — Monochrome Stage: near-black/white editorial, brass as the only color" data-brain-action></td>
+          <td><label for="opt-mono">C — Monochrome Stage</label></td>
+          <td>Most "professional" in the corporate sense</td>
+          <td>Abandons pink brand; risks feeling cold for a party product</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-direction','Aesthetic direction')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-direction"></span>
+  </div>
+
+  <div class="decision-card" id="decision-display-font" data-brain-action>
+    <p><strong>2. Display typeface</strong> (body stays Inter either way)</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-display-font" id="opt-fraunces" value="Fraunces variable serif" checked data-brain-action></td>
+          <td><label for="opt-fraunces">Fraunces (variable serif) <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Theatrical, editorial, Partiful-adjacent; variable axes give one file many voices; fontsource available</td>
+          <td>Serif on TV needs generous sizes (already guaranteed by tv scale)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-display-font" id="opt-instrument" value="Instrument Serif" data-brain-action></td>
+          <td><label for="opt-instrument">Instrument Serif</label></td>
+          <td>Sharper, trendier; very light footprint</td>
+          <td>Single weight/style — less range for TV vs phone</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-display-font" id="opt-bricolage" value="Keep Bricolage Grotesque" data-brain-action></td>
+          <td><label for="opt-bricolage">Keep Bricolage Grotesque</label></td>
+          <td>Zero migration; already variable</td>
+          <td>Reads generic-modern; personality ceiling is the current problem</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-display-font','Display typeface')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-display-font"></span>
+  </div>
+
+  <div class="decision-card" id="decision-gradient" data-brain-action>
+    <p><strong>3. Fate of the pink→gold gradient</strong></p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-gradient" id="opt-retire" value="Retire from controls/text; ambient background gradients only" checked data-brain-action></td>
+          <td><label for="opt-retire">Retire from controls &amp; text; keep gradients ambient-only <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Single-accent discipline = the core of "sleek"; backgrounds still feel alive</td>
+          <td>Loses a recognizable (if noisy) brand tick</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-gradient" id="opt-keep-cta" value="Keep gradient on the single primary CTA per page only" data-brain-action></td>
+          <td><label for="opt-keep-cta">Keep on one primary CTA per page</label></td>
+          <td>Preserves brand tick with discipline</td>
+          <td>Gradient buttons are the #1 "AI app" tell in 2026</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-gradient','Fate of the pink→gold gradient')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-gradient"></span>
+  </div>
+
+  <div class="decision-card" id="decision-light-theme" data-brain-action>
+    <p><strong>4. Light theme investment</strong> (dark is default; rules require token-level dual-theme support)</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-light-theme" id="opt-matinee" value="Token-level 'matinee' light variant; design QA on dark only" checked data-brain-action></td>
+          <td><label for="opt-matinee">Token-level light variant, QA dark-only <span class="tag-recommended">(recommended)</span></label></td>
+          <td>Honors the no-hardcoded-colors rule; ~zero extra layout work; karaoke is a dark-room product</td>
+          <td>Light mode is functional, not art-directed</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-light-theme" id="opt-full-light" value="Fully art-directed light theme, QA both" data-brain-action></td>
+          <td><label for="opt-full-light">Fully art-directed light theme</label></td>
+          <td>Both themes look intentional</td>
+          <td>Nearly doubles design/verification effort for a rarely-used mode</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-light-theme','Light theme investment')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-light-theme"></span>
+  </div>
+
+  <div class="decision-card" id="decision-scope" data-brain-action>
+    <p><strong>5. Scope of the page-rethink passes</strong></p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-scope" id="opt-app-only" value="App surfaces only: landing, auth, dashboard, room TV, join phone (admin inherits tokens)" checked data-brain-action></td>
+          <td><label for="opt-app-only">App surfaces only <span class="tag-recommended">(recommended)</span></label></td>
+          <td>All user-facing value; admin is internal and inherits new tokens for free</td>
+          <td>Admin will look token-updated but not rethought</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-scope" id="opt-everything" value="Everything including admin dashboard layouts" data-brain-action></td>
+          <td><label for="opt-everything">Everything incl. admin</label></td>
+          <td>Uniform polish</td>
+          <td>Significant extra effort on screens only Sean sees</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-scope','Scope of the page-rethink passes')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-scope"></span>
+  </div>
+</section>
+
+<section id="plan-of-record" data-brain-section="plan-of-record">
+  <h2>Plan of record</h2>
+  <ol>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 — tokens &amp; type.</strong>
+      <span data-item-text data-brain-action>Rewrite app.css palette (OKLCH, both themes), add Fraunces + JetBrains Mono via fontsource, rebuild type scales (TV scale keeps ≥24px floor; phone scale tightens), stagelight background utilities, retire gradient-control utilities. Acceptance: typecheck + all unit tests green; kitchen-sink page renders every primitive correctly in both themes.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="1"><strong>Phase 2 — shared components.</strong>
+      <span data-item-text data-brain-action>Button variants, Card, inputs, InitialsAvatar (solid + brass now-ring), queue row anatomy, pills/chips, JoinPanel ticket, marquee code component. All existing data-testids and props preserved. Acceptance: unit tests green; kitchen-sink verified.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="2"><strong>Phase 3 — TV surfaces (/room).</strong>
+      <span data-item-text data-brain-action>Lobby poster layout + playing rail layout per the per-page table. Acceptance: feature-verifier walk of host golden path at 1920×1080 with screenshots; tv-safe + ≥24px floor audited.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="3"><strong>Phase 4 — phone surface (/join).</strong>
+      <span data-item-text data-brain-action>Nickname ticket, search-first layout, segmented tabs, sticky bottom bar. Acceptance: feature-verifier walk of guest golden path at 390×844 with screenshots.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="4"><strong>Phase 5 — desktop surfaces.</strong>
+      <span data-item-text data-brain-action>Landing poster hero, auth split-pane with lobby vignette, dashboard green-room card. Acceptance: feature-verifier walk (landing → login → dashboard → host) with screenshots.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="5"><strong>Phase 6 — verification &amp; ship.</strong>
+      <span data-item-text data-brain-action>Full /verify-done (typecheck, 458+ unit tests, e2e smoke, build), verification doc at features/visual-redesign/verifications/, brain docs updated (design-system.md, rules/frontend.md, CHANGELOG), PR.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or acceptance criterion…" />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="files-changed">
+  <h2>Files that change</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>app/app.css</td><td>rewrite (tokens, fonts, scales, utilities)</td><td>the foundation — everything cascades from here</td></tr>
+      <tr><td>package.json</td><td>edit</td><td>+ @fontsource-variable/fraunces, @fontsource/jetbrains-mono; − bricolage if Decision 2 replaces it</td></tr>
+      <tr><td>app/components/ui/button.tsx, card.tsx, input.tsx, tabs.tsx, badge.tsx</td><td>edit variants</td><td>component rules above</td></tr>
+      <tr><td>app/components/room/* (join-panel, queue-rail, roster-strip, now-singing-banner, now-up-overlay, reaction-recap, initials-avatar, host-controls)</td><td>edit</td><td>TV rethink</td></tr>
+      <tr><td>app/components/join/* (nickname-form, search-tab, queue-tab, controls-tab, position-bar, reaction-bar)</td><td>edit</td><td>phone rethink</td></tr>
+      <tr><td>app/routes/home.tsx, authentication/*, dashboard/_index.tsx, room/$code.tsx, join/$code.tsx</td><td>edit layout</td><td>per-page rethink</td></tr>
+      <tr><td>design.md, .brain/codebase/design-system.md, .brain/rules/frontend.md, .brain/CHANGELOG.md</td><td>update</td><td>brain coherence — visual language source of truth changes</td></tr>
+      <tr><td>app/routes/admin/*</td><td>none (tokens cascade)</td><td>Decision 5</td></tr>
+      <tr><td>Server code (tRPC, DOs, repos, schema)</td><td>none</td><td>purely visual feature</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="golden-path">
+  <h2>Golden path (visual QA walk)</h2>
+  <pre class="mermaid">
+sequenceDiagram
+  participant H as Host (desktop→TV)
+  participant G as Guest (phone)
+  H->>H: Landing — poster hero, join input, single pink CTA
+  H->>H: Login — form left, lobby vignette right
+  H->>H: Dashboard — "Your stage" card → Host a room
+  H->>H: /room lobby — marquee code, QR ticket, guest-list roster
+  G->>G: Scan QR → nickname ticket stub
+  G->>G: Search-first add-song, sticky bottom bar
+  H->>H: Playing — video + Now/Up-next rail, mini-marquee ticket
+  G->>G: Reactions fly, position bar updates
+  H->>H: Recap card (brass), "You're up" (Fraunces)
+  </pre>
+</section>
+
+<section id="error-paths" data-brain-section="error-paths">
+  <h2>Regression risks (the error paths of a redesign)</h2>
+  <table>
+    <thead><tr><th>Failure</th><th>Detected by</th><th>Handled by</th></tr></thead>
+    <tbody data-brain-section="error-paths-rows">
+      <template>
+        <tr data-brain-item><td data-item-text data-brain-action></td><td colspan="2">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></td></tr>
+      </template>
+      <tr data-brain-item="0"><td data-item-text data-brain-action>Playwright e2e/smoke breaks from removed testids or renamed copy</td><td>bun run test:e2e + feature-verifier</td><td>hard rule: testids and i18n keys are frozen; copy changes go through en/zh locale files</td></tr>
+      <tr data-brain-item="1"><td data-item-text data-brain-action>TV text under 24px or outside tv-safe after re-layout</td><td>Phase 3 acceptance audit at 1080p</td><td>tv-* utilities remain the only way to set type on /room</td></tr>
+      <tr data-brain-item="2"><td data-item-text data-brain-action>Warm-dark palette fails WCAG contrast (dim text on curtain surfaces)</td><td>contrast check on token pairs during Phase 1</td><td>tune OKLCH lightness until ≥4.5:1 body, ≥3:1 large text</td></tr>
+      <tr data-brain-item="3"><td data-item-text data-brain-action>Light theme visually broken (unstyled combinations)</td><td>kitchen-sink render in light mode</td><td>every token pair defined in both :root and .dark from day one</td></tr>
+      <tr data-brain-item="4"><td data-item-text data-brain-action>Reaction/recap overlays visually collide with new rail layout</td><td>feature-verifier walk includes reactions + recap steps</td><td>overlay z-index/position re-checked in Phase 3</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="testing-plan">
+  <h2>Testing plan</h2>
+  <ul class="checklist">
+    <li><label><input type="checkbox"> Golden path walk (sequence above) via feature-verifier at 1920×1080 + 390×844, screenshots into features/visual-redesign/screenshots/</label></li>
+    <li><label><input type="checkbox"> Error path: closed/not-found room states still styled</label></li>
+    <li><label><input type="checkbox"> bun run typecheck, test (all suites), test:e2e smoke, build — all green</label></li>
+    <li><label><input type="checkbox"> Both themes render kitchen-sink without unreadable pairs</label></li>
+    <li><label><input type="checkbox"> prefers-reduced-motion spot-check (animations gated)</label></li>
+    <li><label><input type="checkbox"> zh locale spot-check (longer strings fit new layouts)</label></li>
+  </ul>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0">
+      <span data-item-text data-brain-action>Should the wordmark/logo change with the new identity (currently a pill + mic glyph), or is brand-mark work a separate future task?</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+    <li data-brain-item="1">
+      <span data-item-text data-brain-action>Landing "How it works" vignettes: real screenshots (need post-redesign capture pass) or stylized illustrations?</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action title="Remove">x</button><button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question…" />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      var anchor = tpl.nextSibling;
+      list.insertBefore(node, anchor);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
