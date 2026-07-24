@@ -258,6 +258,33 @@ body {
   font-variation-settings: "opsz" 24, "SOFT" 40;
 }
 
+/* Song title in the playing-state now-playing bar (feat-014). Sits between
+   `tv-title` (36px, which wrapped raw YouTube titles onto a second line and
+   cost the video ~64px of height) and `tv-title-sm` (22px, rail-scale). The
+   28px setting fits every cleaned title from the `song` table on one line at
+   1512px and up. */
+@utility tv-song {
+  font-family: var(--font-display);
+  font-size: 1.75rem; /* 28px */
+  line-height: 1.15;
+  font-weight: 600;
+  font-variation-settings: "opsz" 32, "SOFT" 40;
+}
+
+/* Quiet zone label for the playing screen — the "NOW SINGING" eyebrow and the
+   rail's zone headers, in one voice. 18px is deliberately below the 24px
+   10-foot floor: that rule governs primary content, and an eyebrow is a
+   secondary label whose whole job is to stay out of the way of the 28px title
+   it sits above (same reasoning as the rail's documented 16px queue rows). */
+@utility tv-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 /* Marquee code treatment at non-TV sizes (phone header, corner ticket,
    dashboard session row) — JetBrains Mono, spaced like letterboard tiles. */
 @utility code-marquee {

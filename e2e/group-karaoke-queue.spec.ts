@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { waitForHydration } from "./helpers/hydration";
 
 /**
  * Group-karaoke add-to-queue golden path — the flow the "can't be used"
@@ -27,6 +28,8 @@ test.describe("Group karaoke — add to queue", () => {
   }) => {
     // 1. Host signs up and lands on the dashboard.
     await page.goto("/sign-up");
+    // SSR'd form — wait for React before clicking. See e2e/helpers/hydration.ts.
+    await waitForHydration(page, '[data-testid="signup-submit"]');
     // Wait for the client bundle to finish loading so the form is hydrated —
     // otherwise a fast fill+submit fires the native GET before react-hook-form
     // attaches its preventDefault handler. (No WebSocket on this page, so
@@ -50,6 +53,7 @@ test.describe("Group karaoke — add to queue", () => {
     const guestContext = await browser.newContext();
     const guest = await guestContext.newPage();
     await guest.goto(`/join/${code}`);
+    await waitForHydration(guest, '[data-testid="join-nickname-submit"]');
     // Same hydration guard before the first interaction (the room WebSocket
     // only opens after joining, so the nickname step still reaches idle).
     await guest.waitForLoadState("networkidle");

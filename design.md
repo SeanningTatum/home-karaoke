@@ -98,7 +98,7 @@ Where they apply: full-page backgrounds and full-screen overlays (landing hero, 
 Accent discipline after the redesign:
 
 1. **One interactive accent.** Spotlight pink `--primary` is the only color that means "you can press this" — CTA fills, focus ring, active tab, the add-song `+`. Secondary actions sit on the quiet plum `--secondary` surface.
-2. **Brass is punctuation, never interactive.** `--brass` marks the performer and the marquee: the singer credit line under the now-playing title, the border-b rule under the room code, the ring on the now-singing avatar, the celebration/confetti palette. If an element responds to input, it is not brass.
+2. **Brass is punctuation, never interactive.** `--brass` marks the performer and the marquee: the singer credit line under the now-playing title, the border-b rule under the room code, the ring on the now-singing avatar, the `NEXT UP` callout on the first queued row (feat-014), the celebration/confetti palette. If an element responds to input, it is not brass — the `NEXT UP` row is a label on a non-interactive TV list, not a button.
 3. **Violet is retired** everywhere in the UI — including the confetti palette (`app/components/room/celebration-burst.tsx` `PALETTE` is now primary/brass/foreground/success per theme). It survives only as `--chart-3` (§2).
 
 **Don't**: gradient-fill buttons, gradient text, brass buttons, a second accent hue. The stage reads as special because it has one spotlight.
@@ -149,7 +149,7 @@ The room code is the app's signature element — treated like a theater marquee 
 
 ### TV type scale (`/room` only — 10-foot viewing distance)
 
-Nothing under 24px (the 22px `tv-title-sm` is the one deliberate exception, scoped to the narrow playing-state rail). Utility classes registered in `app.css`, all display roles now Fraunces with per-role `font-variation-settings`:
+Nothing under 24px **for primary content**. Three deliberate exceptions, all scoped to the playing state's secondary chrome — a zone label or a cramped rail row is instrumentation, not the thing you read from the couch: the 22px `tv-title-sm` rail heading (feat-009), the 16px 2-line-clamped queue rows inside the ~380px rail (feat-009 — `tv-body`'s 28px truncated real titles down to a couple of glyphs), and the 18px `tv-eyebrow` zone label (feat-014). Utility classes registered in `app.css`, all display roles now Fraunces with per-role `font-variation-settings`:
 
 | Role | Utility | Size | Weight | Variation | Face | Use |
 |---|---|---|---|---|---|---|
@@ -157,9 +157,11 @@ Nothing under 24px (the 22px `tv-title-sm` is the one deliberate exception, scop
 | TV Headline | `.tv-headline` | 56px | 600 | `opsz 72, SOFT 40` | Fraunces | Big state changes ("Waiting for singers…") |
 | TV Code | `.tv-code` | 80px | 640, 0.08em tracking | `opsz 144, SOFT 40` | Fraunces | The room-code marquee in the lobby QR hero |
 | TV Title | `.tv-title` | 36px | 600 | `opsz 40, SOFT 40` | Fraunces | "Up Next" section header, now-playing title |
-| TV Title (rail) | `.tv-title-sm` | 22px | 600 | `opsz 24, SOFT 40` | Fraunces | Queue heading in the ~320px playing-state rail |
+| TV Title (rail) | `.tv-title-sm` | 22px | 600 | `opsz 24, SOFT 40` | Fraunces | Queue heading in the ~380px playing-state rail |
+| TV Song *(new, feat-014)* | `.tv-song` | 28px | 600 | `opsz 32, SOFT 40` | Fraunces | The now-playing title in the playing-state bar — sized so a `cleanSongTitle`'d title stays on one line at 1512px and up |
 | TV Body | `.tv-body` | 28px | 500 | — | Inter | Queue rows, singer names |
 | TV Label | `.tv-label` | 24px | 600, uppercase | — | Inter | Chips, counts, meta labels |
+| TV Eyebrow *(new, feat-014)* | `.tv-eyebrow` | 18px | 600, uppercase, 0.18em | — | JetBrains Mono | The playing screen's zone-label voice — `NOW SINGING`, `UP NEXT`, rail zone headers. Below the 24px floor on purpose (see above) |
 
 Safe margins: `.tv-safe` (both axes), `.tv-safe-x` / `.tv-safe-y` (single axis) — `clamp()`-based ~5% padding so nothing sits flush against a TV's edge, with a sane floor for narrower/preview viewports. `--tv-safe-inline` is the single source of truth for the inline value.
 
@@ -195,7 +197,8 @@ No singer rotation logic, no audio normalization — explicitly out of scope per
 
 ## 8. Component notes (for later phases — recorded now so they're not re-litigated)
 
-- **Queue rows** — `/join` and `/room` queue lists use `tv-body`/`text-base` for the singer+song line; your own rows are marked with a quiet `border-primary/50 bg-primary/5` tint. The *now-singing* treatment is no longer a gradient fill: the current song shows as the `tv-title` title + a **brass singer credit line** (`text-brass` on the `tv-label` credit in `now-singing-banner.tsx`), and the now-singing avatar wears a **brass ring** (`ring-brass/70`).
+- **Queue rows** — `/join` and `/room` queue lists use `tv-body`/`text-base` for the singer+song line; your own rows are marked with a quiet `border-primary/50 bg-primary/5` tint. The *now-singing* treatment is no longer a gradient fill: the current song shows as a display-face title + a **brass singer credit** (`now-singing-banner.tsx` — `tv-title` in the lobby variant, the one-row `tv-song` bar on the playing screen since feat-014), and the now-singing avatar wears a **brass ring** (`ring-brass/70`).
+- **Song titles are cleaned for display only (feat-014)** — anything rendering a queue/now-playing title on a big surface runs it through `cleanSongTitle(title, channel)` from `app/lib/song-title.ts` (strips `| Karaoke Version`, `(Official Video)`, `[HD]`, channel tails; splits song from artist). The **raw** YouTube title stays the stored/queue/history value — never write the cleaned string back.
 - **Full-screen overlays** — NowUpOverlay and ReactionRecap sit on `bg-stagelight` (the ambient spotlight wall), not a pink gradient.
 - **QR code** — the join QR on `/room` always renders on a plain **white tile** (`bg-white` literal, not a semantic token — this is a hard requirement of QR scanners needing max contrast against a light quiet-zone, not a themed surface) regardless of app theme.
 - **Avatar initials** — guest/host avatars with no photo render initials as `bg-secondary` (soft plum surface) with `text-primary` initials (`initials-avatar.tsx`) — the gradient fill is retired. The brass ring is reserved for the now-singing avatar, not the fallback style.
@@ -229,7 +232,7 @@ Where shipped light-theme (and dark `--destructive`) values were tuned for contr
 
 ---
 
-## 11. Layout (feat-013 layout-evolution)
+## 11. Layout (feat-013 layout-evolution, feat-014 party-screen-cinema)
 
 Per-surface layout notes — structure only; every token/type/accent rule above is unchanged.
 
@@ -237,4 +240,5 @@ Per-surface layout notes — structure only; every token/type/accent rule above 
 |---|---|
 | **Landing** (`app/routes/home.tsx`) | Single-scroll marketing page: sticky NavBar → two-column Hero (copy left, framed product screenshot right) → HowItWorks → FeatureGrid (6 shipped features) → CtaBand (marquee `KQ7-3FP` motif) → Footer with GitHub link. |
 | **Dashboard** (`app/routes/dashboard/_index.tsx`) | Host hub: slim top bar (account role chip), full-width `bg-stagelight` stage hero carrying the Start-a-party CTA, then horizontal rails — Previous sessions (on `room.listMine`; live rooms get a Rejoin card + LIVE badge, errors degrade to the empty state) and Featured playlists (visible coming-soon placeholder, static and non-interactive). |
-| **Party screen** (`app/routes/room/$code.tsx`) | Unified spacing scale: **24px inside panels, 32px between them** (queue panel `p-8`, queue items `p-4` with `size-14` thumbs, playing rail `p-6`/`gap-6`). The lobby top bar renders **only in the lobby** — the playing state gives that height to the video and the connection pill moves into the right-rail header row. Roster board is content-sized (`min-h` 200px / `max-h` 40%, not a fixed third), and the now-singing title reserves 2 lines via `min-h-[2lh]` so the rail doesn't jump between short and long titles. |
+| **Party screen** (`app/routes/room/$code.tsx`) | Unified spacing scale: **24px inside panels, 32px between them** (queue panel `p-8`, queue items `p-4` with `size-14` thumbs, playing rail `p-6`/`gap-6`). The lobby top bar renders **only in the lobby** — the playing state gives that height to the video and the connection pill moves into the right-rail header row. Roster board is content-sized (`min-h` 200px / `max-h` 40%, not a fixed third). The playing state was reworked again in feat-014 — see below. |
+| **Party screen — playing state** (feat-014) | **Cinema framing: the video is the only hero, everything else is instrumentation.** (1) *Theater surface* — the playing container carries the literal `dark` class, so it pins itself to Velvet Stage tokens regardless of app theme (a video letterbox is black in every theme; black-on-cream read as a broken frame). Lobby, dashboard, landing and auth still follow the user's theme. (2) *Now-playing bar* is **one row, 59px** (was 112px + 16px gap): `tv-eyebrow` `NOW SINGING` → `tv-song` cleaned title → artist → singer avatar chip → remaining time. (3) *Rail is one bordered panel* with `divide-y` hairlines and three zones — guest avatar cluster band (overlapping cluster, capped at 6 + `+N`), `UP NEXT` list with the first row called out `NEXT UP` in brass, and a chrome-less QR ticket stub at the bottom. The empty up-next state anchors 14px under its label instead of floating in the void. Rail inset 4px → **16px** from the screen edge; width 336px → **380px at ≥1600px**. (4) *Progress indicator* — a 3px line under the video plus the remaining-time readout, driven by the player polling its own `getCurrentTime()`/`getDuration()` every 500ms (host-local, no WebSocket traffic). Net: video 76% → **80%** of viewport at 1512×900 and 79% → **82%** at 1920×1080 (88% of the area inside the `tv-safe` margins). |

@@ -392,6 +392,30 @@ function RoomHostView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomClosed]);
 
+  // Song position (feat-014) — fed by the player's own poll, used for the
+  // progress line under the video and the remaining-time readout in the
+  // now-playing bar. Reset whenever the singer changes so a new song never
+  // inherits the previous one's position for half a second.
+  const [progress, setProgress] = useState<{
+    currentTime: number;
+    duration: number;
+  } | null>(null);
+  const handleProgress = (next: { currentTime: number; duration: number }) =>
+    setProgress(next);
+
+  useEffect(() => {
+    setProgress(null);
+  }, [playback?.currentItem?.id]);
+
+  const remainingSeconds =
+    progress && progress.duration > 0
+      ? Math.max(0, progress.duration - progress.currentTime)
+      : null;
+  const progressPercent =
+    progress && progress.duration > 0
+      ? Math.min(100, (progress.currentTime / progress.duration) * 100)
+      : 0;
+
   const recordPlayed = api.room.recordPlayed.useMutation({
     onError: (error) => {
       // Best-effort history write — never blocks the transport control the
@@ -442,10 +466,24 @@ function RoomHostView({
     <div
       data-testid="room-host-view"
       className={cn(
-        "tv-safe flex h-screen flex-col overflow-hidden text-foreground lg:flex-row",
+        // `lg:gap-8` keeps the main column's content — specifically the
+        // now-playing bar's right-hand singer chip and remaining-time readout
+        // — from colliding with the rail, which sits flush beside it.
+        "tv-safe flex h-screen flex-col overflow-hidden text-foreground lg:flex-row lg:gap-8",
         // Lobby gets the full stagelight halo (the party poster); playing
         // mode dims the room so the video is the light source.
-        hasCurrentItem ? "bg-stagelight-dim" : "bg-stagelight"
+        hasCurrentItem ? "bg-stagelight-dim" : "bg-stagelight",
+        // THEATER SURFACE (feat-014): while a song plays, this screen pins
+        // itself to the dark palette even when the app theme is Matinee.
+        // `next-themes` runs `attribute="class"` and app.css defines the dark
+        // tokens under a `.dark` class selector, so adding the class here
+        // re-resolves every custom property inside this subtree — no token
+        // duplication, no prop threading. Rationale: a video letterbox is
+        // black in every theme, and black-on-cream reads as a broken frame;
+        // every player convention (YT Music, Prime Video) darkens the room
+        // instead. The lobby, dashboard, landing and auth still follow the
+        // user's theme.
+        hasCurrentItem && "dark"
       )}
     >
       {/* MAIN column — the navbar-style top bar sits INSIDE this column (not
@@ -489,15 +527,36 @@ function RoomHostView({
             <NowSingingBanner
               currentItem={playback?.currentItem ?? null}
               size="tv"
+              remainingSeconds={remainingSeconds}
             />
           </div>
           <div className="relative min-h-0 flex-1">
             <YoutubePlayer
               fill
-              className="absolute inset-0"
+              className="absolute inset-0 ring-1 ring-border/40"
               playback={playback}
               onVideoEnded={handleVideoEnded}
               onVideoError={handleVideoError}
+              onProgress={handleProgress}
+            />
+          </div>
+          {/* Progress line — a 3px rule under the video rather than a widget.
+              The YouTube player only reveals its own scrubber on hover, and
+              nobody hovers a TV; this answers "how much longer?" from the
+              couch without adding chrome. Hidden until the player reports a
+              real duration. */}
+          <div
+            data-testid="room-song-progress"
+            className="h-[3px] w-full shrink-0 overflow-hidden rounded-full bg-muted/40"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progressPercent)}
+            aria-label={t("banner.now_singing")}
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-linear motion-reduce:transition-none"
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
@@ -634,29 +693,44 @@ function RoomHostView({
           down to a 4px gap (beta feedback). Referencing the custom property
           keeps this in lockstep with the tv-safe token in app.css — the gap
           holds at every viewport width and survives future token edits. */}
+      {/* RIGHT RAIL — one continuous instrument panel (feat-014), replacing
+          three floating cards with a single bordered surface split by hairline
+          dividers into three zones: who's here (top), what's next (middle,
+          fills), how to join (bottom stub). An empty queue used to leave ~250px
+          of accidental void in the middle of this column; the UP NEXT zone now
+          anchors its empty state under its own label instead of centering it in
+          the leftover space.
+
+          Inset 16px from the screen edge rather than the old 4px: the root
+          `tv-safe` padding-inline is cancelled by a negative margin, and at 4px
+          the rail read as lopsided against the 80px left page margin. Widens to
+          380px at ≥1600px, where the extra 44px buys a readable queue title
+          line. Kept mounted, hidden in the lobby. */}
       <div
         data-testid="room-playing-rail"
         className={cn(
-          "flex min-h-0 w-full shrink-0 flex-col gap-6 border-t border-border pt-6 lg:w-[336px] lg:-mr-[calc(var(--tv-safe-inline)_-_4px)] lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0",
+          "flex min-h-0 w-full shrink-0 flex-col divide-y divide-border/60 overflow-hidden rounded-3xl border border-border/70 bg-card/40 lg:w-[336px] lg:-mr-[calc(var(--tv-safe-inline)_-_16px)] min-[1600px]:lg:w-[380px]",
           !hasCurrentItem && "hidden"
         )}
       >
-        {/* The connection pill lives here in the playing state (feat-013) —
-            the MAIN column's top bar only renders in the lobby, so the video
-            keeps that height. */}
-        <div className="flex shrink-0 items-start justify-between gap-3">
+        {/* Zone 1 — who's here. The connection pill rides along here in the
+            playing state (feat-013): the MAIN column's top bar only renders in
+            the lobby, so the video keeps that height. */}
+        <div className="flex shrink-0 items-start justify-between gap-3 p-5">
           <div data-testid="room-playing-participants" className="min-w-0 flex-1">
             <RosterStrip roster={roster} size="compact" />
           </div>
           <ConnectionStatusPill status={connectionStatus} />
         </div>
 
-        <div className="min-h-0 flex-1">
+        {/* Zone 2 — what's next. Fills the rail; owns its own scroll. */}
+        <div className="min-h-0 flex-1 p-5">
           <QueueRail
             queue={queue}
             viewerRole="host"
             reorderable
             size="tv"
+            highlightNext
             onReorder={(queueItemId, toIndex) =>
               send({ type: "queue.reorder", queueItemId, toIndex })
             }
@@ -664,8 +738,10 @@ function RoomHostView({
           />
         </div>
 
-        <div data-testid="room-playing-join" className="shrink-0">
-          <JoinPanel joinUrl={joinUrl} code={code} size="sm" className="w-full" />
+        {/* Zone 3 — how to join. A ticket stub attached to the panel's bottom
+            edge, so late arrivals can still scan mid-song. */}
+        <div data-testid="room-playing-join" className="shrink-0 p-5">
+          <JoinPanel joinUrl={joinUrl} code={code} size="stub" />
         </div>
       </div>
 

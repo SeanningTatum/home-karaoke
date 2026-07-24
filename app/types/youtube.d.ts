@@ -71,6 +71,11 @@ declare namespace YT {
     setVolume(volume: number): void;
     getVolume(): number;
     getPlayerState(): PlayerState;
+    // Position getters, used by the TV's progress line / remaining-time
+    // readout (feat-014). Both return 0 until the player has loaded metadata,
+    // which callers treat as "not known yet" rather than a real value.
+    getCurrentTime(): number;
+    getDuration(): number;
     destroy(): void;
   }
 }

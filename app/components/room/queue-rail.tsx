@@ -26,6 +26,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InitialsAvatar } from "@/components/room/initials-avatar";
+import { cleanSongTitle } from "@/lib/song-title";
 import { cn } from "@/lib/utils";
 import type { QueueItem, Role } from "@/lib/schemas/room-ws";
 
@@ -49,6 +50,12 @@ export interface QueueRailProps {
    * chip. "compact" (default) — the guest phone Search/Queue/Controls tabs
    * on `/join/:code`, unchanged sizing. */
   readonly size?: "tv" | "compact";
+  /**
+   * Marks the first row as NEXT UP (feat-014) so the singer after the current
+   * one gets a warning from across the room. TV rail only — the phone tabs
+   * show the same queue without the callout.
+   */
+  readonly highlightNext?: boolean;
   /** Sends `queue.reorder` over the room socket. Required when `reorderable`. */
   readonly onReorder?: (queueItemId: string, toIndex: number) => void;
   /** Sends `queue.remove` over the room socket. Omit to hide remove buttons entirely. */
@@ -72,6 +79,7 @@ export function QueueRail({
   viewerRole = "host",
   reorderable = false,
   size = "compact",
+  highlightNext = false,
   onReorder,
   onRemove,
 }: QueueRailProps) {
@@ -149,12 +157,15 @@ export function QueueRail({
           className={cn(
             "flex items-center text-muted-foreground",
             isTv
-              ? "tv-title-sm gap-2 normal-case text-foreground"
+              ? "tv-eyebrow gap-2"
               : "gap-1.5 text-sm font-medium uppercase tracking-wider"
           )}
         >
-          <IconPlaylist className={isTv ? "size-6 text-primary" : "size-4"} />
-          {t("queue.title")}
+          <IconPlaylist className={isTv ? "size-5 text-primary" : "size-4"} />
+          {/* "Up next" on the TV (the current song is already the hero above
+              it, so this list is literally what comes next); the phone tab
+              keeps calling it the Queue, which is what its own tab is named. */}
+          {isTv ? t("queue.up_next") : t("queue.title")}
         </h2>
         <Badge
           variant="secondary"
@@ -178,10 +189,13 @@ export function QueueRail({
       </div>
 
       {queue.length === 0 ? (
+        // Anchored under the label, not centered in the leftover space
+        // (feat-014): when the rail was ~390px tall and this text floated in
+        // the middle of it, the result read as ~250px of accidental void.
         <p
           className={cn(
-            "text-center text-muted-foreground",
-            isTv ? "tv-body mt-10" : "mt-6 text-sm"
+            "text-muted-foreground",
+            isTv ? "text-xl leading-snug" : "mt-6 text-center text-sm"
           )}
         >
           {t("queue.empty")}
@@ -197,7 +211,7 @@ export function QueueRail({
             strategy={verticalListSortingStrategy}
           >
             <ul className="flex flex-col gap-2 overflow-y-auto">
-              {displayQueue.map((item) => {
+              {displayQueue.map((item, index) => {
                 const isOwn =
                   ownUserId != null && item.addedByUserId === ownUserId;
                 const canRemove =
@@ -207,6 +221,7 @@ export function QueueRail({
                     key={item.id}
                     item={item}
                     isOwn={isOwn}
+                    isNextUp={highlightNext && index === 0}
                     reorderable={reorderable}
                     canRemove={canRemove}
                     onRemove={onRemove}
@@ -226,6 +241,8 @@ export function QueueRail({
 interface QueueRowProps {
   readonly item: QueueItem;
   readonly isOwn: boolean;
+  /** First row of the TV rail — carries the NEXT UP callout (feat-014). */
+  readonly isNextUp?: boolean;
   readonly reorderable: boolean;
   readonly canRemove: boolean;
   readonly onRemove?: (queueItemId: string) => void;
@@ -240,6 +257,7 @@ interface QueueRowProps {
 function QueueRow({
   item,
   isOwn,
+  isNextUp = false,
   reorderable,
   canRemove,
   onRemove,
@@ -276,20 +294,38 @@ function QueueRow({
     </button>
   ) : null;
 
+  // 56px on the TV rail (feat-014) so a row reads from the couch; the phone
+  // tabs keep the original 48px.
+  const thumbSize = isTv ? "size-14" : "size-12";
   const thumbnail = item.thumbnailUrl ? (
     <img
       src={item.thumbnailUrl}
       alt=""
-      className="size-12 shrink-0 rounded-lg object-cover"
+      className={cn("shrink-0 rounded-lg object-cover", thumbSize)}
     />
   ) : (
-    <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
-      <IconMusic className="size-5 text-muted-foreground" />
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-lg bg-muted",
+        thumbSize
+      )}
+    >
+      <IconMusic className={isTv ? "size-6 text-muted-foreground" : "size-5 text-muted-foreground"} />
     </span>
   );
 
+  // TV rows show the cleaned song name (feat-014) — the same helper the
+  // now-playing bar uses, so "Queen – Bohemian Rhapsody (Official Video)"
+  // reads as "Bohemian Rhapsody" in a 300px rail instead of clipping mid-cruft.
+  // The phone tabs deliberately keep the raw title: they're outside this
+  // feature's scope and have the width to show it.
+  const displayTitle = isTv
+    ? cleanSongTitle(item.title, item.channel).song
+    : item.title;
+
   const title = (
     <p
+      title={item.title}
       className={cn(
         "font-semibold leading-tight",
         // Narrow (~280px) TV rail: `tv-body` (28px) truncated a real title
@@ -299,7 +335,7 @@ function QueueRow({
         isTv ? "line-clamp-2 text-base" : "truncate text-sm"
       )}
     >
-      {item.title}
+      {displayTitle}
     </p>
   );
 
@@ -368,23 +404,37 @@ function QueueRow({
         style={style}
         data-testid="room-queue-item"
         data-own={isOwn ? "true" : undefined}
+        data-next-up={isNextUp ? "true" : undefined}
         className={cn(
-          "flex items-center gap-2 rounded-xl border border-border bg-card p-2.5",
+          "flex flex-col gap-2 rounded-xl border border-border bg-card p-3",
           isOwn && "border-primary/50 bg-primary/5",
+          // The next singer's row is the one thing in the rail worth calling
+          // out — brass, so it reads as punctuation rather than a control.
+          isNextUp && "border-brass/60",
           isDragging && "z-10 opacity-70 shadow-md",
           entered && "animate-queue-row-in"
         )}
       >
-        {dragHandle}
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex items-center gap-2">
-            {thumbnail}
-            <div className="min-w-0 flex-1">{title}</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1">{singer}</div>
-            {ownBadge}
-            {removeButton}
+        {isNextUp && (
+          <span
+            data-testid="room-queue-next-up"
+            className="tv-eyebrow text-brass"
+          >
+            {t("queue.next_up")}
+          </span>
+        )}
+        <div className="flex items-center gap-2">
+          {dragHandle}
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="flex items-center gap-2">
+              {thumbnail}
+              <div className="min-w-0 flex-1">{title}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">{singer}</div>
+              {ownBadge}
+              {removeButton}
+            </div>
           </div>
         </div>
       </li>
