@@ -21,6 +21,80 @@
 
 ---
 
+## 2026-07-24 — feat-014 party-screen-cinema shipped; folded into PR #13 alongside feat-013 (user's call: keep both in one PR rather than split). Playing screen reworked as a cinema: theater surface (dark class pins the playing subtree regardless of app theme), one-line now-playing bar 112px->59px, channel-aware cleanSongTitle helper (18 tests), rail as one 3-zone instrument panel, NEXT UP callout + 3px progress line (both approved open questions). Also fixed a pre-existing e2e hydration race (attributed by stashing: fails worse on clean tree) via e2e/helpers/hydration.ts polling React's __reactProps$ key. Verification PASS 10/10 + error path, 541 unit, e2e 3/3, build green, brain check 11/11.
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #12 then PR #13. Deferred: featured-playlists/queue-ahead feature, wordmark refresh, phone Controls-tab queue title truncation (verifier's out-of-scope find).
+
+---
+
+## 2026-07-24 — PR opened for party-screen-cinema: https://github.com/SeanningTatum/home-karaoke/pull/13
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-24 — shipped party-screen-cinema: Verification .brain/features/party-screen-cinema/verifications/2026-07-24.md PASS — golden path (lobby regression, 3-son
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-24 — feat-013 layout-evolution shipped + PR #13 opened (feat/layout-evolution → feat/visual-redesign, stacked on PR #12). Marketing landing (nav/hero/features/CTA/footer), host-hub dashboard (stage hero + real sessions rail on new room.listMine + coming-soon playlists rail), party-screen spacing pass (24/32 scale, content-sized roster, playing top bar folded into rail). Verification PASS 6/6 + error path, 523 unit, e2e 3/3, build green, brain check 11/11.
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+- next: Merge PR #12 then PR #13 (GitHub retargets to main). Deferred: session detail view, real featured-playlists feature, wordmark refresh.
+
+---
+
+## 2026-07-24 — PR opened for layout-evolution: https://github.com/SeanningTatum/home-karaoke/pull/13
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-24 — shipped layout-evolution: Verification .brain/features/layout-evolution/verifications/2026-07-24.md PASS 6/6 golden path + 1/1 error path, zero ap
+- branch: `feat/layout-evolution`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-24 — feat-012 visual-redesign shipped + PR #12 opened (feat/visual-redesign → main, 2 commits). Velvet Stage: wine-black stagelight tokens, Fraunces+JetBrains Mono, gradient retirement (13 sites), marquee room-code signature, per-page passes (landing w/ real product shots, auth vignette, dashboard, TV, phone). Verification PASS 10/10 + error path, 521 unit, e2e 3/3, build green, brain check 11/11.
+- branch: `feat/visual-redesign`
+- in-progress feature: none
+- run note: none
+- next: PR #12 review/merge; future: wordmark refresh, matinee art-direction if needed
+
+---
+
+## 2026-07-24 — PR opened for visual-redesign: https://github.com/SeanningTatum/home-karaoke/pull/12
+- branch: `feat/visual-redesign`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-24 — shipped visual-redesign: Verification .brain/features/visual-redesign/verifications/2026-07-23.md PASS 10/10 golden + 1/1 error path, zero consol
+- branch: `feat/visual-redesign`
+- in-progress feature: none
+- run note: none
+
+---
+
+## 2026-07-23 — started feat-012 visual-redesign (Velvet Stage design system)
+- branch: `docs/readme-marketing-rewrite`
+- in-progress feature: feat-012
+- run note: none
+- next: Phase 1 — tokens + type (Fraunces display serif, JetBrains Mono, wine-black/spotlight-pink/brass tokens); plan `plans/visual-redesign.html` reviewed round 1, 5/5 decisions
+
+---
+
 ## 2026-07-18 — merged origin/main into feat/guest-avatars; emoji-reactions keeps feat-010, guest-avatars renumbered feat-010 → feat-011
 - branch: `feat/guest-avatars`
 - in-progress feature: none

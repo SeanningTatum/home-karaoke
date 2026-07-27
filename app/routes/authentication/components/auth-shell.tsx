@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
+import { QRCodeSVG } from "qrcode.react";
 import {
   IconArrowLeft,
   IconMicrophone2,
@@ -9,6 +10,7 @@ import {
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { InitialsAvatar } from "@/components/room/initials-avatar";
 
 interface AuthShellProps {
   /** Form column content (the sign-in / sign-up card). */
@@ -62,10 +64,27 @@ export function AuthShell({ children }: AuthShellProps) {
       {/* Context column */}
       <aside
         aria-hidden="true"
-        className="relative hidden flex-col border-l border-border bg-muted/30 p-12 md:flex"
+        className="bg-stagelight relative hidden flex-col justify-center border-l border-border p-12 md:flex"
       >
-        <div className="absolute inset-0 -z-0 bg-[radial-gradient(circle_at_top_right,_var(--color-muted),_transparent_60%)]" />
         <div className="relative z-10 flex flex-col gap-10">
+          {/* Lobby-poster vignette — a decorative miniature of the TV lobby's
+              marquee ticket, so the pane sells the product while the form
+              stays quiet. Pure visual (aria-hidden ancestor): example code +
+              QR to the landing page, no copy — so no locale keys needed. */}
+          <div className="w-72 self-center rounded-3xl border border-border/70 bg-card/80 p-7 text-center">
+            <div className="mx-auto w-fit rounded-xl bg-white p-3">
+              <QRCodeSVG value="https://home-karaoke.example/join" size={112} />
+            </div>
+            <p className="font-display border-brass/60 mx-auto mt-5 w-fit border-b-2 pb-0.5 text-4xl font-semibold tracking-[0.08em] text-foreground">
+              KQ7-3FP
+            </p>
+            <div className="mt-5 flex items-center justify-center gap-2">
+              <InitialsAvatar name="Mia Ko" size="sm" />
+              <InitialsAvatar name="Devon Reyes" size="sm" />
+              <InitialsAvatar name="Ana Sy" size="sm" />
+              <InitialsAvatar name="Leo Tan" size="sm" />
+            </div>
+          </div>
           <div className="flex flex-col gap-3">
             <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
               <span className="size-1.5 rounded-full bg-primary" />

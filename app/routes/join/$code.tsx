@@ -99,7 +99,7 @@ function JoinUnavailable({
   return (
     <div
       data-testid="join-unavailable"
-      className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center"
+      className="bg-stagelight-dim flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center"
     >
       <h1 className="text-2xl font-semibold text-foreground">
         {status === "closed" ? t("state.closed_title") : t("state.not_found_title")}
@@ -219,12 +219,12 @@ function JoinRoomView({
   }, [roomClosed]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 text-foreground">
+    <div className="bg-stagelight-dim mx-auto flex min-h-screen max-w-lg flex-col gap-4 p-4 text-foreground">
       <ReactionOverlay ref={reactionOverlayRef} variant="phone" />
       <header className="flex items-center justify-between gap-3">
         <span
           data-testid="join-room-code"
-          className="font-mono text-lg font-bold tracking-wider"
+          className="code-marquee text-lg"
         >
           {code}
         </span>

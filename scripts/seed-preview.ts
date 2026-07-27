@@ -141,6 +141,41 @@ const ROOM_SONG_FIXTURES: RoomSongFixture[] = [
   },
 ];
 
+// Closed past sessions for the dashboard "previous sessions" rail
+// (feat-013) — hosted by the admin fixture, each with a played history so
+// the rail shows real song counts. `daysAgo` staggers created_at so the
+// newest-first ordering is visible in the UI.
+interface PastRoomFixture {
+  id: string;
+  code: string;
+  hostId: string;
+  daysAgo: number;
+  songs: Array<{ id: string; videoId: string; singerNickname: string }>;
+}
+
+const PAST_ROOM_FIXTURES: PastRoomFixture[] = [
+  {
+    id: "seed-room-past-1",
+    code: "MAB-2QK",
+    hostId: "seed-admin",
+    daysAgo: 4,
+    songs: [
+      { id: "seed-past-1-song-1", videoId: "dQw4w9WgXcQ", singerNickname: "Mia" },
+      { id: "seed-past-1-song-2", videoId: "fJ9rUzIMcZQ", singerNickname: "Devon" },
+      { id: "seed-past-1-song-3", videoId: "y6120QOlsfU", singerNickname: "Mia" },
+    ],
+  },
+  {
+    id: "seed-room-past-2",
+    code: "ZTR-88L",
+    hostId: "seed-admin",
+    daysAgo: 12,
+    songs: [
+      { id: "seed-past-2-song-1", videoId: "fJ9rUzIMcZQ", singerNickname: "Ana" },
+    ],
+  },
+];
+
 function fail(message: string): never {
   console.error(`\x1b[31m✗ ${message}\x1b[0m`);
   process.exit(1);
@@ -273,6 +308,39 @@ async function buildSql(): Promise<string> {
     );
   }
 
+  for (const past of PAST_ROOM_FIXTURES) {
+    const createdAt = now - past.daysAgo * 86_400_000;
+    const closedAt = createdAt + 2 * 3_600_000;
+    lines.push(
+      `INSERT OR IGNORE INTO room (id, code, host_user_id, status, allow_guest_reorder, created_at, closed_at) VALUES (` +
+        [
+          sqlString(past.id),
+          sqlString(past.code),
+          sqlString(past.hostId),
+          sqlString("closed"),
+          0,
+          createdAt,
+          closedAt,
+        ].join(", ") +
+        `);`,
+    );
+    for (const song of past.songs) {
+      lines.push(
+        `INSERT OR IGNORE INTO room_song (id, room_id, video_id, singer_nickname, added_by_user_id, played_at, created_at) VALUES (` +
+          [
+            sqlString(song.id),
+            sqlString(past.id),
+            sqlString(song.videoId),
+            sqlString(song.singerNickname),
+            "NULL",
+            createdAt + 3_600_000,
+            createdAt,
+          ].join(", ") +
+          `);`,
+      );
+    }
+  }
+
   return lines.join("\n") + "\n";
 }
 
@@ -330,7 +398,10 @@ function describeMarkdown(): string {
       SONG_FIXTURES.length +
       " cached `song` rows, and " +
       ROOM_SONG_FIXTURES.length +
-      " `room_song` queue/history rows (one already marked played). " +
+      " `room_song` queue/history rows (one already marked played), plus " +
+      PAST_ROOM_FIXTURES.length +
+      " closed past rooms with played history for the dashboard " +
+      "previous-sessions rail. " +
       "Fixtures are idempotent (`INSERT OR IGNORE`, fixed `seed-*` ids), " +
       "so data you create on the preview survives new pushes to this PR.",
   );

@@ -143,7 +143,7 @@ export function ControlsTab({
           data-testid="controls-start-party"
           disabled={!canStart}
           onClick={handleStartParty}
-          className="w-full gap-2 bg-gradient-accent text-primary-foreground hover:opacity-90"
+          className="w-full gap-2"
         >
           <IconPlayerPlayFilled className="size-4" />
           {t("controls.start_party")}

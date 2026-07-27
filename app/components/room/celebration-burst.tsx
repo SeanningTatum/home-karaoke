@@ -10,13 +10,13 @@ export interface CelebrationBurstProps {
   readonly onDone: () => void;
 }
 
-/** Same hex stops as the `--primary` / `--secondary` / `--accent-end` /
+/** Same hex stops as the `--primary` / `--brass` / `--foreground` /
  * `--success` custom properties in app.css, duplicated here because
  * canvas-confetti paints on a raw 2D canvas (no access to Tailwind
  * classes/CSS vars) — kept in sync by hand if those tokens ever move. */
 const PALETTE = {
-  dark: ["#ff3d9a", "#a238ff", "#ffd23d", "#2fe6b8"],
-  light: ["#d31d70", "#7b1fd6", "#c98a00", "#087a5c"],
+  dark: ["#ff3d9a", "#e8c268", "#f4e9d8", "#2fe6b8"],
+  light: ["#d31d70", "#a37c1e", "#31121f", "#087a5c"],
 } as const;
 
 const DURATION_MS = 1800;

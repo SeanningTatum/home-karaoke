@@ -169,7 +169,9 @@ export function ReactionRecap({ recap, onDone }: ReactionRecapProps) {
           data-testid="reaction-recap"
           onAnimationEnd={handleAnimationEnd}
           className={cn(
-            "pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-primary to-secondary",
+            // Matches NowUpOverlay: wine-black stage + warm halo instead of
+            // the retired pink→plum gradient wall.
+            "bg-stagelight pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-6",
             isExiting ? "animate-now-up-out" : "animate-now-up"
           )}
         >

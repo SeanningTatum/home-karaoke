@@ -32,7 +32,7 @@ export function InitialsAvatar({
   return (
     <Avatar className={cn(SIZE_CLASSES[size], className)}>
       {src ? <AvatarImage src={src} alt="" /> : null}
-      <AvatarFallback className="bg-gradient-accent font-semibold text-primary-foreground">
+      <AvatarFallback className="bg-secondary font-semibold text-primary">
         {getInitials(name)}
       </AvatarFallback>
     </Avatar>

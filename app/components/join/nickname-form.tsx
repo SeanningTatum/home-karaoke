@@ -185,7 +185,7 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <div className="bg-stagelight flex min-h-screen items-center justify-center px-4 py-12">
       <Card
         data-testid="join-nickname-card"
         className={cn("w-full max-w-sm border-border/80 shadow-sm")}
@@ -220,11 +220,10 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
               <InitialsAvatar
                 name={livePreviewName ?? ""}
                 size="lg"
-                className="shadow-glow-accent"
                 src={previewUrl}
               />
             ) : (
-              <span className="flex size-16 items-center justify-center rounded-full bg-gradient-accent text-primary-foreground shadow-glow-accent">
+              <span className="flex size-16 items-center justify-center rounded-full bg-secondary text-primary">
                 <IconCamera className="size-7" />
               </span>
             )}
@@ -333,7 +332,7 @@ export function NicknameForm({ hasSession, userId, onJoined }: NicknameFormProps
               )}
               <Button
                 type="submit"
-                className="w-full bg-gradient-accent text-primary-foreground shadow-glow-accent hover:opacity-90"
+                className="w-full"
                 data-testid="join-nickname-submit"
                 disabled={form.formState.isSubmitting}
               >

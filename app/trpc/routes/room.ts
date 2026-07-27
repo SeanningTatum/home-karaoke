@@ -40,6 +40,31 @@ export const roomRouter = createTRPCRouter({
       )
     ),
 
+  // Dashboard "previous sessions" rail (feat-013): every room this host has
+  // opened, newest first, with a played-song count each. Same anonymous-guest
+  // rejection as `create` — a guest session has no rooms and no dashboard.
+  listMine: protectedProcedure.query(({ ctx }) =>
+    runProcedure(
+      ctx.runtime,
+      Effect.gen(function* () {
+        if (ctx.auth.user.isAnonymous) {
+          return yield* Effect.fail(
+            new TRPCError({
+              code: "FORBIDDEN",
+              message: "Sign in to see your sessions",
+            })
+          );
+        }
+        const repo = yield* RoomRepository;
+        const rooms = yield* repo.listRoomsByHost({
+          hostUserId: ctx.auth.user.id,
+        });
+        // The caller is the host — no need to echo their own user id back.
+        return rooms.map(({ hostUserId: _hostUserId, ...rest }) => rest);
+      })
+    )
+  ),
+
   // Public — guests need to resolve a room by code before they're
   // authenticated at all.
   get: publicProcedure

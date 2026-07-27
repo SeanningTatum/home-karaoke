@@ -5,7 +5,9 @@
   },
   "banner": {
     "idle": "队列为空 —— 扫码添加歌曲",
-    "singer": "演唱者 {{name}}"
+    "singer": "演唱者 {{name}}",
+    "now_singing": "正在演唱",
+    "remaining": "剩余 {{time}}"
   },
   "controls": {
     "play": "播放",
@@ -33,7 +35,9 @@
     "singer": "{{name}}",
     "you": "你",
     "drag_handle": "拖动以调整顺序",
-    "remove": "从队列中移除"
+    "remove": "从队列中移除",
+    "up_next": "接下来",
+    "next_up": "下一位"
   },
   "join": {
     "hint": "扫码加入并添加歌曲",
@@ -90,7 +94,8 @@
     "prompt": "扫码加入派对",
     "playback_hint": "用手机控制播放 —— 扫码打开“控制”标签页",
     "roster_title_other": "{{count}} 位嘉宾已加入",
-    "roster_empty": "扫码成为第一位加入的人"
+    "roster_empty": "扫码成为第一位加入的人",
+    "roster_short_other": "{{count}} 位客人"
   },
   "connection": {
     "connecting": "连接中…",

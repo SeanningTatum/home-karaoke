@@ -35,39 +35,62 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
   const { t } = useTranslation("room");
   const guests = roster.filter((entry) => entry.role === "guest");
 
-  // Compact strip for the playing-state rail — small chips, capped height,
-  // its own scroll region so it never steals space from the queue below.
+  // Compact band for the playing-state rail (feat-014) — an overlapping avatar
+  // cluster plus the count, instead of the old wrapping chip grid. The band is
+  // the rail's top zone and has a fixed cost either way, so it should read as a
+  // deliberate group photo rather than one lonely chip in 64px of space.
+  // Overflow past CLUSTER_LIMIT collapses into a "+N" disc, so the band's
+  // height never depends on how many people joined.
   if (size === "compact") {
+    const CLUSTER_LIMIT = 6;
+    const shown = guests.slice(0, CLUSTER_LIMIT);
+    const overflow = guests.length - shown.length;
+
     return (
-      <div
-        data-testid="room-roster-strip"
-        className="flex flex-col gap-2"
-      >
-        <p className="flex items-center gap-1.5 text-lg font-semibold text-muted-foreground">
+      <div data-testid="room-roster-strip" className="flex flex-col gap-3">
+        <p className="tv-eyebrow flex items-center gap-2 text-muted-foreground">
           <IconUsers className="size-5 shrink-0" aria-hidden />
+          {/* Short form in this band ("3 guests") rather than the lobby's full
+              sentence ("3 guests have joined"): mono caps at 0.18em tracking
+              is wide, and the avatar cluster right below already says who. */}
           {guests.length === 0
             ? t("lobby.roster_empty")
-            : t("lobby.roster_title", { count: guests.length })}
+            : t("lobby.roster_short", { count: guests.length })}
         </p>
         {guests.length > 0 && (
           <ul
             data-testid="room-roster-chips-compact"
-            className="flex max-h-24 flex-wrap gap-x-2 gap-y-2 overflow-y-auto pr-1"
+            className="flex items-center pl-1.5"
           >
-            {guests.map((entry) => (
-              // Compact rail chips show avatar/initials only — the nickname is
-              // kept as an accessible label (title + sr-only) so the rail stays
-              // dense while screen readers still announce who's here.
+            {shown.map((entry) => (
+              // Avatar/initials only — the nickname stays an accessible label
+              // (title + sr-only) so the band stays dense while screen readers
+              // still announce who's here. The negative margin overlaps each
+              // disc onto the previous one; the ring keeps them separable
+              // against the rail surface.
               <li
                 key={entry.userId}
                 data-testid="room-roster-chip"
                 title={entry.nickname}
-                className="animate-chip-in flex items-center"
+                className="animate-chip-in -ml-1.5 flex items-center"
               >
-                <InitialsAvatar name={entry.nickname} size="sm" src={entry.avatarUrl} />
+                <InitialsAvatar
+                  name={entry.nickname}
+                  size="sm"
+                  className="size-9 text-sm ring-2 ring-card"
+                  src={entry.avatarUrl}
+                />
                 <span className="sr-only">{entry.nickname}</span>
               </li>
             ))}
+            {overflow > 0 && (
+              <li
+                data-testid="room-roster-overflow"
+                className="-ml-1.5 flex size-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-foreground ring-2 ring-card"
+              >
+                +{overflow}
+              </li>
+            )}
           </ul>
         )}
       </div>
@@ -96,7 +119,7 @@ export function RosterStrip({ roster, size = "lobby" }: RosterStripProps) {
   return (
     <div
       data-testid="room-roster-strip"
-      className="flex h-full min-h-0 w-full flex-col gap-5 p-6 lg:p-8"
+      className="flex h-full min-h-0 w-full flex-col gap-6 p-8"
     >
       <p className="tv-label shrink-0 text-muted-foreground">
         {t("lobby.roster_title", { count: guests.length })}

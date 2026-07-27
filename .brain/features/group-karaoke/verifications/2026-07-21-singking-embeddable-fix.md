@@ -3,7 +3,7 @@
 **Date:** 2026-07-21
 **Change:** `youtube.search` now filters out videos whose owner disabled
 embedding; `resolveVideo` rejects them as a paste-a-link safety net (PR #10).
-**Verdict:** ✅ PASS
+- **Verdict**: ✅ PASS
 
 ## The real problem (empirically confirmed)
 

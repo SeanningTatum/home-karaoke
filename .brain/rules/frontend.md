@@ -3,7 +3,7 @@
 UI components, forms, modals, styling. **Source-of-truth files**: `app/components/**`, `app/routes/**/*.tsx`, `app/app.css`.
 
 > Programming model basics: see [`../codebase/effect-ts.md`](../codebase/effect-ts.md).
-> Visual language (karaoke "night-club stage" design system — palette, typography, TV type scale) for every user-visible surface: see [`../codebase/design-system.md`](../codebase/design-system.md), source of truth [`design.md`](../../design.md) at repo root.
+> Visual language (karaoke "Velvet Stage" design system — palette, typography, TV type scale) for every user-visible surface: see [`../codebase/design-system.md`](../codebase/design-system.md), source of truth [`design.md`](../../design.md) at repo root.
 
 ## Forms
 
@@ -94,6 +94,17 @@ Available semantic vars: `--background`, `--foreground`, `--card`, `--card-foreg
 4. Register in `@theme inline { --color-success: var(--success); ... }`
 5. Use as `bg-success text-success-foreground`
 
+**Velvet Stage accent discipline (feat-012):**
+- **Gradients are ambient-only** — `bg-stagelight` / `bg-stagelight-dim` on page/overlay backgrounds; **never on controls or text**. `bg-gradient-accent` / `text-gradient-accent` / `--accent-start` / `--accent-end` no longer exist — do not reintroduce them.
+- **Brass is punctuation, never interactive** — `text-brass` / `border-brass/*` / `ring-brass/*` mark the singer credit, the marquee underline rule, and the now-singing avatar ring. If it responds to input, it isn't brass; interactive accent is `--primary` only.
+- **Marquee treatments for room codes** — `tv-code` on the TV (Fraunces 80px over a `border-brass/60` rule); `code-marquee` at small sizes (JetBrains Mono, 0.18em tracking, uppercase, tabular-nums) for the corner ticket / phone header.
+
+**TV screen rules (`/room/:code`, feat-014):**
+- **The playing state forces dark** — its root container carries the literal `dark` class, so tokens inside resolve to Velvet Stage values whatever the app theme is (works because `next-themes` uses `attribute="class"` and `app.css` scopes dark tokens under `.dark`). A video letterbox is black in every theme. **Don't** hardcode dark hexes to achieve this, don't flip the app-level theme, and don't extend the pattern past the playing state — lobby / dashboard / landing / auth follow the user's theme.
+- **Titles are cleaned for display only** — render queue/now-playing titles via `cleanSongTitle(title, channel)` from `@/lib/song-title` (returns `{ song, artist, raw }`); use `formatDuration(seconds)` from the same module for the remaining-time readout. The **raw** YouTube title stays the stored/queue/history value — never persist the cleaned string.
+- **Type**: `tv-song` (28px) for the now-playing title, `tv-eyebrow` (18px mono, uppercase) for zone labels (`NOW SINGING`, `UP NEXT`). `tv-eyebrow` is deliberately below the 24px 10-foot floor — that rule governs primary content, not secondary labels (see `design.md` §4 for the three documented exceptions).
+- **Brass carries the `NEXT UP` callout** on the first queued row — still punctuation, not a control: the TV queue list is non-interactive (all playback lives on the host phone since feat-009).
+
 **Always use `cn()` from `@/lib/utils` for conditional classes.** Never template literals or string concat.
 
 ```tsx
@@ -120,7 +131,7 @@ Exception: gray scale OK for subtle layout (`border-gray-200 dark:border-gray-80
 - **Theme switcher** — one source: `themeItems` exported from `app/components/theme-toggle.tsx` (values double as `common.theme.*` i18n key suffixes; translate at the render site).
 - **Avatar initials** — `getInitials` from `@/lib/utils`, not per-component copies.
 - **Dates** — always through `app/lib/date-utils.ts` `formatDate` + `useTranslation().i18n.language`; never raw `toLocaleDateString("en-US", ...)` (breaks `zh`).
-- **Avatar photos (feat-011)** — render identity avatars via `InitialsAvatar` with the optional `src` prop (`src={entry.avatarUrl}` / `src={item.singerAvatarUrl}`); Radix `AvatarImage` auto-falls-back to the gradient initials, so never branch manually on photo presence. Photo capture pattern lives in `app/components/join/nickname-form.tsx`: hidden file input (accept jpeg/png/webp, no `capture` attr) → `downscaleAvatar` (512px square client-side) → object-URL preview (revoke on replace/unmount) → best-effort `POST /api/avatar` after the session flow — join must never block on a failed upload. Full flow: [`features/guest-avatars/guest-avatars.md`](../features/guest-avatars/guest-avatars.md).
+- **Avatar photos (feat-011)** — render identity avatars via `InitialsAvatar` with the optional `src` prop (`src={entry.avatarUrl}` / `src={item.singerAvatarUrl}`); Radix `AvatarImage` auto-falls-back to the initials fallback (`bg-secondary` + `text-primary` since feat-012 — the gradient fill is retired), so never branch manually on photo presence. Photo capture pattern lives in `app/components/join/nickname-form.tsx`: hidden file input (accept jpeg/png/webp, no `capture` attr) → `downscaleAvatar` (512px square client-side) → object-URL preview (revoke on replace/unmount) → best-effort `POST /api/avatar` after the session flow — join must never block on a failed upload. Full flow: [`features/guest-avatars/guest-avatars.md`](../features/guest-avatars/guest-avatars.md).
 
 ## Verification (browser proof before done)
 

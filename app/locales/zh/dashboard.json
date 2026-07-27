@@ -15,5 +15,34 @@
     "description": "你能看到这个页面,是因为 Better Auth 给你下发了一个 cookie。",
     "role_admin": "管理员",
     "role_user": "用户"
+  },
+  "sessions": {
+    "title": "往期派对",
+    "empty": "你的第一场派对会出现在这里。",
+    "live": "进行中",
+    "rejoin": "回到房间",
+    "songs_other": "{{count}} 首歌"
+  },
+  "playlists": {
+    "title": "精选歌单",
+    "coming_soon": "敬请期待",
+    "items": {
+      "throwbacks": {
+        "title": "2000年代金曲",
+        "body": "每个人都还能唱出每一句的热门歌曲。"
+      },
+      "duets": {
+        "title": "对唱之夜",
+        "body": "两支麦克风,一首歌——让大家结对合唱。"
+      },
+      "opm": {
+        "title": "OPM 经典",
+        "body": "经久不衰的菲律宾国民金曲。"
+      },
+      "crowd_pleasers": {
+        "title": "全场大合唱",
+        "body": "保证人人跟唱,队列永不冷场。"
+      }
+    }
   }
 }
