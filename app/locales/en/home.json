@@ -24,5 +24,49 @@
       "title": "Everybody queues songs",
       "body": "Anyone can search and add a song to the shared queue."
     }
+  },
+  "nav": {
+    "how_it_works": "How it works",
+    "features": "Features"
+  },
+  "features": {
+    "eyebrow": "Features",
+    "title": "Everything a party needs",
+    "items": {
+      "live_queue": {
+        "title": "Live shared queue",
+        "body": "Everyone's picks land in one queue that syncs to the TV instantly."
+      },
+      "no_app": {
+        "title": "No app to install",
+        "body": "Guests scan a QR code and they're in — nickname, no signup."
+      },
+      "search": {
+        "title": "Karaoke-first search",
+        "body": "YouTube search biased toward karaoke versions, or paste any link."
+      },
+      "host_controls": {
+        "title": "Host stays in control",
+        "body": "Play, pause, skip, volume, and reorder from the host's phone."
+      },
+      "reactions": {
+        "title": "Live reactions",
+        "body": "Emoji fly up the TV as the crowd cheers, with an end-of-song recap."
+      },
+      "avatars": {
+        "title": "Guest profiles",
+        "body": "Photos and avatars in the lobby so everyone sees who's in the room."
+      }
+    }
+  },
+  "cta": {
+    "title": "Start your first party",
+    "subline": "Open a room on the big screen and share the code — the queue fills itself.",
+    "button": "Host a party"
+  },
+  "footer": {
+    "github": "GitHub",
+    "sign_in": "Sign in",
+    "note": "Open source group karaoke"
   }
 }

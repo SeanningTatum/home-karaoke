@@ -14,9 +14,12 @@ export interface JoinPanelProps {
    * "lg" — the lobby hero panel: big display-font code, large QR, idle
    * glow ring, friendly prompt line. "sm" (default) — the persistent
    * corner panel shown while a song is playing, so guests can always join
-   * without the host having to leave the singing view.
+   * without the host having to leave the singing view. "stub" — the same
+   * corner affordance, but chrome-less: it lives *inside* the playing-state
+   * rail panel (feat-014), which owns the border and background, so a Card
+   * here would render a box inside a box.
    */
-  readonly size?: "lg" | "sm";
+  readonly size?: "lg" | "sm" | "stub";
   readonly className?: string;
 }
 
@@ -24,6 +27,44 @@ export interface JoinPanelProps {
 export function JoinPanel({ joinUrl, code, size = "sm", className }: JoinPanelProps) {
   const { t } = useTranslation("room");
   const isLarge = size === "lg";
+  const isStub = size === "stub";
+
+  // Chrome-less variant for inside the playing rail: no Card border/background,
+  // and the QR + code sit on one row so the stub costs the rail as little
+  // height as possible.
+  if (isStub) {
+    return (
+      <div
+        className={cn("flex items-center gap-4", className)}
+        data-testid="room-join-stub"
+      >
+        {/* Literal white, not a theme token — QR scanners need a light quiet
+            zone with dark modules on every surface. */}
+        <div
+          data-testid="room-join-qr"
+          className="flex shrink-0 items-center justify-center rounded-md bg-white p-1.5"
+        >
+          <QRCodeSVG value={joinUrl} size={96} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          {/* Deliberately NOT `tv-eyebrow` here: at 18px with 0.18em tracking
+              this sentence wrapped to three lines inside the ~180px the stub
+              leaves beside the QR. The code below is the payload that needs to
+              be readable from the couch; this line is a caption. */}
+          <span className="flex items-center gap-1.5 text-xs uppercase leading-snug tracking-wider text-muted-foreground">
+            <IconDeviceMobile className="size-3.5 shrink-0" />
+            {t("join.hint")}
+          </span>
+          <span
+            data-testid="room-code-text"
+            className="code-marquee whitespace-nowrap text-xl text-foreground"
+          >
+            {code}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const card = (
       <Card

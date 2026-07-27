@@ -99,6 +99,12 @@ Available semantic vars: `--background`, `--foreground`, `--card`, `--card-foreg
 - **Brass is punctuation, never interactive** — `text-brass` / `border-brass/*` / `ring-brass/*` mark the singer credit, the marquee underline rule, and the now-singing avatar ring. If it responds to input, it isn't brass; interactive accent is `--primary` only.
 - **Marquee treatments for room codes** — `tv-code` on the TV (Fraunces 80px over a `border-brass/60` rule); `code-marquee` at small sizes (JetBrains Mono, 0.18em tracking, uppercase, tabular-nums) for the corner ticket / phone header.
 
+**TV screen rules (`/room/:code`, feat-014):**
+- **The playing state forces dark** — its root container carries the literal `dark` class, so tokens inside resolve to Velvet Stage values whatever the app theme is (works because `next-themes` uses `attribute="class"` and `app.css` scopes dark tokens under `.dark`). A video letterbox is black in every theme. **Don't** hardcode dark hexes to achieve this, don't flip the app-level theme, and don't extend the pattern past the playing state — lobby / dashboard / landing / auth follow the user's theme.
+- **Titles are cleaned for display only** — render queue/now-playing titles via `cleanSongTitle(title, channel)` from `@/lib/song-title` (returns `{ song, artist, raw }`); use `formatDuration(seconds)` from the same module for the remaining-time readout. The **raw** YouTube title stays the stored/queue/history value — never persist the cleaned string.
+- **Type**: `tv-song` (28px) for the now-playing title, `tv-eyebrow` (18px mono, uppercase) for zone labels (`NOW SINGING`, `UP NEXT`). `tv-eyebrow` is deliberately below the 24px 10-foot floor — that rule governs primary content, not secondary labels (see `design.md` §4 for the three documented exceptions).
+- **Brass carries the `NEXT UP` callout** on the first queued row — still punctuation, not a control: the TV queue list is non-interactive (all playback lives on the host phone since feat-009).
+
 **Always use `cn()` from `@/lib/utils` for conditional classes.** Never template literals or string concat.
 
 ```tsx

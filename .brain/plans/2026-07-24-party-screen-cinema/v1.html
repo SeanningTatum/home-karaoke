@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Party screen rethink — the playing state as a cinema</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 78ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 0 4px; font-size: 0.9em; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-draft { background: var(--surface); color: var(--muted); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue { border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em; background: var(--fg); color: #fff; }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  pre.wire { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-3); overflow-x: auto;
+    font-size: 12px; line-height: 1.45; color: var(--fg-secondary); }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+  .num { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Party screen rethink — the playing state as a cinema</h1>
+  <div>
+    <span>2026-07-24</span> ·
+    <span>feature: party-screen-cinema (feat-014)</span> ·
+    <span class="chip chip-status-draft">draft</span> ·
+    <span>round 0</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>The playing screen currently spends <span class="num">128px</span> of vertical space
+  on a two-line raw YouTube title, floats an empty queue in <span class="num">~250px</span>
+  of void, and on the light theme puts a hard-black video box on cream paper. This plan
+  treats the playing state as what it actually is — <mark>a cinema: the video is the only
+  hero, everything else is instrumentation</mark> — with a cleaned single-line now-playing
+  bar, a rail that reads as one instrument panel, a real type scale, and a decision about
+  whether this screen should ever be light at all.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>Checkpoint 2026-07-24: feat-013 layout-evolution shipped (PR #13) — that pass unified
+  the party screen's 24/32px rhythm, content-sized the roster board, and folded the playing
+  top bar into the rail. It did <em>not</em> touch type, the now-playing block, the rail's
+  internal composition, or the light theme (feat-012 policy: light shipped token-level,
+  QA'd dark-only).</p>
+  <p>Sean's screenshot is the light theme, mid-song, and it shows exactly where that policy
+  ran out of road. I re-drove the screen and measured it rather than eyeballing:</p>
+
+  <table>
+    <thead><tr><th>Measured (1512×900 / 1920×1080)</th><th>Now</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td>Now-playing block height</td><td><span class="num">112px</span> + 16px gap</td>
+        <td>Two lines of 36px Fraunces — the raw title <code>Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)</code> wraps, and feat-013's 2-line reserve keeps that height even when it doesn't</td></tr>
+      <tr><td>Video height</td><td><span class="num">76%</span> / 79% of viewport</td>
+        <td>The hero is losing a fifth of the screen to chrome</td></tr>
+      <tr><td>Queue panel with an empty queue</td><td><span class="num">389px</span> tall, text top-anchored</td>
+        <td>~250px of visible void in the middle of the rail</td></tr>
+      <tr><td>Participants strip</td><td><span class="num">64px</span>, one 24px avatar</td>
+        <td>A whole band of rail for one chip; reads as a stray line, not a panel</td></tr>
+      <tr><td>Rail right margin vs page left</td><td><span class="num">4px</span> vs 80px</td>
+        <td>Deliberate (beta feedback) but visibly lopsided on a laptop</td></tr>
+      <tr><td>Light theme</td><td>cream page + <code>bg-black</code> video box + brass credit</td>
+        <td>Letterbox black on warm paper reads as broken, and brass on cream goes mustard</td></tr>
+    </tbody>
+  </table>
+
+  <p>References pulled for this pass (Refero): <strong>YouTube Music</strong>'s watch screen
+  (dark viewer, compact metadata, UP NEXT rail) and <strong>Prime Video X-Ray</strong>
+  (large left viewport + fixed right info sidebar). Both confirm the same conclusion:
+  the viewer stays dark and the metadata stays out of the video's way.</p>
+</section>
+
+<section id="wireframes">
+  <h2>Before → after</h2>
+  <pre class="wire">
+NOW (measured)                                    PROPOSED
+┌──────────────────────────────┬──────────┐      ┌──────────────────────────────┬──────────┐
+│ Rick Astley - Never Gonna    │ 👥 1 guest│      │ ▸ NOW SINGING            [S] │ 👥 3 · ●●●│ ← header band:
+│ Give You Up (Official Video) │ [s]      │      │ Never Gonna Give You Up · Sean│──────────│   guests + count
+│ (4K Remaster)          112px │──────────│      │  ↑ cleaned, ONE line, 28px    │ UP NEXT 2│
+│ sung by Sean                 │ Queue  0 │      ├──────────────────────────────┤ ┌──────┐ │
+├──────────────────────────────┤          │      │                              │ │ song │ │
+│                              │ Queue is │      │                              │ └──────┘ │
+│                              │ empty —  │      │                              │ ┌──────┐ │
+│         VIDEO                │ scan…    │      │          VIDEO               │ │ song │ │
+│        76% of h              │          │      │        ~86% of h             │ └──────┘ │
+│                              │  ~250px  │      │                              │          │
+│                              │   VOID   │      │   flush frame, no extra      │ (empty:  │
+│                              │          │      │   black box on light         │  anchored│
+│                              │ ┌──────┐ │      │                              │  hint +  │
+│                              │ │ QR   │ │      │                              │  arrow)  │
+│                              │ │ TICKET│ │      ├──────────────────────────────┤──────────│
+└──────────────────────────────┴──────────┘      └──────────────────────────────┤ QR stub  │
+                                                                                └──────────┘
+                                                  ↑ one continuous rail: 3 zones, 1 divider
+                                                    rhythm, ticket = stub attached at bottom
+  </pre>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-theater-theme" data-brain-action>
+    <p><strong>1. Should the playing screen ever be light?</strong> This is the ugliest thing
+    in your screenshot: a black-bordered video box sitting on cream paper, with the brass
+    singer credit going mustard.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-theater-theme" id="opt-theater-dark"
+            value="Playing state is always the dark theater surface, regardless of theme (lobby and the rest of the app still follow the theme)" checked data-brain-action></td>
+          <td><label for="opt-theater-dark">Always dark while a song plays
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>The playing state pins itself to the Velvet Stage dark surface even when
+            the app theme is Matinee. Lobby, dashboard, landing, auth all still follow the
+            theme. Matches every cinema/player convention (YT Music, Prime Video, Netflix)
+            — the video is the light source, the room goes dark.</small></label></td>
+          <td>Kills the clash outright; the video always looks intentional; brass/pink stay on their tuned dark values</td>
+          <td>A host who deliberately picked light gets a dark screen mid-song (arguably the point)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-theater-theme" id="opt-theater-artdirect"
+            value="Art-direct a real light playing screen: warm frame, no hard black, brass retuned" data-brain-action></td>
+          <td><label for="opt-theater-artdirect">Art-direct a proper light version</label><br/>
+            <small>Warm paper frame around the video, no hard black box, credit color retuned for cream</small></td>
+          <td>Honors the theme choice everywhere</td>
+          <td>YouTube's own player chrome is black — you can style around the frame but not inside it; more work for a surface that fights its content</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-theater-theme" id="opt-theater-keep"
+            value="Leave the light playing screen as-is, fix only spacing and type" data-brain-action></td>
+          <td><label for="opt-theater-keep">Leave it, fix only spacing/type</label></td>
+          <td>Smallest diff</td>
+          <td>The thing you screenshotted stays broken</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-theater-theme','Should the playing screen ever be light?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-theater-theme"></span>
+  </div>
+
+  <div class="decision-card" id="decision-metadata" data-brain-action>
+    <p><strong>2. Where does the now-playing metadata go?</strong> Today: a 36px two-line
+    title plus a brass credit line, stacked above the video, costing 128px.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-metadata" id="opt-meta-bar"
+            value="Slim single-line now-playing bar above the video: NOW SINGING eyebrow + cleaned title + singer chip with avatar, one row, ~64px" checked data-brain-action></td>
+          <td><label for="opt-meta-bar">Slim single-line bar above the video
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>One row: a small <code>NOW SINGING</code> eyebrow, the cleaned title at
+            28px, and the singer as an avatar chip on the same line (right-aligned on wide
+            screens). ~64px instead of 128px → video goes to ~86%.</small></label></td>
+          <td>Singer stays big and adjacent to the video (it's the social payload); recovers ~64px; no overlay risk over lyrics</td>
+          <td>Very long titles must truncate rather than wrap (mitigated by decision 3)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-metadata" id="opt-meta-rail"
+            value="Move now-playing into the rail as a card; video takes the full column height" data-brain-action></td>
+          <td><label for="opt-meta-rail">Move it into the rail</label><br/>
+            <small>Rail gets a "Now singing" card on top; video owns the whole main column</small></td>
+          <td>Maximum video height (~95%)</td>
+          <td>Buries the singer's name in a 311px column — the one thing the room looks up for</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-metadata" id="opt-meta-overlay"
+            value="Overlay the metadata on the video's top edge, auto-fading after a few seconds" data-brain-action></td>
+          <td><label for="opt-meta-overlay">Fading overlay on the video</label></td>
+          <td>Zero permanent chrome</td>
+          <td>Karaoke videos put lyrics near the top; an overlay competes with the words people are singing</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-metadata','Where does the now-playing metadata go?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-metadata"></span>
+  </div>
+
+  <div class="decision-card" id="decision-title-clean" data-brain-action>
+    <p><strong>3. Do we clean the YouTube title?</strong> Real strings from this repo's own
+    D1 right now: <code>Teenage Dirtbag - Wheatus | Karaoke Version | KaraFun</code>,
+    <code>DANCING QUEEN -&nbsp; ABBA (HD Karaoke)</code>,
+    <code>PSY - GANGNAM STYLE(강남스타일) M/V</code>, <code>Darude - Sandstorm</code>,
+    <code>Bohemian Rhapsody</code>. Half of each string is noise on a TV.</p>
+    <p><mark>Correction to my own first draft:</mark> I originally wrote "split on the first
+    hyphen, left side is the artist" — checking the real rows, that would have mangled the
+    exact song in your screenshot. Karaoke channels publish <em>Song - Artist</em>
+    (<code>Teenage Dirtbag - Wheatus</code>) while official channels publish
+    <em>Artist - Song</em> (<code>Darude - Sandstorm</code>). Fortunately the queue payload
+    already carries <code>channel</code>, so the rule below decides the direction from data
+    instead of guessing: <strong>if the left segment matches the channel name, the left side
+    is the artist; otherwise assume the karaoke convention.</strong> Verified by hand against
+    all five strings above.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-title-clean" id="opt-title-full"
+            value="Add a channel-aware cleanSongTitle helper: strip karaoke/version/quality noise, then split song from artist using the queue item's channel field to decide which side is which" checked data-brain-action></td>
+          <td><label for="opt-title-full">Clean + channel-aware song/artist split
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>Pure helper in <code>app/lib/song-title.ts</code> (unit-tested per the
+            non-negotiables): strips <code>| Karaoke Version</code>, channel tails
+            (<code>KaraFun</code>, <code>Sing King</code>…), <code>(HD Karaoke)</code>,
+            <code>(Official Video)</code>, <code>(4K Remaster)</code>, <code>[HD]</code>,
+            <code>M/V</code>, <code>Lyrics</code>, collapses double spaces — then splits on
+            the first <code>-</code> and uses <code>channel</code> to pick the direction.
+            Results: <em>Teenage Dirtbag</em> · Wheatus, <em>Sandstorm</em> · Darude,
+            <em>GANGNAM STYLE</em> · PSY, <em>DANCING QUEEN</em> · ABBA,
+            <em>Bohemian Rhapsody</em> (no artist). Raw title always kept as the
+            accessible/full value, and any cleaning that would leave nothing falls back to
+            it.</small></td>
+          <td>The TV shows the song, not SEO cruft; the title then genuinely fits one line; direction comes from data we already have, not a coin flip; pure + testable</td>
+          <td>An exotic title can still mis-split — hence the raw-title fallback and keeping the original available on hover/a11y</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-title-clean" id="opt-title-noise"
+            value="Strip bracketed/pipe noise only, no artist split" data-brain-action></td>
+          <td><label for="opt-title-noise">Strip noise only, no split</label></td>
+          <td>Safer heuristics</td>
+          <td>Still renders <code>Artist - Song</code> as one long line with no hierarchy</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-title-clean" id="opt-title-raw"
+            value="Keep the raw title, just clamp it" data-brain-action></td>
+          <td><label for="opt-title-raw">Keep raw, clamp it</label></td>
+          <td>No new code</td>
+          <td>Guarantees the two-line 36px block you're looking at now</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-title-clean','Do we clean the YouTube title?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-title-clean"></span>
+  </div>
+
+  <div class="decision-card" id="decision-rail" data-brain-action>
+    <p><strong>4. How is the right rail composed?</strong> Today it's three unrelated blocks
+    (participants line / queue panel / QR card) with a 250px void in the middle when the
+    queue is empty.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-rail" id="opt-rail-panel"
+            value="One continuous instrument panel: header band (guest avatars + count), UP NEXT list filling the middle with a top-anchored empty state, QR ticket as a stub attached at the bottom, hairline dividers instead of three floating cards" checked data-brain-action></td>
+          <td><label for="opt-rail-panel">One continuous panel, three zones
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>Header band (avatar cluster + guest count) → <code>UP NEXT</code> list
+            that fills the middle, its empty state anchored right under the header instead of
+            floating → QR ticket as a stub attached at the bottom edge. Hairline dividers,
+            one 24px rhythm, no card-on-card.</small></label></td>
+          <td>Void disappears by construction; rail reads as one instrument; scales from 0 to 20 queued songs</td>
+          <td>Touches the rail markup (still no logic change)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-rail" id="opt-rail-gaps"
+            value="Keep the three separate cards, just fix the gaps and anchor the empty state" data-brain-action></td>
+          <td><label for="opt-rail-gaps">Keep 3 cards, fix gaps only</label></td>
+          <td>Smallest diff</td>
+          <td>Still three competing containers in a 311px column</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-rail" id="opt-rail-chip"
+            value="Drop the QR ticket to a small code chip in the header to free rail height" data-brain-action></td>
+          <td><label for="opt-rail-chip">Shrink the QR to a code chip</label></td>
+          <td>Most room for the queue</td>
+          <td>Late arrivals can't scan mid-song — that ticket exists because of earlier beta feedback</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-rail','How is the right rail composed?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-rail"></span>
+  </div>
+</section>
+
+<section id="type-scale">
+  <h2>Type scale for the playing screen</h2>
+  <p>Everything primary stays ≥24px per the 10-foot rule; the rail's documented 16px
+  exception for cramped queue rows stands. Strike anything you disagree with.</p>
+  <ul data-brain-section="type-scale">
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><span data-item-text data-brain-action>Song title: 36px → 28px Fraunces 600, single line, truncate (the cleaned title fits — measured against the two real examples).</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><span data-item-text data-brain-action>"NOW SINGING" eyebrow: 18px mono, uppercase, 0.18em tracking, muted — the label that makes the 28px title read as a title, not a heading.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><span data-item-text data-brain-action>Singer: brass italic text → an avatar chip (32px avatar + 24px name) on the same row as the title. Brass stays as the name's color, so the credit keeps its punctuation role.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><span data-item-text data-brain-action>Artist/source (from the title split): 20px muted, right after the song title with a middot separator — dropped entirely if the split found nothing.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="4"><span data-item-text data-brain-action>Rail zone labels ("UP NEXT", guest count): 20px mono uppercase 0.14em tracking — one consistent label voice for all three zones, replacing today's mix of tv-title-sm serif and 18px semibold.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="5"><span data-item-text data-brain-action>Queue rows: keep the 16px 2-line clamp (documented beta exception) but bump the singer line to 15px and the thumbnail to 56px so a row reads at a glance from the couch.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="6"><span data-item-text data-brain-action>Room code on the ticket stub: keep code-marquee mono but drop to 20px — it's a persistent reference, not the lobby hero.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="type-scale">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a type rule..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="spacing">
+  <h2>Spacing &amp; framing fixes</h2>
+  <ul data-brain-section="spacing">
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><span data-item-text data-brain-action>Now-playing bar → video gap: 16px, and the bar itself gets no bottom border — the video's own top edge is the divider.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><span data-item-text data-brain-action>Drop the extra rounded black box around the player: the video sits flush in its flex box with a hairline ring, so on any theme there's no second black frame competing with YouTube's own chrome.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><span data-item-text data-brain-action>Balance the page frame: top and bottom padding equal (48px at 1080p) so the video is optically centered instead of 48px top / 45px bottom by accident.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><span data-item-text data-brain-action>Rail: give the panel a 16px inset from the screen edge instead of the current 4px, so it stops looking lopsided against the 80px left margin (still far tighter than the old dead 80px gutter).</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="4"><span data-item-text data-brain-action>Rail width 336px → 380px at ≥1600px viewports (queue rows are the cramped element; the extra 44px buys a readable title line) and stays 336px below that.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="5"><span data-item-text data-brain-action>Empty queue state: anchored 24px under the UP NEXT label (not vertically centered in the leftover space), with a quiet "scan the code to add songs" line pointing at the ticket stub below.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="6"><span data-item-text data-brain-action>Guest header band: avatar cluster (overlapping, up to 6 + "+N") replacing the single-chip row, so the band is worth its 64px.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="7"><span data-item-text data-brain-action>Keep the two-line reserve OFF now that the title is one line — the video no longer needs to absorb a wrap, so it gets that height permanently.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="spacing">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a spacing fix..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="plan-of-record">
+  <h2>Plan of record</h2>
+  <ol data-brain-section="plan-of-record">
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 —</strong> <span data-item-text data-brain-action><code>app/lib/song-title.ts</code>: pure cleanSongTitle helper + unit tests (real-world strings from the seed/verification runs as fixtures).</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><strong>Phase 2 —</strong> <span data-item-text data-brain-action>Now-playing bar: rebuild NowSingingBanner's tv variant as the single-line eyebrow + title + singer chip, wired to the helper.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><strong>Phase 3 —</strong> <span data-item-text data-brain-action>Rail as one panel: header band with avatar cluster, UP NEXT zone with anchored empty state, ticket stub; dividers + 24px rhythm.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><strong>Phase 4 —</strong> <span data-item-text data-brain-action>Theater surface + framing: pin the playing state to the dark surface (per decision 1), drop the extra black player box, balance page padding, rail inset/width.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="4"><strong>Phase 5 —</strong> <span data-item-text data-brain-action>Verify: measured re-capture at 1512×900 and 1920×1080 in both themes (video ≥85% of viewport, zero rail void, one-line title), feature-verifier walk, verify-done, ship + PR.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="scope">
+  <h2>Scope &amp; guardrails</h2>
+  <ul>
+    <li><strong>In scope:</strong> the playing state of <code>/room/:code</code> and the components it owns (now-singing banner, queue rail TV variant, roster strip compact, join ticket sm).</li>
+    <li><strong>Inherited, not redesigned:</strong> the lobby uses the same rail children, so it gets the type/label changes for free — but its two-column structure is untouched.</li>
+    <li><strong>Out of scope:</strong> phone join tabs, dashboard, landing, admin, auth.</li>
+    <li><strong>Frozen:</strong> every <code>data-testid</code>, all i18n keys (new strings land en+zh together), the ≥24px 10-foot rule for primary text, no gradient controls, brass never interactive.</li>
+    <li><strong>Cleaned titles are display-only</strong> — the raw <code>title</code> stays the stored/queue/history value, so nothing downstream (history, search cache, phone tabs) changes meaning.</li>
+  </ul>
+</section>
+
+<section id="testing">
+  <h2>Testing plan</h2>
+  <ul class="checklist" data-brain-section="testing">
+    <template>
+      <li data-brain-item><label><input type="checkbox" /> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    </template>
+    <li data-brain-item="0"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>Unit: cleanSongTitle over real strings — KaraFun/Sing King tails, (Official Video), (4K Remaster), [HD], Lyrics, no-hyphen titles, hyphens inside a song name, empty-after-cleaning fallback to raw.</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>Measured re-capture: video ≥85% of viewport height, now-playing bar ≤72px, zero rail gap >32px, title on one line — at 1512×900 and 1920×1080, both themes.</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>feature-verifier walk of the playing state incl. a 3-song queue (not just empty) and a long-title song, plus the lobby to prove no regression there.</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>Full suite + e2e smoke stay green; zh spot-check on any new copy.</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><span data-item-text data-brain-action>Should the rail show a "next up: {nickname}" callout for the song after the current one, so the next singer can get ready?</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><span data-item-text data-brain-action>Do you want a song progress bar / remaining-time indicator on the TV, or is that noise (the YouTube player already shows one on hover)?</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+</script>
+
+<script>
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

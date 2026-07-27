@@ -149,6 +149,36 @@ describe("RoomRepository.createRoom", () => {
   });
 });
 
+describe("RoomRepository.listRoomsByHost", () => {
+  it.effect("returns rooms with numeric song counts", () => {
+    // The grouped-join select yields { room, songCount } rows; the repo
+    // flattens them and coerces songCount (SQLite count() can surface as a
+    // string through the driver) to a number.
+    const rows = [
+      { room: { id: "r2", code: "BBB-BBB", status: "closed" }, songCount: "14" },
+      { room: { id: "r1", code: "AAA-AAA", status: "closed" }, songCount: 0 },
+    ];
+    const stub = { select: () => chainable(rows) };
+    return Effect.gen(function* () {
+      const repo = yield* RoomRepository;
+      const result = yield* repo.listRoomsByHost({ hostUserId: "host-1" });
+      expect(result).toEqual([
+        { id: "r2", code: "BBB-BBB", status: "closed", songCount: 14 },
+        { id: "r1", code: "AAA-AAA", status: "closed", songCount: 0 },
+      ]);
+    }).pipe(Effect.provide(provideStub(stub)));
+  });
+
+  it.effect("returns an empty list for a host with no rooms", () => {
+    const stub = { select: () => chainable([]) };
+    return Effect.gen(function* () {
+      const repo = yield* RoomRepository;
+      const result = yield* repo.listRoomsByHost({ hostUserId: "host-none" });
+      expect(result).toEqual([]);
+    }).pipe(Effect.provide(provideStub(stub)));
+  });
+});
+
 describe("RoomRepository.closeRoom", () => {
   it.effect("fails with RoomNotFoundError when missing", () => {
     const stub = { select: () => chainable([]) };

@@ -5,7 +5,9 @@
   },
   "banner": {
     "idle": "Queue is empty — scan to add songs",
-    "singer": "sung by {{name}}"
+    "singer": "sung by {{name}}",
+    "now_singing": "Now singing",
+    "remaining": "{{time}} left"
   },
   "controls": {
     "play": "Play",
@@ -34,7 +36,9 @@
     "singer": "{{name}}",
     "you": "You",
     "drag_handle": "Drag to reorder",
-    "remove": "Remove from queue"
+    "remove": "Remove from queue",
+    "up_next": "Up next",
+    "next_up": "Next up"
   },
   "join": {
     "hint": "Scan to join & add songs",
@@ -94,7 +98,9 @@
     "playback_hint": "Control playback from your phone — scan to open the Controls tab",
     "roster_title_one": "{{count}} guest has joined",
     "roster_title_other": "{{count}} guests have joined",
-    "roster_empty": "Be the first to scan and join"
+    "roster_empty": "Be the first to scan and join",
+    "roster_short_one": "{{count}} guest",
+    "roster_short_other": "{{count}} guests"
   },
   "connection": {
     "connecting": "Connecting…",

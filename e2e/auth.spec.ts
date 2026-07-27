@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { waitForHydration } from "./helpers/hydration";
 
 /**
  * Authentication golden path.
@@ -23,6 +24,9 @@ test.describe("Authentication", () => {
   test("signup → dashboard, signout → login, signin → dashboard", async ({ page }) => {
     // 1. Sign up
     await page.goto("/sign-up");
+    // These forms are SSR'd; clicking before React attaches its submit handler
+    // posts the form as a native GET. See e2e/helpers/hydration.ts.
+    await waitForHydration(page, '[data-testid="signup-submit"]');
     await page.fill('[data-testid="signup-name"]', name);
     await page.fill('[data-testid="signup-email"]', email);
     await page.fill('[data-testid="signup-password"]', password);
@@ -47,6 +51,7 @@ test.describe("Authentication", () => {
     await page.waitForURL("/login");
 
     // 3. Sign back in with the same credentials.
+    await waitForHydration(page, '[data-testid="login-submit"]');
     await page.fill('[data-testid="login-email"]', email);
     await page.fill('[data-testid="login-password"]', password);
     await page.click('[data-testid="login-submit"]');
@@ -56,6 +61,7 @@ test.describe("Authentication", () => {
 
   test("login form rejects bad credentials", async ({ page }) => {
     await page.goto("/login");
+    await waitForHydration(page, '[data-testid="login-submit"]');
     await page.fill('[data-testid="login-email"]', "nobody@test.local");
     await page.fill('[data-testid="login-password"]', "WrongPass123!");
     await page.click('[data-testid="login-submit"]');

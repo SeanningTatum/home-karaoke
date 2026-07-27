@@ -185,6 +185,36 @@
       "owners": [
         "sean"
       ]
+    },
+    {
+      "id": "feat-013",
+      "name": "Layout Evolution",
+      "slug": "layout-evolution",
+      "doc": ".brain/features/layout-evolution/layout-evolution.md",
+      "description": "Layout rethink on three surfaces, building on Velvet Stage (feat-012): (1) landing becomes a full single-scroll marketing site (sticky nav, product-shot hero with join card, how-it-works, 6-feature grid, marquee CTA band, footer with GitHub link); (2) dashboard re-imagined as a host hub — stagelight hero with Start-a-party CTA, Previous-sessions rail on real data (new RoomRepository.listRoomsByHost + room.listMine tRPC query), Featured-playlists rail as visible coming-soon placeholder; (3) party screen spacing pass (unified 24/32px TV rhythm, content-sized roster panel, playing top bar folded into the rail). Session cards are summary-only (no detail view). Plan: plans/layout-evolution.html (reviewed 2026-07-24, round 1, 5/5 decisions on recommended options).",
+      "dependencies": [
+        "feat-012"
+      ],
+      "status": "shipped",
+      "evidence": "Verification .brain/features/layout-evolution/verifications/2026-07-24.md PASS 6/6 golden path + 1/1 error path, zero app console errors; 523/523 unit tests; e2e smoke 3/3; build green; 8 screenshots; plan plans/layout-evolution.html reviewed round 1 (5/5 decisions on recommended options).",
+      "owners": [
+        "sean"
+      ]
+    },
+    {
+      "id": "feat-014",
+      "name": "Party Screen Cinema",
+      "slug": "party-screen-cinema",
+      "doc": ".brain/features/party-screen-cinema/party-screen-cinema.md",
+      "description": "Rethink the playing state of /room/:code as a cinema — the video is the hero, everything else is instrumentation. (1) Playing state pins itself to the dark theater surface regardless of app theme (lobby/dashboard/landing still follow the theme). (2) Now-playing collapses from a 128px two-line block to a ~64px single-line bar: NOW SINGING eyebrow + cleaned 28px title + singer avatar chip, recovering ~10% of viewport height for the video. (3) New channel-aware cleanSongTitle helper (app/lib/song-title.ts) strips karaoke/quality noise and splits song from artist using the queue item's channel field to decide direction. (4) Right rail becomes one continuous instrument panel: guest avatar cluster band, UP NEXT list filling the middle with a top-anchored empty state, QR ticket stub at the bottom — removing the ~250px void an empty queue used to leave. Plus (approved from the plan's open questions) a NEXT UP callout on the first queued song and a quiet song-progress/remaining-time indicator on the TV. Plan: plans/party-screen-cinema.html (reviewed 2026-07-24, round 1, 4/4 decisions on recommended options + both open questions approved for exploration).",
+      "dependencies": [
+        "feat-013"
+      ],
+      "status": "shipped",
+      "evidence": "Verification .brain/features/party-screen-cinema/verifications/2026-07-24.md PASS — golden path (lobby regression, 3-song queue, start party, cinema playing state, theater-surface light/dark split) + error path, zero app console errors, 12 screenshots. 541/541 unit (18 new song-title tests); e2e 3/3 after fixing a pre-existing hydration race; typecheck clean; build green. Measured: now-playing 112px+16 -> 59px, video 76%->80% (1512x900) and 79%->82% (1920x1080), empty up-next anchored 14px under its label (was ~250px void). Plan plans/party-screen-cinema.html reviewed round 1 (4/4 decisions + 2 open questions).",
+      "owners": [
+        "sean"
+      ]
     }
   ]
 }

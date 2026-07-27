@@ -52,6 +52,16 @@ export interface YoutubePlayerProps {
   readonly onVideoError: () => void;
   readonly className?: string;
   /**
+   * Playback position ticks (feat-014) — polled from the player itself roughly
+   * twice a second while a video is loaded, so the TV can show a progress line
+   * and a remaining-time readout. Local to this screen: nothing here touches
+   * the room WebSocket, so a 20-guest party pays no extra traffic for it.
+   */
+  readonly onProgress?: (progress: {
+    readonly currentTime: number;
+    readonly duration: number;
+  }) => void;
+  /**
    * "fill" — the container fills its parent box (`h-full w-full`) and lets
    * the YouTube IFrame letterbox the video inside it (black bars against the
    * `bg-black` surface), so the video can be sized by an outer flex/grid box
@@ -66,6 +76,7 @@ export function YoutubePlayer({
   onVideoEnded,
   onVideoError,
   className,
+  onProgress,
   fill = false,
 }: YoutubePlayerProps) {
   const { t } = useTranslation("room");
@@ -76,6 +87,8 @@ export function YoutubePlayer({
   onVideoEndedRef.current = onVideoEnded;
   const onVideoErrorRef = useRef(onVideoError);
   onVideoErrorRef.current = onVideoError;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
 
   const [apiReady, setApiReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
@@ -158,6 +171,24 @@ export function YoutubePlayer({
 
     if (playback) player.setVolume(playback.volume);
   }, [playback, playerReady]);
+
+  // Position poll. Read through a ref so changing the callback never restarts
+  // the interval, and only while a video is actually loaded — `getDuration()`
+  // returns 0 until metadata arrives, which is the signal to stay quiet rather
+  // than report a bogus 0-length song.
+  useEffect(() => {
+    if (!playerReady) return;
+    const tick = () => {
+      const player = playerRef.current;
+      if (!player || !onProgressRef.current) return;
+      const duration = player.getDuration?.() ?? 0;
+      const currentTime = player.getCurrentTime?.() ?? 0;
+      if (duration > 0) onProgressRef.current({ currentTime, duration });
+    };
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [playerReady]);
 
   const handleTapToPlay = () => {
     playerRef.current?.playVideo();

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Layout evolution — marketing landing, dashboard, party screen</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --fg: #141413; --fg-secondary: #3d3d3a;
+    --muted: #73726c; --border: #dedcd1; --highlight: #fff7ca; --accent: #d97757;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-6: 40px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--fg); line-height: 1.6;
+    max-width: 76ch; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  }
+  h1, h2, h3 {
+    font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-weight: 600; line-height: 1.25; color: var(--fg);
+  }
+  h1 { font-size: 1.75em; }
+  h2 { font-size: 1.3em; font-weight: 500; margin-top: var(--space-6);
+    border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+  h3 { font-size: 1.05em; font-weight: 500; }
+  p, li { color: var(--fg-secondary); }
+  mark, .highlight { background: var(--highlight); color: var(--fg); padding: 0 2px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid var(--border); }
+  .chip-status-draft { background: var(--surface); color: var(--muted); }
+  .decision-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-4); margin: var(--space-4) 0; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid
+    var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag-recommended { color: var(--accent); font-weight: 600; }
+  .btn-queue { border: none; border-radius: 10px; padding: 8px 16px; font-weight: 600;
+    cursor: pointer; font-size: 0.95em; background: var(--fg); color: #fff; }
+  .queue-ack { margin-left: var(--space-3); font-size: 0.9em; color: var(--muted); }
+  pre.wire { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: var(--space-3); overflow-x: auto;
+    font-size: 12.5px; line-height: 1.45; color: var(--fg-secondary); }
+  pre.mermaid { text-align: center; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; padding: var(--space-3); }
+  pre.mermaid svg { display: block; margin: 0 auto; }
+  .item-x, .item-restore, .list-add-btn { cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px; font-size: 0.85em; padding: 1px 8px;
+    color: var(--fg-secondary); }
+  [data-item-text] { cursor: text; }
+  .item-removed { opacity: 0.5; }
+  .item-removed [data-item-text] { text-decoration: line-through; }
+  .item-edited [data-item-text] { border-bottom: 2px dotted var(--accent); }
+  .item-badge { font-size: 0.75em; color: var(--muted); margin-left: 6px; font-style: italic; }
+  .item-badge-proposed { color: var(--accent); }
+  .item-proposed { border-left: 2px dashed var(--accent); padding-left: 6px; }
+  .list-add-row { display: flex; gap: 8px; margin-top: var(--space-2); }
+  .list-add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); color: var(--fg); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { margin: var(--space-2) 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Layout evolution — marketing landing, dashboard, party screen</h1>
+  <div>
+    <span>2026-07-24</span> ·
+    <span>feature: layout-evolution (feat-013)</span> ·
+    <span class="chip chip-status-draft">draft</span> ·
+    <span>round 0</span>
+  </div>
+</header>
+
+<section id="tldr">
+  <h2>TL;DR</h2>
+  <p>Velvet Stage (feat-012) gave us the right skin; this plan gives the pages the right
+  bones. Three surfaces: the home page becomes a <mark>real marketing website</mark>
+  (nav, product-shot hero, feature story, CTA band, footer), the dashboard is
+  <mark>re-imagined as a host hub</mark> with previous sessions (real data — it already
+  exists in D1) and a featured-playlists rail (visual placeholder for a future
+  queue-ahead feature), and the party screen gets a <mark>spacing & rhythm pass</mark>
+  so the TV layout stops feeling cramped and arbitrary.</p>
+</section>
+
+<section id="context">
+  <h2>Context</h2>
+  <p>Checkpoint 2026-07-24: "feat-012 visual-redesign shipped + PR #12 opened" — tokens,
+  Fraunces marquee, gradient retirement, per-page skin passes. Sean's follow-up feedback:
+  <em>"I like the changes that we made but we need to improve the layout all throughout the
+  app"</em> — home should be a legit marketing site, dashboard should anticipate previous
+  sessions + featured playlists, party screen spacing feels off.</p>
+  <p>What the backend already has (verified today): <code>room</code> (code, hostUserId,
+  status, createdAt, closedAt), <code>roomSong</code> (per-room played history with
+  playedAt), <code>song</code> (title, thumbnailUrl). What it lacks: a "list my past
+  rooms" query and a per-room history query — nothing lists rooms by host today. So
+  "previous sessions" is one small repo method + one tRPC query away from being real,
+  not fake.</p>
+  <p>Frozen constraints carry over from feat-012: all existing data-testids, i18n keys
+  en+zh, TV 10-foot rules (≥24px text on /room, tv-safe padding), no gradient controls,
+  brass never interactive, pink the only interactive accent.</p>
+</section>
+
+<section id="big-picture">
+  <h2>Big picture</h2>
+  <pre class="mermaid">
+flowchart LR
+  subgraph Public
+    L["/ landing<br/>marketing site"]
+  end
+  subgraph Host
+    D["/dashboard<br/>host hub"]
+    R["/room/:code<br/>TV — spacing pass"]
+  end
+  L -->|"Sign in → host"| D
+  D -->|"Start a party"| R
+  D -.->|"NEW room.listMine"| DB[("D1: room + roomSong")]
+  R -->|"recordPlayed (exists)"| DB
+  </pre>
+  <p>No schema changes. One new read path (dashed). Everything else is layout +
+  component work on existing data flows.</p>
+</section>
+
+<section id="decisions">
+  <h2>Decisions needed</h2>
+
+  <div class="decision-card" id="decision-landing-scope" data-brain-action>
+    <p><strong>1. How far does the landing page go?</strong> Today it's a centered
+    hero + join card + 3 screenshot steps. "Legit marketing website" can mean several sizes.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-landing-scope" id="opt-landing-full"
+            value="Full single-scroll marketing page: sticky nav, product-shot hero with join card, how-it-works, feature grid (6 shipped features), CTA band, footer" checked data-brain-action></td>
+          <td><label for="opt-landing-full">Full single-scroll marketing page
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>Sticky nav · hero with real TV product shot + join card · how-it-works
+            (kept) · feature grid of 6 shipped features · marquee CTA band · footer</small></label></td>
+          <td>Reads as a real product site; every section uses real screenshots/features — no vaporware</td>
+          <td>Most new copy to write (en+zh); longest page to QA</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-landing-scope" id="opt-landing-light"
+            value="Light touch: keep centered hero, add feature grid + footer only" data-brain-action></td>
+          <td><label for="opt-landing-light">Light touch</label><br/>
+            <small>Keep current hero; append feature grid + footer</small></td>
+          <td>Small diff, quick</td>
+          <td>Still reads like an app shell with extras, not a marketing site</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-landing-scope" id="opt-landing-multi"
+            value="Multi-page marketing site: separate /features, /about routes" data-brain-action></td>
+          <td><label for="opt-landing-multi">Multi-page site</label><br/>
+            <small>Separate /features, /about routes</small></td>
+          <td>Room to grow</td>
+          <td>Overkill for one-feature product; splits copy across routes nobody visits</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-landing-scope','How far does the landing page go?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-landing-scope"></span>
+  </div>
+
+  <div class="decision-card" id="decision-dashboard-shape" data-brain-action>
+    <p><strong>2. What shape does the re-imagined dashboard take?</strong> It must fit
+    today's single action (start a party) plus previous sessions now and featured
+    playlists later, without feeling empty.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-dashboard-shape" id="opt-dash-stage"
+            value="Stage hero + horizontal rails (Suno-style): full-width stagelight hero with Start-a-party CTA, then Previous sessions rail, then Featured playlists rail; slim top bar for account/admin/theme" checked data-brain-action></td>
+          <td><label for="opt-dash-stage">Stage hero + horizontal rails
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>Full-width stagelight hero ("Ready to host?") with the Start-a-party CTA,
+            then a "Previous sessions" rail, then a "Featured playlists" rail. Slim top bar
+            carries account/admin/locale/theme.</small></label></td>
+          <td>Matches the Velvet Stage identity; rails scale to any number of future sections; no navigation chrome the app doesn't need</td>
+          <td>Hero + two rails must be tuned so an empty account still looks intentional</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-dashboard-shape" id="opt-dash-sidebar"
+            value="App shell with left sidebar navigation (Home / Sessions / Playlists)" data-brain-action></td>
+          <td><label for="opt-dash-sidebar">Left-sidebar app shell</label><br/>
+            <small>Sidebar: Home / Sessions / Playlists</small></td>
+          <td>Conventional; room for many future sections</td>
+          <td>Heavy chrome for ~2 real destinations; sidebar with 3 links reads as filler</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-dashboard-shape" id="opt-dash-append"
+            value="Keep current stacked cards, append sessions + playlists cards below" data-brain-action></td>
+          <td><label for="opt-dash-append">Keep stacked cards, append sections</label></td>
+          <td>Minimal diff</td>
+          <td>Doesn't answer "re-imagined"; card-on-card monotony grows worse with each section</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-dashboard-shape','What shape does the re-imagined dashboard take?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-dashboard-shape"></span>
+  </div>
+
+  <div class="decision-card" id="decision-sessions-data" data-brain-action>
+    <p><strong>3. Previous sessions — real data or placeholder?</strong> The data already
+    exists in D1 (<code>room</code> rows per host, <code>roomSong</code> history per room).
+    What's missing is only a read path.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-sessions-data" id="opt-sessions-real"
+            value="Build the real read path now: RoomRepository.listRoomsByHost + song counts, new room.listMine tRPC query, dashboard renders actual past rooms" checked data-brain-action></td>
+          <td><label for="opt-sessions-real">Build the real read path now
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>New <code>RoomRepository.listRoomsByHost</code> (+ per-room song count via
+            one grouped query), new <code>room.listMine</code> tRPC query, dashboard renders
+            actual past rooms: date, room code, songs sung.</small></label></td>
+          <td>Dashboard is honest from day one; ~1 repo method + 1 query + unit tests — small, follows the add-trpc-endpoint recipe</td>
+          <td>Slightly bigger diff than pure UI; needs seed fixtures for the preview env</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-sessions-data" id="opt-sessions-fake"
+            value="Placeholder UI only: static example session cards, backend later" data-brain-action></td>
+          <td><label for="opt-sessions-fake">Placeholder UI only</label></td>
+          <td>UI-only diff</td>
+          <td>Fake data on a real logged-in page misleads; gets rebuilt anyway</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-sessions-data','Previous sessions — real data or placeholder?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-sessions-data"></span>
+  </div>
+
+  <div class="decision-card" id="decision-playlists-treatment" data-brain-action>
+    <p><strong>4. Featured playlists (future queue-ahead feature) — how visible is the
+    placeholder?</strong> The feature itself is explicitly NOT being built now; the
+    dashboard layout just has to anticipate it.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-playlists-treatment" id="opt-pl-visible"
+            value="Visible rail with curated static cards + Coming soon badge, non-interactive" checked data-brain-action></td>
+          <td><label for="opt-pl-visible">Visible rail, "Coming soon"
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>3–4 curated static cards ("2000s Throwbacks", "Duet Night", "OPM
+            Classics"…) with a Coming-soon badge; cards are non-interactive and honest
+            about it.</small></label></td>
+          <td>Sells the roadmap; fills the layout; zero backend; removing the badge later is the launch</td>
+          <td>Shows a feature users can't tap yet</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-playlists-treatment" id="opt-pl-hidden"
+            value="Design the slot but hide it until the feature is built" data-brain-action></td>
+          <td><label for="opt-pl-hidden">Design the slot, ship it hidden</label></td>
+          <td>Nothing un-tappable in prod</td>
+          <td>Dashboard stays sparse; the layout work goes unseen</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-playlists-treatment" id="opt-pl-mock"
+            value="Fully interactive mock that opens a playlist detail with a coming-soon state" data-brain-action></td>
+          <td><label for="opt-pl-mock">Interactive mock w/ detail page</label></td>
+          <td>Feels most real</td>
+          <td>Dead-end click path; extra route + copy for a non-feature</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-playlists-treatment','Featured playlists placeholder — how visible?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-playlists-treatment"></span>
+  </div>
+
+  <div class="decision-card" id="decision-branch" data-brain-action>
+    <p><strong>5. Branching — PR #12 (visual-redesign) is still open.</strong> This work
+    builds directly on its tokens and components.</p>
+    <table>
+      <thead><tr><th></th><th>Option</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="decision-branch" id="opt-branch-merge"
+            value="Merge PR #12 first, then branch feat/layout-evolution off main" checked data-brain-action></td>
+          <td><label for="opt-branch-merge">Merge PR #12 first, branch off main
+            <span class="tag-recommended">(recommended)</span><br/>
+            <small>You said you like the redesign — land it, then this work reviews as its
+            own clean diff.</small></label></td>
+          <td>Clean review; no stacked-PR rebase churn</td>
+          <td>Requires merging #12 now (I'll merge it on your approval of this option)</td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="decision-branch" id="opt-branch-stack"
+            value="Stack feat/layout-evolution on top of feat/visual-redesign" data-brain-action></td>
+          <td><label for="opt-branch-stack">Stack on feat/visual-redesign</label></td>
+          <td>No merge needed yet</td>
+          <td>Stacked PR: #13 review shows #12's diff until it lands; rebase churn</td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn-queue" data-brain-action
+      onclick="queueDecision('decision-branch','Branching: merge PR #12 first or stack?')">Queue answer</button>
+    <span class="queue-ack" id="ack-decision-branch"></span>
+  </div>
+</section>
+
+<section id="page-designs">
+  <h2>Per-page design</h2>
+
+  <h3>Landing — from app shell to marketing site</h3>
+  <pre class="wire">
+┌────────────────────────────────────────────────────────────┐
+│ ● HOME KARAOKE      How it works · Features      Sign in │▒│  sticky nav (▒ = Host CTA)
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│   Your living room          ┌───────────────────────────┐  │  HERO — 2-col at lg
+│   is the stage.             │  [real TV product shot]   │  │  left: Fraunces headline,
+│   Sub-line: no app to       │  step-tv-playing.png in   │  │  subline, join-code card,
+│   install, scan & sing.     │  a framed "TV" surface    │  │  Host-a-party CTA
+│   ┌─────────────────┐       └───────────────────────────┘  │  right: product shot
+│   │ CODE [_______]→ │                                      │
+│   └─────────────────┘                                      │
+├────────────────────────────────────────────────────────────┤
+│   HOW IT WORKS   (kept — 3 real-screenshot step cards)     │
+├────────────────────────────────────────────────────────────┤
+│   EVERYTHING A PARTY NEEDS — 3×2 feature grid, all real:   │
+│   live-sync queue · no-app join · emoji reactions ·        │
+│   guest avatars · host controls · karaoke-biased search    │
+├────────────────────────────────────────────────────────────┤
+│   ██ CTA BAND — stagelight, marquee "KQ7-3FP" motif ██     │
+│        "Start your first party" → /login                   │
+├────────────────────────────────────────────────────────────┤
+│   footer: wordmark · GitHub · Sign in · locale/theme · ©   │
+└────────────────────────────────────────────────────────────┘
+  </pre>
+  <ul>
+    <li>Every visual is a real product capture (feat-012 rule) — no illustrations, no fake logos/testimonials.</li>
+    <li>Join-code card stays in the hero: it's a real product entry point, not marketing decor. Existing testids (<code>landing-join-card</code>, <code>hero-host-cta</code>…) unchanged.</li>
+    <li>Theme toggle + language switcher move into the footer/nav; current floating top row goes away.</li>
+    <li>New copy: nav labels, hero rewrite, 6 feature cards, CTA band, footer — all en+zh.</li>
+  </ul>
+
+  <h3>Dashboard — host hub</h3>
+  <pre class="wire">
+┌────────────────────────────────────────────────────────────┐
+│ ● HK   Welcome back, Sean          [admin] [lang] [theme]  │  slim top bar
+├────────────────────────────────────────────────────────────┤
+│        ╭─ stagelight hero band ─────────────────╮          │
+│        │   Ready to host, Sean?                 │          │  Fraunces headline
+│        │   [ ▷ Start a party ]  (primary, lg)   │          │  one dominant action
+│        ╰────────────────────────────────────────╯          │
+│                                                            │
+│  PREVIOUS SESSIONS                                         │  horizontal rail,
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐                       │  real data via NEW
+│  │ KQ7-3FP │ │ MAB-2QK │ │ ZTR-88L │  →                    │  room.listMine:
+│  │ Jul 20  │ │ Jul 12  │ │ Jul 04  │                       │  code (marquee mono),
+│  │ 14 songs│ │ 9 songs │ │ 21 songs│                       │  date, songs sung
+│  └─────────┘ └─────────┘ └─────────┘                       │
+│  (empty state: "Your first party will show up here")       │
+│                                                            │
+│  FEATURED PLAYLISTS               · coming soon ·          │  static curated cards,
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │  non-interactive
+│  │2000s    │ │Duet     │ │OPM      │ │Disney   │           │
+│  │Throwback│ │Night    │ │Classics │ │Night    │           │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
+└────────────────────────────────────────────────────────────┘
+  </pre>
+  <ul>
+    <li>Session cards reuse the marquee code treatment (<code>code-marquee</code>) — the room code is the artifact hosts remember.</li>
+    <li>Account card (role display) folds into the top bar; <code>dashboard-host-room-button</code> testid moves onto the hero CTA (kept).</li>
+    <li>Closed rooms only in the rail; the current live room (status=active) surfaces as a "Rejoin" card at the front if present.</li>
+  </ul>
+
+  <h3>Party screen — spacing & rhythm pass (no re-architecture)</h3>
+  <p>The lobby/playing layout from feat-009/012 stays; this is a measured spacing pass.
+  Every change below is a proposal — strike any you disagree with.</p>
+  <ul data-brain-section="spacing-pass">
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><span data-item-text data-brain-action>Adopt one TV spacing scale: 24px (gap-6) inside panels, 32px (gap-8) between panels/columns, 40px (p-10 → keep) for the hero card — replacing today's mix of gap-3/4/5/6.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><span data-item-text data-brain-action>Lobby top bar: give "Party lobby" a real band — pb-4 → pb-6, baseline-align the heading with the connection pill.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><span data-item-text data-brain-action>Lobby grid: column gap-6 → gap-8; right column roster/queue gap-5 → gap-6 so the two columns share one rhythm.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><span data-item-text data-brain-action>Roster panel: drop the fixed h-1/3 — size to content (min-h ~200px, max ~40%) so 2 guests don't float in a huge empty board while the queue starves.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="4"><span data-item-text data-brain-action>Queue panel + roster panel: unify inner padding at p-8 (today p-6 vs p-6/lg:p-8); lobby queue items p-3 → p-4 with size-14 thumbs — 10-foot readability.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="5"><span data-item-text data-brain-action>Playing state: remove the now-empty top bar row — move the connection pill into the right rail header, returning ~44px of height to the video.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="6"><span data-item-text data-brain-action>Playing right rail: pl-4/pt-4 gap-4 → p-6 gap-6; QueueRail, roster strip and corner QR ticket get consistent 24px separation.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="7"><span data-item-text data-brain-action>Now-singing banner: gap-3 → gap-4 below the title block, and give the banner a fixed two-line reserve so the video doesn't jump height between short and long titles.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="spacing-pass">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a spacing fix..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="plan-of-record">
+  <h2>Plan of record</h2>
+  <ol data-brain-section="plan-of-record">
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><strong>Phase 1 —</strong> <span data-item-text data-brain-action>Backend read path: RoomRepository.listRoomsByHost (+ song counts), room.listMine tRPC query, unit tests, seed fixtures (per decision 3).</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><strong>Phase 2 —</strong> <span data-item-text data-brain-action>Dashboard host hub: top bar, stage hero, previous-sessions rail (live data), featured-playlists rail (coming soon), empty states, en+zh copy.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><strong>Phase 3 —</strong> <span data-item-text data-brain-action>Landing marketing page: nav, hero with framed product shot, feature grid, CTA band, footer, en+zh copy; re-capture marketing screenshots after phase 4 so they show the final TV layout.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><strong>Phase 4 —</strong> <span data-item-text data-brain-action>Party screen spacing pass (the 8 items above), verified live on a 1920×1080 viewport.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="4"><strong>Phase 5 —</strong> <span data-item-text data-brain-action>Feature-verifier walk (landing → login → dashboard → room lobby → playing → phone join), verification doc + screenshots, verify-done, ship + PR.</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ol>
+  <div class="list-add-row" data-brain-section-add="plan-of-record">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a phase or step..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="api-changes">
+  <h2>Data / API changes</h2>
+  <table>
+    <thead><tr><th>Change</th><th>Where</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>listRoomsByHost({ hostUserId, limit })</code></td>
+        <td>app/repositories/room.ts</td>
+        <td>Rooms by host, newest first, with per-room played-song count (grouped join on roomSong). Unit tested.</td></tr>
+      <tr><td><code>room.listMine</code> query</td>
+        <td>app/trpc/routes/room.ts</td>
+        <td>Auth-gated (non-anonymous), via runProcedure; Effect Schema output. Follows add-trpc-endpoint recipe.</td></tr>
+      <tr><td>Seed fixtures</td>
+        <td>scripts/seed-preview.ts</td>
+        <td>2–3 closed rooms + roomSong rows for the admin fixture so the rail is visible in preview.</td></tr>
+      <tr><td>DB schema</td><td>—</td><td><mark>No changes.</mark></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="error-paths">
+  <h2>Error paths</h2>
+  <table>
+    <thead><tr><th>Failure</th><th>Surface</th><th>Behavior</th></tr></thead>
+    <tbody data-brain-section="error-paths">
+      <template>
+        <tr data-brain-item><td colspan="3"><span data-item-text data-brain-action></span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></td></tr>
+      </template>
+      <tr data-brain-item="0">
+        <td><span data-item-text data-brain-action>room.listMine fails</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></td>
+        <td>Dashboard rail</td>
+        <td>Rail renders its empty/quiet state with a retry hint — never blocks the Start-a-party hero.</td></tr>
+      <tr data-brain-item="1">
+        <td><span data-item-text data-brain-action>Host has zero past rooms</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></td>
+        <td>Dashboard rail</td>
+        <td>Designed empty state ("Your first party will show up here") — not a hidden section, so the layout holds.</td></tr>
+      <tr data-brain-item="2">
+        <td><span data-item-text data-brain-action>Marketing images fail to load</span>
+          <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></td>
+        <td>Landing</td>
+        <td>Decorative alt="" images sit on a card surface — a missing image degrades to the card, copy carries the meaning.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="testing">
+  <h2>Testing plan</h2>
+  <ul class="checklist" data-brain-section="testing">
+    <template>
+      <li data-brain-item><label><input type="checkbox" /> <span data-item-text data-brain-action></span></label>
+        <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    </template>
+    <li data-brain-item="0"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>Unit: listRoomsByHost (ordering, song counts, excludes other hosts) + room.listMine auth gating.</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>Full suite + e2e smoke stay green (frozen testids make this a layout-only risk).</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="2"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>feature-verifier live walk at 1920×1080 (TV) + 390×844 (phone): landing sections, dashboard rails w/ real session data, lobby + playing spacing, zero console errors.</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="3"><label><input type="checkbox" checked /> <span data-item-text data-brain-action>zh locale spot-check on all new copy; dark is the QA'd theme, light stays token-correct (feat-012 policy).</span></label>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="testing">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add a test..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<section id="risks">
+  <h2>Risks & guardrails</h2>
+  <ul>
+    <li><strong>Scope:</strong> three surfaces in one feature is the ceiling — admin, auth pages, and the phone join tabs are explicitly untouched (join phone screens got their pass in feat-012).</li>
+    <li><strong>Marketing screenshots go stale:</strong> phase 3 re-captures them AFTER the phase-4 TV spacing pass, and the code comment rule from feat-012 stays ("re-capture after any TV/phone redesign").</li>
+    <li><strong>TV regression:</strong> spacing changes ride the existing tv-safe/≥24px rules; the verifier walk at 1080p is the gate.</li>
+    <li><strong>i18n drift:</strong> every new string lands in en+zh in the same commit — no key ships in one locale.</li>
+  </ul>
+</section>
+
+<section id="open-questions" data-brain-section="open-questions">
+  <h2>Open questions</h2>
+  <ul>
+    <template>
+      <li data-brain-item>
+        <span data-item-text data-brain-action></span>
+        <span class="item-controls">
+          <button type="button" class="item-x" data-brain-action title="Remove">x</button>
+          <button type="button" class="item-restore" data-brain-action hidden title="Restore">restore</button>
+        </span>
+      </li>
+    </template>
+    <li data-brain-item="0"><span data-item-text data-brain-action>Should a previous-session card open a detail view (song list) in this feature, or is the card summary (code, date, song count) enough for now?</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+    <li data-brain-item="1"><span data-item-text data-brain-action>Footer GitHub link — link the public repo, or keep the footer link-free until there's a docs page?</span>
+      <span class="item-controls"><button type="button" class="item-x" data-brain-action>x</button><button type="button" class="item-restore" data-brain-action hidden>restore</button></span></li>
+  </ul>
+  <div class="list-add-row" data-brain-section-add="open-questions">
+    <input type="text" class="list-add-input" data-brain-action placeholder="Add an open question..." />
+    <button type="button" class="list-add-btn" data-brain-action>+ Add item</button>
+  </div>
+</section>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+
+<script>
+  function queueDecision(cardId, question) {
+    var card = document.getElementById(cardId);
+    var checked = card.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    var choice = checked.value;
+    if (window.brain && typeof window.brain.queuePrompt === "function") {
+      window.brain.queuePrompt({
+        tag: "decision",
+        queueKey: cardId,
+        prompt: question + ": " + choice,
+        target: { type: "decision", question: question, choice: choice }
+      });
+    }
+    var ack = document.getElementById("ack-" + cardId);
+    if (ack) ack.textContent = "Queued: " + choice;
+  }
+</script>
+
+<script>
+  (function () {
+    function queueList(section, queueKey, prompt, action, item, index) {
+      if (window.brain && typeof window.brain.queuePrompt === "function") {
+        window.brain.queuePrompt({
+          tag: "list-edit",
+          queueKey: queueKey,
+          prompt: prompt,
+          target: { type: "list-edit", section: section, action: action, item: item, index: index }
+        });
+      }
+    }
+
+    function slugify(s) {
+      return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "").slice(0, 60) || "item";
+    }
+
+    function itemText(el) {
+      var t = el.querySelector("[data-item-text]");
+      return (t || el).textContent.trim();
+    }
+
+    function addBadge(el, cls, label) {
+      var badge = el.querySelector("." + cls);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "item-badge " + cls;
+        el.appendChild(badge);
+      }
+      badge.textContent = label;
+    }
+
+    function toggleRemoved(item, section) {
+      var index = Number(item.getAttribute("data-brain-item"));
+      var text = itemText(item);
+      var removed = item.classList.toggle("item-removed");
+      var xBtn = item.querySelector(".item-x");
+      var restoreBtn = item.querySelector(".item-restore");
+      if (xBtn) xBtn.hidden = removed;
+      if (restoreBtn) restoreBtn.hidden = !removed;
+      var key = section + ":remove:" + index;
+      if (removed) {
+        queueList(section, key, "Remove from " + section + ": \"" + text + "\"", "remove", text, index);
+      } else {
+        queueList(section, key, "Cancelled: keep \"" + text + "\" in " + section, "edit", text, index);
+      }
+    }
+
+    function startEdit(item, section) {
+      if (item.classList.contains("item-removed")) return;
+      var span = item.querySelector("[data-item-text]");
+      if (!span || span.isContentEditable) return;
+      var before = span.textContent;
+      span.setAttribute("contenteditable", "true");
+      span.focus();
+
+      function commit() {
+        span.removeAttribute("contenteditable");
+        span.removeEventListener("blur", commit);
+        span.removeEventListener("keydown", onKey);
+        var text = span.textContent.trim();
+        if (!text || text === before.trim()) { span.textContent = before; return; }
+        var index = Number(item.getAttribute("data-brain-item"));
+        addBadge(item, "item-badge-edited", "edited");
+        queueList(section, section + ":edit:" + index,
+          "Edit " + section + " item " + index + ": \"" + text + "\"", "edit", text, index);
+      }
+      function onKey(ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); span.blur(); }
+        else if (ev.key === "Escape") { span.textContent = before; ev.preventDefault(); span.blur(); }
+      }
+      span.addEventListener("blur", commit);
+      span.addEventListener("keydown", onKey);
+    }
+
+    function commitAdd(addRow) {
+      var section = addRow.getAttribute("data-brain-section-add");
+      var input = addRow.querySelector(".list-add-input");
+      var text = input.value.trim();
+      if (!text) return;
+      var list = document.querySelector("[data-brain-section=\"" + section + "\"]");
+      var tpl = list && list.querySelector("template");
+      if (!list || !tpl) return;
+      var node = document.importNode(tpl.content, true);
+      var item = node.querySelector("[data-brain-item]") || node.firstElementChild;
+      item.setAttribute("data-brain-item", "new");
+      var span = item.querySelector("[data-item-text]");
+      if (span) span.textContent = text;
+      item.classList.add("item-proposed");
+      addBadge(item, "item-badge-proposed", "proposed");
+      list.insertBefore(node, tpl.nextSibling);
+      input.value = "";
+      queueList(section, section + ":add:" + slugify(text),
+        "Add to " + section + ": \"" + text + "\"", "add", text, null);
+    }
+
+    document.addEventListener("click", function (ev) {
+      var xBtn = ev.target.closest(".item-x");
+      var restoreBtn = ev.target.closest(".item-restore");
+      if (xBtn || restoreBtn) {
+        var item = ev.target.closest("[data-brain-item]");
+        var section = ev.target.closest("[data-brain-section]");
+        if (item && section) toggleRemoved(item, section.getAttribute("data-brain-section"));
+        return;
+      }
+      var addBtn = ev.target.closest(".list-add-btn");
+      if (addBtn) {
+        var addRow = ev.target.closest("[data-brain-section-add]");
+        if (addRow) commitAdd(addRow);
+      }
+    });
+
+    document.addEventListener("dblclick", function (ev) {
+      var item = ev.target.closest("[data-brain-item]");
+      if (!item) return;
+      var section = item.closest("[data-brain-section]");
+      if (section) startEdit(item, section.getAttribute("data-brain-section"));
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      var addRow = ev.target.closest("[data-brain-section-add]");
+      if (addRow && ev.target.classList.contains("list-add-input")) {
+        ev.preventDefault();
+        commitAdd(addRow);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -42,11 +42,21 @@ Composed utilities (in `app.css`, not manually re-derived per component):
 
 ### TV type scale (`/room` only)
 
-Nothing under 24px (exception: `tv-title-sm` 22px, scoped to the narrow playing rail). Utilities: `.tv-display` (96px), `.tv-headline` (56px), `.tv-code` (80px, 0.08em tracking — the room-code marquee over a `border-brass/60` rule in `join-panel.tsx`), `.tv-title` (36px), `.tv-title-sm` (22px), `.tv-body` (28px, Inter), `.tv-label` (24px, Inter uppercase). Safe-margin utilities: `.tv-safe` / `.tv-safe-x` / `.tv-safe-y` (`clamp()`-based ~5%, `--tv-safe-inline` is the single source of truth). See `design.md` §4 for the full role table.
+Nothing under 24px **for primary content**. Utilities: `.tv-display` (96px), `.tv-headline` (56px), `.tv-code` (80px, 0.08em tracking — the room-code marquee over a `border-brass/60` rule in `join-panel.tsx`), `.tv-title` (36px), `.tv-title-sm` (22px), `.tv-song` (28px Fraunces, `opsz 32` — the playing-state now-playing title, feat-014), `.tv-body` (28px, Inter), `.tv-label` (24px, Inter uppercase), `.tv-eyebrow` (18px JetBrains Mono, uppercase, 0.18em — the playing screen's zone-label voice: `NOW SINGING`, `UP NEXT`, feat-014). Safe-margin utilities: `.tv-safe` / `.tv-safe-x` / `.tv-safe-y` (`clamp()`-based ~5%, `--tv-safe-inline` is the single source of truth).
+
+Three documented sub-24px exceptions, all secondary chrome on the playing state: `tv-title-sm` 22px (rail heading), the 16px 2-line-clamped queue rows in the ~380px rail, and `tv-eyebrow` 18px. The 24px floor governs primary content — an eyebrow is a label, not the thing you read from the couch. See `design.md` §4 for the full role table.
 
 ## Theme default
 
 Dark ("Velvet Stage") is the default theme (`app/root.tsx`'s `<ThemeProvider defaultTheme="dark" enableSystem>`), light ("Matinee") stays available via the existing toggle (`app/components/theme-toggle.tsx` — `themeItems` still lists light/dark/system) but is token-level only.
+
+### Theater surface — the one theme-pinned subtree (feat-014)
+
+The **playing state** of `/room/:code` pins itself to the dark palette regardless of app theme by putting the literal `dark` class on its root container (`app/routes/room/$code.tsx`). This works because `next-themes` runs `attribute="class"` and `app.css` declares its dark tokens under a `.dark` **class** selector, not `@media (prefers-color-scheme)` — so every custom property inside the subtree re-resolves to Velvet Stage values. Rationale: a video letterbox is black in every theme, and black-on-cream read as a broken frame.
+
+Scope this pattern narrowly. Lobby, dashboard, landing, and auth still follow the user's theme; the playing screen is the only sanctioned theme-pinned subtree. If a future surface needs it, add the `dark` class to that surface's container — never hardcode dark hexes and never flip the app-level theme.
+
+Everything else is unchanged by feat-014: gradients stay ambient-only (`bg-stagelight` / `bg-stagelight-dim`, never on controls or text), and `--brass` stays punctuation-only — its new role is the `NEXT UP` callout on the first queued row, a label on a non-interactive TV list.
 
 ## Motion & reduced motion
 
@@ -54,7 +64,8 @@ Dark ("Velvet Stage") is the default theme (`app/root.tsx`'s `<ThemeProvider def
 
 ## Component notes (carried from `design.md` §8 — don't re-litigate per component)
 
-- **Queue rows**: `tv-body`/`text-base` for singer+song; own rows tinted `border-primary/50 bg-primary/5`. Now-singing is marked by the **brass singer credit** (`text-brass` in `now-singing-banner.tsx`) + **brass avatar ring** (`ring-brass/70`) — no gradient fill.
+- **Queue rows**: `tv-body`/`text-base` for singer+song; own rows tinted `border-primary/50 bg-primary/5`. Now-singing is marked by the **brass singer credit** (`text-brass` in `now-singing-banner.tsx`) + **brass avatar ring** (`ring-brass/70`) — no gradient fill. The first *queued* row carries a brass `NEXT UP` callout on the TV (feat-014).
+- **Song titles**: big surfaces render titles through `cleanSongTitle(title, channel)` from `app/lib/song-title.ts` (see `rules/library.md`) — **display-only**, the raw YouTube title stays the stored/queue/history value.
 - **Full-screen overlays** (NowUpOverlay, ReactionRecap): `bg-stagelight`, not a pink gradient wall.
 - **QR code**: always a literal `bg-white` tile regardless of theme (scanner contrast requirement, not a themed surface — intentional exception to "no hardcoded colors").
 - **Avatar initials**: `InitialsAvatar` fallback is `bg-secondary` + `text-primary` initials — the gradient fill is retired.
@@ -68,5 +79,6 @@ Every shipped foreground/background text pairing targets WCAG AA (≥4.5:1) for 
 
 | Date | Change |
 |---|---|
+| 2026-07-24 | feat-014 party-screen-cinema: new `tv-song` (28px) + `tv-eyebrow` (18px mono) TV utilities, the theater-surface pattern (`dark` class on the playing-state subtree), brass `NEXT UP` callout, display-only `cleanSongTitle`. Gradient/brass discipline unchanged. |
 | 2026-07-23 | Rewritten for feat-012 visual-redesign "Velvet Stage": gradient retired (stagelight ambient-only), brass punctuation token, Fraunces display serif + JetBrains Mono, plum `--secondary`, Matinee light theme (token-level only). |
 | 2026-07-16 | Replaced boilerplate refero-synthesized (Cursor/Linear) marketing-surface doc wholesale with the karaoke "night-club stage" design system (feat-008 ui-overhaul, Phase 1). Source of truth moved to repo-root `design.md`. |
