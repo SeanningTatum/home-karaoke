@@ -21,6 +21,16 @@
 
 ---
 
+## 2026-07-29 00:39 (UTC) — v0.1.0 tagged; README screenshots + demo GIF refreshed (PR #15 merged)
+- branch: `main` (PR branch `docs/readme-screenshot-refresh`, squash-merged as `288def7`)
+- in-progress feature: none (all 12 shipped, feat-003/004 cut)
+- run note: none (docs-only task)
+- changes: re-captured 7 README screenshots + rebuilt `demo.gif` against the feat-013/feat-014 UI via a throwaway Playwright walk (host TV + 3 guest phones + host phone; 3 independent capture runs, best playback frame picked from alt frames); reordered the "See it in action" walkthrough to the real flow; rewrote 3 captions. Greptile pre-PR review 0 findings (5/5). Published **v0.1.0** — first tag in the repo, whole-app pre-1.0 notes: https://github.com/SeanningTatum/home-karaoke/releases/tag/v0.1.0
+- gotcha: `feat/layout-evolution` was already squash-merged (PR #13, base was `feat/visual-redesign`), so its 13 individual commits still show as "ahead of main" — always branch fresh off `origin/main` after a squash merge, or the next PR diff re-includes merged work.
+- next: two cosmetic bugs found while capturing, each needs its own task — (1) phone Queue tab shows `banner.idle` "Queue is empty — scan to add songs" while songs are queued (`app/components/join/queue-tab.tsx:30`; copy is also wrong for someone already in the room), (2) room-code marquee clips at a 1280px viewport. Production deploy NOT run — `bun run deploy` is still pending if v0.1.0 should go live.
+
+---
+
 ## 2026-07-24 — feat-014 party-screen-cinema shipped; folded into PR #13 alongside feat-013 (user's call: keep both in one PR rather than split). Playing screen reworked as a cinema: theater surface (dark class pins the playing subtree regardless of app theme), one-line now-playing bar 112px->59px, channel-aware cleanSongTitle helper (18 tests), rail as one 3-zone instrument panel, NEXT UP callout + 3px progress line (both approved open questions). Also fixed a pre-existing e2e hydration race (attributed by stashing: fails worse on clean tree) via e2e/helpers/hydration.ts polling React's __reactProps$ key. Verification PASS 10/10 + error path, 541 unit, e2e 3/3, build green, brain check 11/11.
 - branch: `feat/layout-evolution`
 - in-progress feature: none
