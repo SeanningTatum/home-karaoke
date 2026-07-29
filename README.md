@@ -19,17 +19,21 @@ One person opens a room on the big screen. Everyone else scans the QR code, pick
 
 ![Landing page](docs/assets/landing.png)
 
-**The host screen is the stage.** A full-screen YouTube player fills the TV, with a side rail showing who's in the room, what's queued next, and the QR code + room code for anyone still joining.
+**The lobby is the invitation.** Open a room and the TV becomes a big QR code and room code, next to who's already in and what they've queued. Guest photos follow them everywhere — the roster, the queue, the "you're up" overlay — with a colorful initials avatar when someone skips the photo.
 
-![Host TV screen mid-song](docs/assets/host-tv-playing.png)
+![TV lobby with the join QR, guest avatars, and the queue](docs/assets/host-roster-avatars.png)
 
 **Guests join in seconds.** Scan the QR, pick a name the room will cheer for, and add a profile photo if you want one. No signup, no password — just a nickname.
 
 ![Guest join screen](docs/assets/guest-join.png)
 
-**Everyone queues from their phone.** Search YouTube (results are biased toward karaoke versions) or paste a link, tap to add, and you'll see exactly where you land: "Added! You're #1."
+**Everyone queues from their phone.** Search YouTube — results are biased toward karaoke versions and filtered down to videos that will actually play on the TV — or paste any link. Tap the + and the phone flips to the queue and tells you where you landed: "Added! You're #1."
 
-![Guest searching and adding a song](docs/assets/guest-search-add.png)
+![Guest searching for a karaoke track](docs/assets/guest-search-add.png)
+
+**Then the TV becomes a cinema.** Once a song starts the screen dims to a theater surface, the video takes the frame, and everything else shrinks to one line — "now singing", the cleaned-up title, who's singing, and the time left. One bordered rail on the right holds the guest band, what's up next, and a QR ticket stub for anyone still joining.
+
+![Host TV screen mid-song](docs/assets/host-tv-playing.png)
 
 **The crowd reacts in real time.** Guests tap emojis on their phones and they fly up the TV screen, Google-Meet-style, while the current singer performs.
 
@@ -38,10 +42,6 @@ One person opens a room on the big screen. Everyone else scans the QR code, pick
 **Every song gets an ending.** When a song wraps, the TV shows a quick recap card tallying the reactions the singer just earned — a little applause before the next person is up.
 
 ![End-of-song recap card](docs/assets/recap-card.png)
-
-**Faces, not just names.** Guest avatars show up across the TV — in the roster, the queue, and the "you're up" overlay — with a colorful initials avatar when someone skips the photo.
-
-![TV roster with guest avatars](docs/assets/host-roster-avatars.png)
 
 ---
 
