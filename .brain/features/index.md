@@ -56,6 +56,8 @@ features/
 | Emoji Reactions | [`emoji-reactions/emoji-reactions.md`](emoji-reactions/emoji-reactions.md) | shipped | [2026-07-17 ✅ PASS](emoji-reactions/verifications/2026-07-17.md) |
 | Guest Avatars | [`guest-avatars/guest-avatars.md`](guest-avatars/guest-avatars.md) | shipped | [2026-07-17 ✅ PASS](guest-avatars/verifications/2026-07-17.md) |
 | Visual Redesign | [`visual-redesign/visual-redesign.md`](visual-redesign/visual-redesign.md) | shipped | [2026-07-23 ✅ PASS](visual-redesign/verifications/2026-07-23.md) |
+| Layout Evolution | [`layout-evolution/layout-evolution.md`](layout-evolution/layout-evolution.md) | shipped | [2026-07-24 ✅ PASS](layout-evolution/verifications/2026-07-24.md) |
+| Party Screen Cinema | [`party-screen-cinema/party-screen-cinema.md`](party-screen-cinema/party-screen-cinema.md) | shipped | [2026-07-24 ✅ PASS](party-screen-cinema/verifications/2026-07-24.md) |
 
 ## Update trigger
 
