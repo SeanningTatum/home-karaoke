@@ -48,6 +48,7 @@ The runtime composes services into a single Layer in `app/runtime.ts` via `makeA
 | `YouTube` | `app/services/youtube.ts` | `app/YouTube` | `{ search, getVideo }` — key from `CloudflareEnv.YOUTUBE_API_KEY` (optional); `search` fails `ConfigurationError` when unset, `getVideo` falls back to the keyless oEmbed endpoint. Test layer: `youtube.test-layer.ts` (`makeTestYouTube(stub)`) |
 | `KaraokeRooms` | `app/services/karaoke-rooms.ts` | `app/KaraokeRooms` | `{ notifyRoomClosed }` — wraps the `KARAOKE_ROOM` DO namespace for non-upgrade calls (DO RPC `closeRoom()`); the WS upgrade route still forwards the raw Request itself |
 | `Session` | `app/services/session.ts` | `app/Session` | `{ session, user }` — built ad-hoc via `SessionLive(headers)`, **not** in the global runtime |
+| Tracing | `app/services/tracing.ts` | — (no Tag; `Layer.setTracer` + flush finalizer) | `TracingLayer(env)` — env-driven OTLP span export, `Layer.empty` when `OTEL_EXPORTER_OTLP_ENDPOINT` unset. See [`.brain/codebase/observability.md`](../codebase/observability.md) |
 | `CloudflareEnv` | `app/services/cloudflare.ts` | `app/CloudflareEnv` | The raw `Env` |
 | `Logger` | `app/services/logger.ts` | — (no Tag) | `LoggerLive` + `MinLogLevelLive` Layers — replace Effect's default Logger |
 
@@ -267,6 +268,18 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 ```
+
+## Tracing — spans on outbound calls
+
+Any service method that leaves the process (fetch, R2, AI, Better Auth, the YouTube Data API) wraps the call in a client span:
+
+```typescript
+Effect.tryPromise({ try: ..., catch: ... }).pipe(
+  Effect.withSpan("youtube.search", { kind: "client" })
+)
+```
+
+Naming, attribute rules (no PII), and the full architecture live in [`.brain/codebase/observability.md`](../codebase/observability.md). Logs inside a span automatically carry `traceId`/`spanId` — never annotate them manually.
 
 ## Logging — Effect logger vs imperative `loggers.X`
 

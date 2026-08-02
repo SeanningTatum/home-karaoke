@@ -146,7 +146,8 @@ export const youtubeRouter = createTRPCRouter({
             searchLogId:
               logResult._tag === "Right" ? logResult.right.id : undefined,
           };
-        })
+        }),
+        { span: "trpc.youtube.search" }
       )
     ),
 
@@ -158,6 +159,8 @@ export const youtubeRouter = createTRPCRouter({
   resolveVideo: protectedProcedure
     .input(Schema.standardSchemaV1(YouTubeResolveVideoInput))
     .mutation(({ ctx, input }) =>
-      runProcedure(ctx.runtime, resolveVideoProgram(input, ctx.auth.user.id))
+      runProcedure(ctx.runtime, resolveVideoProgram(input, ctx.auth.user.id), {
+        span: "trpc.youtube.resolveVideo",
+      })
     ),
 });

@@ -36,7 +36,8 @@ export const roomRouter = createTRPCRouter({
             ...input,
             hostUserId: ctx.auth.user.id,
           });
-        })
+        }),
+        { span: "trpc.room.create" }
       )
     ),
 
@@ -61,7 +62,8 @@ export const roomRouter = createTRPCRouter({
         });
         // The caller is the host — no need to echo their own user id back.
         return rooms.map(({ hostUserId: _hostUserId, ...rest }) => rest);
-      })
+      }),
+      { span: "trpc.room.listMine" }
     )
   ),
 
@@ -80,7 +82,8 @@ export const roomRouter = createTRPCRouter({
           // the only thing the client needs — whether the caller is the
           // host — from the session server-side.
           return { ...room, isHost: ctx.auth?.user.id === hostUserId };
-        })
+        }),
+        { span: "trpc.room.get" }
       )
     ),
 
@@ -126,7 +129,8 @@ export const roomRouter = createTRPCRouter({
           );
 
           return closed;
-        })
+        }),
+        { span: "trpc.room.close" }
       )
     ),
 
@@ -166,7 +170,8 @@ export const roomRouter = createTRPCRouter({
           });
           yield* songs.markPlayed({ roomSongId: id });
           return { success: true } as const;
-        })
+        }),
+        { span: "trpc.room.recordPlayed" }
       )
     ),
 });

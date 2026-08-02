@@ -1,9 +1,23 @@
 {
   "$schema": "Machine-readable feature state tracker. Source of truth for status; per-feature MD docs are source of truth for design/runtime.",
-  "updated": "2026-07-24",
+  "updated": "2026-08-01",
   "policy": {
     "one_in_progress_at_a_time": true,
-    "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent"
+    "definition_of_done": "implementation complete + verify-done passed + feature MD updated + brain coherent",
+    "strict_grandfathered": [
+      "authentication",
+      "admin-dashboard",
+      "preview-deployments",
+      "feature-verification",
+      "group-karaoke",
+      "ui-overhaul",
+      "tv-beta-polish",
+      "emoji-reactions",
+      "guest-avatars",
+      "visual-redesign",
+      "layout-evolution",
+      "party-screen-cinema"
+    ]
   },
   "features": [
     {
