@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-08-02 — Template sync cf-saas-starter-react-router v1.2.0 -> v1.7.0 on chore/sync-template-v1.7.0 (4 commits: setup security #15, brain-axi harness #14/16/18/21/22/23, OTel tracing #20, CI/CD #12). Unrelated histories, so diff-port from fork point 613c790; 'template' remote added for next time. New gates surfaced pre-existing debt: fixed 3 unparseable verdict lines + 2 missing features/index.md rows; ratcheted the rest (12 slugs on policy.strict_grandfathered, 4 on the try/catch + test-parity lists) rather than fabricate receipts. Instrumented all 17 tRPC procedures with spans (upstream covered only its own routers). Suite 552 -> 614 tests. brain verify --stage verify 7/7.
+- branch: `chore/sync-template-v1.7.0`
+- in-progress feature: none
+- run note: none
+- next: Open the PR. WARNING: deploy.yml is armed — CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN are already set on this repo, so merging triggers home-karaoke's first production deploy (remote D1 migrations + wrangler deploy) on the next green CI run on main. User confirmed this explicitly. Then: close the strict ratchet one feature at a time (brain playbook verify -> browser walk -> brain receipt <slug> -> drop the slug).
+
+---
+
 ## 2026-07-29 00:39 (UTC) — v0.1.0 tagged; README screenshots + demo GIF refreshed (PR #15 merged)
 - branch: `main` (PR branch `docs/readme-screenshot-refresh`, squash-merged as `288def7`)
 - in-progress feature: none (all 12 shipped, feat-003/004 cut)
