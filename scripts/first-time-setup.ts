@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -9,8 +9,10 @@ import {
   select,
   spinner,
   text,
+  password,
   confirm,
   cancel,
+  isCancel,
 } from "@clack/prompts";
 import { buildWranglerConfig, writeWranglerJsonc } from "./lib/wrangler-config";
 
@@ -38,6 +40,49 @@ function executeCommand(
   } catch (error: any) {
     return { error: true, message: error.stdout || error.stderr };
   }
+}
+
+// Like executeCommand, but takes an explicit executable + argv array and runs
+// it WITHOUT a shell (spawnSync defaults to shell:false). Because each argument
+// is passed as a discrete element, user-supplied values can never be
+// interpreted by a shell — no command injection via `$(...)`, backticks, `;`,
+// etc. Use this (never executeCommand) whenever any argument comes from user
+// input. Returns the same shape as executeCommand: stdout string on success,
+// or { error: true, message } on failure.
+export function executeArgv(
+  file: string,
+  args: string[],
+  silent = false,
+  env?: Record<string, string>
+) {
+  if (!silent) {
+    console.log(`\x1b[33m${file} ${args.join(" ")}\x1b[0m`);
+  }
+  const result = spawnSync(file, args, {
+    encoding: "utf-8",
+    stdio: silent ? "pipe" : "inherit",
+    env: env ? { ...process.env, ...env } : undefined,
+  });
+  if (result.error || result.status !== 0) {
+    return {
+      error: true,
+      message:
+        result.stderr ||
+        result.stdout ||
+        result.error?.message ||
+        `${file} exited with status ${result.status ?? "unknown"}`,
+    };
+  }
+  return result.stdout ?? "";
+}
+
+// Builds the argv for setting the CLOUDFLARE_ACCOUNT_ID repo variable via `gh`.
+// Kept as a pure function so the account ID is always carried as a single,
+// discrete argv element (index 4) — passed to spawnSync without a shell it is
+// treated as a literal string, so a crafted value like `foo"$(touch /tmp/pwned)"`
+// can never execute in the developer's shell.
+export function buildAccountIdVariableArgs(accountId: string): string[] {
+  return ["variable", "set", "CLOUDFLARE_ACCOUNT_ID", "--body", accountId];
 }
 
 async function prompt(message: string, defaultValue: string): Promise<string> {
@@ -323,7 +368,208 @@ async function runDatabaseMigrations(accountId?: string) {
   previewSpinner.stop("\x1b[32m✓ Preview migrations applied\x1b[0m");
 }
 
+// Wires the two GitHub Actions credentials the CI/CD workflows need:
+//   - repo VARIABLE CLOUDFLARE_ACCOUNT_ID (auto — we already know it)
+//   - repo SECRET   CLOUDFLARE_API_TOKEN  (prompted, masked)
+// Uses the GitHub CLI (`gh`). No-ops with guidance if gh is missing, not
+// authenticated, or the repo has no GitHub remote — never blocks setup.
+export async function setupGitHubCiCredentials(accountId?: string) {
+  console.log("\n\x1b[36m🤖 Step 11: GitHub Actions CI/CD credentials\x1b[0m");
+
+  const manualHint = () => {
+    console.log(
+      "\x1b[33mSkipped. To enable auto-deploy later, set these on GitHub\n" +
+        "  (Settings → Secrets and variables → Actions):\n" +
+        "    • Variable CLOUDFLARE_ACCOUNT_ID\n" +
+        "    • Secret   CLOUDFLARE_API_TOKEN\x1b[0m"
+    );
+  };
+
+  // gh installed?
+  if (
+    typeof executeCommand("gh --version", true) === "object" ||
+    // gh authenticated? (`gh auth status` exits non-zero when logged out)
+    typeof executeCommand("gh auth status", true) === "object" ||
+    // repo has a GitHub remote gh can resolve?
+    typeof executeCommand("gh repo view --json nameWithOwner", true) === "object"
+  ) {
+    console.log(
+      "\x1b[33mGitHub CLI unavailable, not authenticated, or no GitHub remote detected.\x1b[0m"
+    );
+    manualHint();
+    return;
+  }
+
+  const wire = await confirm({
+    message:
+      "Set CI/CD credentials on GitHub now (enables push-to-main → production deploy + PR previews)?",
+    initialValue: true,
+  });
+  if (isCancel(wire) || !wire) {
+    manualHint();
+    return;
+  }
+
+  // 1. Account ID → repo variable (we already resolved it above; prompt if not).
+  let resolvedAccountId = accountId;
+  if (!resolvedAccountId) {
+    const entered = await text({
+      message: "Cloudflare account ID:",
+    });
+    if (isCancel(entered) || !entered) {
+      manualHint();
+      return;
+    }
+    resolvedAccountId = entered as string;
+  }
+
+  const varSpinner = spinner();
+  varSpinner.start("Setting CLOUDFLARE_ACCOUNT_ID variable...");
+  // Pass the account ID as a discrete argv entry via spawnSync (no shell) so a
+  // crafted value can't inject commands into the developer's shell. See
+  // buildAccountIdVariableArgs / executeArgv.
+  const varResult = executeArgv(
+    "gh",
+    buildAccountIdVariableArgs(resolvedAccountId),
+    true
+  );
+  if (varResult && typeof varResult === "object" && varResult.error) {
+    varSpinner.stop("\x1b[31m✗ Failed to set CLOUDFLARE_ACCOUNT_ID\x1b[0m");
+    console.error(`\x1b[31m${varResult.message}\x1b[0m`);
+  } else {
+    varSpinner.stop("\x1b[32m✓ CLOUDFLARE_ACCOUNT_ID variable set\x1b[0m");
+  }
+
+  // 2. API token → repo secret (sensitive → masked prompt).
+  console.log(
+    "\x1b[2mCreate a token at https://dash.cloudflare.com/profile/api-tokens\n" +
+      "  from the 'Edit Cloudflare Workers' template, then add 'D1:Edit'\n" +
+      "  (needed to run migrations in CI). Leave blank to skip.\x1b[0m"
+  );
+  const token = await password({
+    message: "Cloudflare API token (input hidden):",
+  });
+  if (isCancel(token) || !token) {
+    console.log(
+      "\x1b[33mSkipped CLOUDFLARE_API_TOKEN. Set it later with:\n" +
+        "  gh secret set CLOUDFLARE_API_TOKEN\x1b[0m"
+    );
+    return;
+  }
+
+  const secretSpinner = spinner();
+  secretSpinner.start("Setting CLOUDFLARE_API_TOKEN secret...");
+  // Pass the token via stdin (not argv) so it never lands in the process list.
+  let secretError: string | undefined;
+  try {
+    execSync("gh secret set CLOUDFLARE_API_TOKEN", {
+      input: token as string,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  } catch (error: any) {
+    secretError = error.stdout || error.stderr || String(error);
+  }
+  if (secretError) {
+    secretSpinner.stop("\x1b[31m✗ Failed to set CLOUDFLARE_API_TOKEN\x1b[0m");
+    console.error(`\x1b[31m${secretError}\x1b[0m`);
+    console.log(
+      "\x1b[33mSet it later with: gh secret set CLOUDFLARE_API_TOKEN\x1b[0m"
+    );
+  } else {
+    secretSpinner.stop("\x1b[32m✓ CLOUDFLARE_API_TOKEN secret set\x1b[0m");
+    console.log(
+      "\x1b[32m🚀 CI/CD wired — pushes to main will now auto-deploy to production.\x1b[0m"
+    );
+  }
+}
+
 // Main setup function
+/**
+ * Reset the inherited `.brain` state on a repo cloned from this template.
+ *
+ * This repo IS a template, and `.brain/` is committed — 96 files of it. So every
+ * cloned app was born believing it had already shipped this template's eight
+ * features, with a rolling cursor whose top entry was another project's release
+ * and five dated run notes to match. `brain progress` — the harness's own
+ * designated session-start recovery path — handed a fresh app someone else's
+ * state. That is context drift installed as a default, and it was silent because
+ * the inherited features are *half* true: the code really does implement auth,
+ * admin, and upload, so nothing reads as obviously stale.
+ *
+ * `brain init --state-only` wipes the state subsystem (features/, runs/, plans/,
+ * screenshots/, evals/) and keeps the docs (rules/, recipes/, codebase/,
+ * high-level-architecture/, HARNESS.md, verify.json) — the clone inherits the
+ * STACK along with the code, but not another project's history.
+ *
+ * Skipped, never failed: setup must not die because an optional CLI is absent.
+ */
+async function resetBrainState(): Promise<void> {
+  if (!fs.existsSync(".brain")) return;
+
+  const brainOnPath =
+    spawnSync("brain", ["--help"], { stdio: "ignore" }).status === 0;
+  // Pinned, like every other brain-axi invocation in this repo. An unpinned
+  // fallback meant the destructive path was the ONE place that ran whatever was
+  // on main at that moment.
+  const runner: [string, string[]] = brainOnPath
+    ? ["brain", []]
+    : ["npx", ["-y", "github:SeanningTatum/brain-axi#v0.1.0"]];
+
+  // Name what is about to be deleted. `--state-only` wipes features/ WHOLE,
+  // which includes the memos for authentication, file-upload, admin-dashboard —
+  // code this clone genuinely inherits. Losing the tracker rows is the point;
+  // losing those memos is a real cost, and the operator should see the list
+  // rather than discover it later.
+  let doomed: string[] = [];
+  try {
+    doomed = fs
+      .readdirSync(path.join(".brain", "features"), { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+  } catch {
+    // no features dir — nothing to enumerate
+  }
+  if (doomed.length) {
+    console.log(
+      `\x1b[33m  This deletes ${doomed.length} inherited feature folder(s), memos included: ${doomed.join(", ")}\x1b[0m`
+    );
+    console.log(
+      "\x1b[33m  The code stays; the docs describing it do not. Copy anything you want to keep first.\x1b[0m"
+    );
+  }
+
+  const reset = await confirm({
+    message:
+      "Reset the inherited .brain state? (clears this template's features/runs/plans, keeps its rules/recipes/docs)",
+    // Defaults to NO. This is irreversible and ran with initialValue: true as
+    // the first action of setup — one stray Enter destroyed the memos above.
+    initialValue: false,
+  });
+  if (isCancel(reset) || !reset) {
+    console.log(
+      "\x1b[33m  Skipped — note that `brain progress` will report this template's history, not yours.\x1b[0m"
+    );
+    return;
+  }
+
+  const res = spawnSync(
+    runner[0],
+    [...runner[1], "init", "--state-only", "--dir", ".", "--yes"],
+    { stdio: "inherit" }
+  );
+  if (res.status !== 0) {
+    console.log(
+      "\x1b[33m  Could not reset brain state (is brain-axi installed?). Run this yourself:\x1b[0m"
+    );
+    console.log(
+      "\x1b[33m    npx -y github:SeanningTatum/brain-axi init --state-only --dir . --yes\x1b[0m"
+    );
+    return;
+  }
+  console.log("\x1b[32m  Brain state reset — features/ and runs/ are yours now.\x1b[0m");
+}
+
 async function main() {
   intro("🚀 Cloudflare SaaS Stack - First-Time Setup");
 
@@ -343,6 +589,13 @@ async function main() {
     process.exit(1);
   }
   console.log("\x1b[32m✓ Authenticated with Cloudflare\x1b[0m");
+
+  // AFTER the auth gate, deliberately. This ran as the very first action in
+  // main(), before the check above — so anyone who hit "not logged in" and
+  // stopped had already had .brain/features/ deleted by a prompt that defaulted
+  // to yes. Irreversible work must sit behind every cheap precondition, not in
+  // front of them.
+  await resetBrainState();
 
   // Check for multiple accounts and prompt for selection if needed
   const accounts = extractAccountDetails(whoamiOutput);
@@ -582,6 +835,13 @@ async function main() {
   uploadSecret("production", "");
   uploadSecret("preview", " --env preview");
 
+  // Step 11: Wire up GitHub Actions CI/CD credentials (optional).
+  // Sets the repo VARIABLE CLOUDFLARE_ACCOUNT_ID and the repo SECRET
+  // CLOUDFLARE_API_TOKEN that .github/workflows/{deploy,preview}.yml need to
+  // deploy on push to main / per-PR. Entirely opt-in and skipped cleanly if
+  // the GitHub CLI isn't available.
+  await setupGitHubCiCredentials(accountId);
+
   // Final instructions
   console.log("\n\x1b[36m✅ Setup Complete!\x1b[0m\n");
   console.log("\x1b[32mNext steps:\x1b[0m");
@@ -591,16 +851,25 @@ async function main() {
   console.log(
     `     \x1b[33mhttps://${projectName}.<subdomain>.workers.dev\x1b[0m\n`
   );
-  console.log("  3. Preview deploys happen automatically per-PR via:");
-  console.log("     \x1b[33m.github/workflows/preview.yml\x1b[0m");
+  console.log("  3. CI/CD (GitHub Actions):");
   console.log(
-    "     (requires the repo variable \x1b[33mCLOUDFLARE_ACCOUNT_ID\x1b[0m and the secret \x1b[33mCLOUDFLARE_API_TOKEN\x1b[0m to be set on GitHub)\n"
+    "     \x1b[33m.github/workflows/deploy.yml\x1b[0m — push to main auto-deploys to production (after CI passes)"
+  );
+  console.log(
+    "     \x1b[33m.github/workflows/preview.yml\x1b[0m — every PR gets its own preview deployment"
+  );
+  console.log(
+    "     (both require the repo variable \x1b[33mCLOUDFLARE_ACCOUNT_ID\x1b[0m and the secret \x1b[33mCLOUDFLARE_API_TOKEN\x1b[0m on GitHub — Step 11 above sets these for you if the GitHub CLI is available)\n"
   );
 
   outro("✨ Happy building! 🎉");
 }
 
-main().catch((error) => {
-  console.error("\x1b[31mUnexpected error:\x1b[0m", error);
-  process.exit(1);
-});
+// Only run the interactive setup when executed directly (e.g. `bun setup`),
+// not when imported (e.g. by unit tests). Mirrors scripts/seed-preview.ts.
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error("\x1b[31mUnexpected error:\x1b[0m", error);
+    process.exit(1);
+  });
+}
