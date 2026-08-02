@@ -138,8 +138,34 @@ No browser walk: this sync changes no user-visible surface. Tracing is dark by d
   12 slugs are on it. Same for the 4 entries on the try/catch and test-parity lists.
 - `.mcp.json` declares a Refero MCP server needing `REFERO_MCP_TOKEN`; unset, it just fails to
   connect. Delete the file if the claude.ai Refero connector is preferred.
-- `.claude/settings.json` enables `ui-ux-pro-max` from a **third-party** marketplace
-  (`nextlevelbuilder/ui-ux-pro-max-skill`) and drops `frontend-design`. Inherited from upstream
-  #21 — worth a look before relying on it.
+- ~~`.claude/settings.json` enables `ui-ux-pro-max` from a **third-party** marketplace~~
+  **Resolved** in the PR #16 review pass below — the marketplace was dropped from repo settings.
 - Verify the focus ring actually paints (see step 6) — currently an open question in
   `ui-builder.md`, not a confirmed defect.
+
+## PR #16 review pass — Greptile (2026-08-02)
+
+Greptile returned 2 findings, both supply-chain, both graded P1 (security) by the
+`/resolve-comments` ruleset and therefore **escalated to the user, not auto-applied**. Neither is
+a defect in the ported code; both are trust-boundary questions the sync inherited.
+
+**1 — `ci.yml` installed `brain-axi` from a mutable tag.** Decision: **pin the commit.** All three
+install steps now use `github:SeanningTatum/brain-axi#bbab2cc26145dfebea4e0b05090ef8779d564a9d`
+(= `v0.2.0`, resolved with `git ls-remote … refs/tags/v0.2.0^{}`). This matters more here than in
+the template: that CLI decides whether the baseline passes, and a green baseline is exactly what
+arms `deploy.yml`, so a moved tag could substitute the code that authorises a production deploy.
+`AGENTS.md` keeps the readable `#v0.2.0` spec for local installs and documents why CI differs.
+`CHANGELOG.md` was left alone — it is a historical record of what shipped, not a live config.
+Out of scope, noted: `scripts/first-time-setup.ts` still `npx`-fallbacks to `#v0.1.0`; it is a
+one-shot scaffolding path, not a gate.
+
+**2 — `.claude/settings.json` enabled `ui-ux-pro-max` from an unversioned third-party
+marketplace.** Decision: **drop it from repo settings.** Greptile's suggested fix — pin the
+marketplace to an immutable revision — is not implementable: Claude Code marketplace sources take
+only `{source, repo}` or `{source, url}`, and no marketplace in the local registry carries a ref.
+So the choice was keep-or-remove, and since home-karaoke is public, the repo entry's real effect
+was opting **contributors** into a third-party plugin that then runs with their user privileges.
+Removed `extraKnownMarketplaces` + the `enabledPlugins` entry. Anyone who wants it can still
+enable it at user level. Dereferenced in `AGENTS.md` (2 rows), `rule-router.sh`, and
+`design-research.md` step 6 — which now states the plugin is optional and gives a manual +
+`bun run design:audit` fallback, so the a11y cross-check still happens without it.

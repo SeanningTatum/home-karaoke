@@ -27,10 +27,13 @@ Steps:
 
    If the `refero` MCP tools are unavailable (`REFERO_MCP_TOKEN` unset), say so plainly, fall back to the skill's bundled craft references, and note the degradation in the run note. Never substitute training-data taste silently.
 
-6. **Cross-check with `ui-ux-pro-max`** (tier 1) for the non-negotiable rules Refero does not enforce: contrast ≥ 4.5:1, 44×44 touch targets, focus rings intact, visible labels, error near field, reduced-motion, no horizontal scroll, chart legends/tooltips.
+6. **Cross-check the rules Refero does not enforce** (tier 1): contrast ≥ 4.5:1, 44×44 touch targets, focus rings intact, visible labels, error near field, reduced-motion, no horizontal scroll, chart legends/tooltips.
+
+   `ui-ux-pro-max` is the reference lookup for these, but it is **not installed by this repo** — it comes from a third-party marketplace, so opting contributors in from `.claude/settings.json` was deliberately dropped (see the run note for 2026-08-01). If you have it enabled at user level:
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/search.py" "<query>" --domain ux
    ```
+   If you do not, check the list above by hand against the rendered surface (`bun run design:audit -- --url <url>` measures contrast and rhythm) and note the degradation in the run note. Never skip the checks just because the lookup is absent.
 
 7. **Offer three reference-locked directions and let the user choose.** This is the skill's own workflow for a landing page or other high-visibility surface, and skipping it is how a surface ends up with the safest available direction. Each option: primary source + traits to preserve + borrowed details + media strategy + rejects. Do not proceed on your own preference.
 

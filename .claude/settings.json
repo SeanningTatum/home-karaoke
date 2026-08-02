@@ -1,12 +1,4 @@
 {
-  "extraKnownMarketplaces": {
-    "ui-ux-pro-max-skill": {
-      "source": {
-        "source": "github",
-        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
-      }
-    }
-  },
   "enabledPlugins": {
     "code-review@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
@@ -17,8 +9,7 @@
     "typescript-lsp@claude-plugins-official": true,
     "github@claude-plugins-official": true,
     "auth-skills@better-auth-agent-skills": true,
-    "claude-md-management@claude-plugins-official": true,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+    "claude-md-management@claude-plugins-official": true
   },
   "permissions": {
     "deny": [

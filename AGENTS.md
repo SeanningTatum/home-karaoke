@@ -18,6 +18,8 @@ The `.brain/` harness is driven by the **[brain-axi](https://github.com/Seanning
 
 Install: `npx skills add SeanningTatum/brain-axi --skill brain` (installs the `brain` Agent Skill). CLI on PATH via `npm i -g github:SeanningTatum/brain-axi#v0.2.0` (or `npm link` from a checkout); it is **not** on npm, so any fallback uses the pinned GitHub spec: `npx -y github:SeanningTatum/brain-axi#v0.2.0 <cmd>`. v0.2.0 is the first release carrying the state-integrity gates (`check --strict`, receipts, index-drift) that CI enforces.
 
+> **CI pins the commit, not the tag.** [`ci.yml`](.github/workflows/ci.yml) installs `brain-axi#bbab2cc26145dfebea4e0b05090ef8779d564a9d` (= `v0.2.0`) because that CLI decides whether the baseline passes, and a green baseline is what arms [`deploy.yml`](.github/workflows/deploy.yml) — a moved tag must not be able to substitute the code that authorises a production deploy. The tag spec above is fine for local installs. When bumping, resolve the new tag first: `git ls-remote https://github.com/SeanningTatum/brain-axi refs/tags/vX.Y.Z^{}`.
+
 | Phase | Command |
 |-------|---------|
 | Orient | `brain` (dashboard) · `brain progress` (last checkpoint) · `brain features` |
@@ -50,7 +52,7 @@ Thin wrappers that sequence `brain` CLI commands with repo-specific steps (basel
 | [`/verify-done`](.claude/commands/verify-done.md) | Full verification — `test-author` (tests that pin the change)/typecheck/test/e2e smoke/build/feature-verification/brain coherence/non-negotiables + `brain check`. |
 | [`/ship-feature`](.claude/commands/ship-feature.md) | Close out — verify-done + `brain ship <slug> --evidence` (flips `feature_list.json`, checkpoints, runs `brain check`) + update feature MD + close run note. |
 | [`/build-feature`](.claude/commands/build-feature.md) | Multi-layer feature build with the sub-agents **fanned out in parallel** — orient (3 read-only lanes) → fix the contract (the one sequential step) → build lanes on **disjoint paths** → verify lanes at once (gates · non-negotiables · spans · browser walk · design critique) → synthesis. ~13 agents for a UI feature. Does not commit, does not touch brain state, does not decide for you. |
-| [`/design-research`](.claude/commands/design-research.md) | Tier-2 frontend gate — Refero MCP (styles → screens → flows) via `refero-design` + `ui-ux-pro-max` a11y cross-check → one dominant direction + decision ledger in the brain, before any JSX. Tier-1 UI (another modal/table, spacing fix) skips it. |
+| [`/design-research`](.claude/commands/design-research.md) | Tier-2 frontend gate — Refero MCP (styles → screens → flows) via `refero-design` + an a11y cross-check (`ui-ux-pro-max` if you have it at user level — this repo does not install it) → one dominant direction + decision ledger in the brain, before any JSX. Tier-1 UI (another modal/table, spacing fix) skips it. |
 | [`/harness-check`](.claude/commands/harness-check.md) | Validate harness invariants via [`scripts/harness-check.sh`](scripts/harness-check.sh) = `brain check` + repo supplement (sync rule, sub-agent frontmatter, dead links, hook wiring + hook tests). Deterministic, no LLM, exits non-zero on drift. |
 
 ## Harness — what holds this together
@@ -108,7 +110,7 @@ Direct pointers (each rule is the canonical "do / don't" for one layer):
 
 | # | Rule | Layer |
 |---|------|-------|
-| 1 | [`.brain/rules/frontend.md`](.brain/rules/frontend.md) | UI, forms, modals, Tailwind, `ui-ux-pro-max` design lookup, feature-verifier browser walk |
+| 1 | [`.brain/rules/frontend.md`](.brain/rules/frontend.md) | UI, forms, modals, Tailwind, design lookup, feature-verifier browser walk |
 | 2 | [`.brain/rules/cloudflare.md`](.brain/rules/cloudflare.md) | Workers runtime, bindings, env, Workflows declaration |
 | 3 | [`.brain/rules/repository.md`](.brain/rules/repository.md) | `Effect.Service` repos, Drizzle schema, repo inputs |
 | 4 | [`.brain/rules/services.md`](.brain/rules/services.md) | Effect Tags + Layers, Better Auth, Workflows, Session, Logger |
