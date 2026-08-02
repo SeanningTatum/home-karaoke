@@ -7,6 +7,7 @@ import { WorkflowsLive, type Workflows } from "@/services/workflows";
 import { YouTubeLive, type YouTube } from "@/services/youtube";
 import { KaraokeRoomsLive, type KaraokeRooms } from "@/services/karaoke-rooms";
 import { LoggerLive, MinLogLevelLive } from "@/services/logger";
+import { TracingLayer } from "@/services/tracing";
 import { UserRepository } from "@/repositories/user";
 import { BucketRepository } from "@/repositories/bucket";
 import { RoomRepository } from "@/repositories/room";
@@ -46,7 +47,11 @@ export const makeAppRuntime = (env: Env, baseURL?: string) => {
   const layer = reposLayer
     .pipe(Layer.provideMerge(baseLayer))
     .pipe(Layer.provide(CloudflareEnvLive(env)))
-    .pipe(Layer.provideMerge(Layer.merge(LoggerLive, MinLogLevelLive)));
+    .pipe(
+      Layer.provideMerge(
+        Layer.mergeAll(LoggerLive, MinLogLevelLive, TracingLayer(env))
+      )
+    );
   return ManagedRuntime.make(layer);
 };
 

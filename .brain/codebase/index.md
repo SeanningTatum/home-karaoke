@@ -12,6 +12,7 @@ How we write code in this repo. Code-level patterns, conventions, helpers, test 
 | [`api.md`](api.md) | tRPC routes, auth endpoints, file upload API, procedure types, context object | Adding/calling a tRPC route |
 | [`features.md`](features.md) | Authentication, Admin Dashboard, Documentation, File Upload, Analytics — feature-level overview | Onboarding to a feature area before drilling into code |
 | [`design-system.md`](design-system.md) | Karaoke "night-club stage" design system pointer — tokens, typography (incl. TV scale), theme default; full detail in repo-root `design.md` | Touching any user-visible surface — landing, auth, dashboard, `/room`, `/join` |
+| [`observability.md`](observability.md) | OTLP trace export — span naming (`trpc.*` server, `db.*`/`<service>.*` client), attribute rules (no PII), env-driven enablement, log↔trace correlation, debugging flow | Adding a tRPC procedure or outbound service call; debugging a slow or failing request |
 | [`llms-txt.md`](llms-txt.md) | Library `llms.txt` catalog — Better Auth, Effect TS, Cloudflare. How to fetch (context7 MCP preferred, WebFetch fallback) and when not to | Reaching for library docs — recall feels stale, version-specific behavior, non-trivial library API |
 
 ## Five non-negotiables
